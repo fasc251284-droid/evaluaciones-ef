@@ -1914,7 +1914,9 @@ function vistaCurso() {
   return `
   <div class="tarjeta">
     <h2>Nómina de ${esc(curso.nombre)}</h2>
-    <p class="sub" style="margin:2px 0 12px">${S.datos.roster.length} estudiantes. Los cambios se aplican a todas las listas del curso.</p>
+    <p class="sub" style="margin:2px 0 12px">${S.datos.roster.filter((n) => n.trim()).length} estudiantes
+      ${S.datos.roster.filter((n) => !n.trim()).length ? `· ${S.datos.roster.filter((n) => !n.trim()).length} casilleros en blanco` : ""}.
+      Los cambios se aplican a todas las listas del curso.</p>
     <div class="fila" style="margin-bottom:12px">
       <input type="text" id="nuevo-alumno" placeholder="Nombre y apellido" style="flex:1;min-width:150px">
       <button class="btn btn-mini btn-lleno" data-accion="agregar-alumno">Agregar</button>
@@ -1922,10 +1924,19 @@ function vistaCurso() {
     ${S.datos.roster.length ? S.datos.roster.map((n, i) => `
       <div class="alumno-cab" style="padding:5px 0;border-top:1px solid var(--line)">
         <span class="n-orden">${String(i + 1).padStart(2, "0")}</span>
-        <input type="text" data-campo="alumno" data-i="${i}" value="${esc(n)}" style="flex:1;padding:6px 8px;font-size:14px">
+        <input type="text" data-campo="alumno" data-i="${i}" value="${esc(n)}" placeholder="Nombre y apellido" style="flex:1;padding:6px 8px;font-size:14px">
         <button class="btn btn-mini btn-peligro" data-accion="borrar-alumno" data-i="${i}">×</button>
-      </div>`).join("") : `<div class="vacio"><strong>Nómina vacía</strong>Pega la lista del curso para empezar.</div>`}
-    <div class="fila" style="margin-top:14px">
+      </div>`).join("") : `<div class="vacio"><strong>Nómina vacía</strong>
+      Crea los casilleros y escribe los nombres uno por uno, o pega la lista completa de una vez.
+      <div class="fila" style="justify-content:center;margin-top:14px">
+        <button class="btn btn-lleno" data-accion="sumar-casilleros" data-n="25">Crear 25 casilleros</button>
+        <button class="btn" data-accion="pegar-nomina">Pegar lista completa</button>
+      </div></div>`}
+    ${S.datos.roster.length ? `<div class="fila" style="margin-top:12px">
+      <button class="btn btn-mini" data-accion="sumar-casilleros" data-n="1">+ 1 casillero</button>
+      <button class="btn btn-mini" data-accion="sumar-casilleros" data-n="5">+ 5 casilleros</button>
+    </div>` : ""}
+    <div class="fila fila-peligro">
       <button class="btn btn-mini" data-accion="pegar-nomina">Pegar lista completa</button>
       <button class="btn btn-mini" data-accion="copiar-nomina">Copiar desde otro curso</button>
     </div>
@@ -2334,6 +2345,18 @@ document.addEventListener("click", async (evt) => {
   }
 
   /* --- nómina --- */
+  if (a === "sumar-casilleros") {
+    const n = +btn.dataset.n || 1;
+    for (let k = 0; k < n; k++) {
+      S.datos.roster.push("");
+      S.datos.evaluaciones.forEach((e) => {
+        e.marcas.push(e.criterios.map((c) => Array(c.indicadores.length).fill(0)));
+        e.datos.push(e.criterios.map(() => 0));
+        e.estado.push(0); e.obs.push("");
+      });
+    }
+    marcarCambio(); pintar(); return;
+  }
   if (a === "agregar-alumno") {
     const campo = $("#nuevo-alumno"); const nom = campo.value.trim();
     if (!nom) return;
