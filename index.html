@@ -263,18 +263,20 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .planilla th.col-fija{background:#1f6d99; color:#fff}
 .planilla .th-grupo{
   border-left:1px solid rgba(255,255,255,.25); font-size:11px; font-weight:600;
-  white-space:normal; min-width:120px; padding:7px 8px; text-align:center;
+  white-space:normal; min-width:150px; padding:7px 8px; text-align:center;
+  line-height:1.35; vertical-align:top;
 }
 .rot-crit{display:inline-block; background:rgba(255,255,255,.2); border-radius:5px; padding:1px 5px; margin-right:4px; font-family:var(--mono); font-size:10px}
 .btn-mas{margin-left:6px; border:1px solid rgba(255,255,255,.5); background:transparent; color:#fff; border-radius:6px; width:22px; height:22px; font-size:14px; line-height:1}
-.planilla .th-ind{border-left:1px solid rgba(255,255,255,.18); padding:5px 6px; min-width:112px}
+.planilla .th-ind{border-left:1px solid rgba(255,255,255,.18); padding:5px 6px; min-width:150px; vertical-align:top}
 .planilla .rot-crit{font-size:9.5px}
-.planilla .th-ind input{
+.planilla .th-ind textarea{
   width:100%; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3);
   color:#fff; font-size:11px; padding:5px 6px; border-radius:6px; text-align:center;
+  font-family:inherit; line-height:1.35; resize:vertical; min-height:52px; white-space:pre-wrap;
 }
-.planilla .th-ind input::placeholder{color:rgba(255,255,255,.6)}
-.planilla .th-ind input:focus{background:#fff; color:var(--ink); box-shadow:none; border-color:#f0a500}
+.planilla .th-ind textarea::placeholder{color:rgba(255,255,255,.6)}
+.planilla .th-ind textarea:focus{background:#fff; color:var(--ink); box-shadow:none; border-color:#f0a500}
 .btn-todos{margin-top:4px; border:1px solid rgba(255,255,255,.45); background:rgba(255,255,255,.12); color:#fff; border-radius:6px; padding:2px 9px; font-size:11px}
 .sub-blanco{font-size:10.5px; color:rgba(255,255,255,.8)}
 .th-lnl{font-size:10px; padding:3px 4px; background:#17587e !important; color:rgba(255,255,255,.9); font-weight:600}
@@ -1467,7 +1469,7 @@ function panelAjustes(ev) {
                  : `<span class="sub">Sin objetivo asociado</span>`}
           <button class="btn btn-mini btn-peligro" style="margin-left:auto" data-accion="borrar-criterio" data-j="${j}" ${ev.criterios.length <= 1 ? "disabled" : ""} title="Quitar criterio">×</button>
         </div>
-        <textarea data-campo="criterio" data-j="${j}" rows="2" placeholder="Criterio, dimensión u objetivo de aprendizaje" style="width:100%;min-height:54px">${esc(c.texto)}</textarea>
+        <textarea data-campo="criterio" data-j="${j}" rows="4" placeholder="Objetivo de aprendizaje" style="width:100%;min-height:92px">${esc(c.texto)}</textarea>
         ${esEscala(ev) ? "" : `<div style="padding-left:24px">
           ${c.indicadores.map((ind, q) => `
             <div class="criterio-edit">
@@ -1598,7 +1600,7 @@ function vistaPlanilla(ev) {
           <th class="izq col-fija" rowspan="3">ESTUDIANTE</th>
           <th rowspan="3">ASIS.</th>
           ${ev.criterios.map((c, j) => `<th class="th-grupo" colspan="${esEscala(ev) ? 1 : c.indicadores.length * 2}">
-            <span class="rot-crit">${esc(c.oa || "C" + (j + 1))}</span> ${esc(recorte(c.texto || "Criterio " + (j + 1), 90))}
+            <span class="rot-crit">${esc(c.oa || "Sin OA")}</span> ${esc(c.texto || "Objetivo sin redactar")}
             ${esEscala(ev) ? "" : `<button class="btn-mas" data-accion="agregar-indicador" data-j="${j}" title="Agregar indicador">+</button>`}
           </th>`).join("")}
           <th rowspan="3">PTS</th><th rowspan="3">NOTA</th><th rowspan="3">OBS</th>
@@ -1607,7 +1609,7 @@ function vistaPlanilla(ev) {
           ${esEscala(ev)
             ? ev.criterios.map(() => `<th class="th-ind"><span class="sub-blanco">escala 1–${nNiveles(ev)}</span></th>`).join("")
             : ev.criterios.map((c, j) => c.indicadores.map((ind, q) => `<th colspan="2" class="th-ind">
-              <input type="text" data-campo="indicador" data-j="${j}" data-q="${q}" value="${esc(ind.texto)}" placeholder="Indicador ${q + 1}">
+              <textarea data-campo="indicador" data-j="${j}" data-q="${q}" rows="3" placeholder="Indicador ${q + 1}">${esc(ind.texto)}</textarea>
               <span class="pts-pill">${ind.pts} pts</span>
               <button class="btn-todos" data-accion="todos-marca" data-j="${j}" data-q="${q}" title="Marcar logrado a todo el curso">✓✓</button>
             </th>`).join("")).join("")}
