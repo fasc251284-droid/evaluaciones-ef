@@ -1459,8 +1459,8 @@ function panelAjustes(ev) {
     ${ev.criterios.map((c, j) => `
       <div class="bloque-criterio">
         <div class="fila" style="gap:6px;margin-bottom:6px">
-          <span class="idx mono">C${j + 1}</span>
-          ${c.oa ? `<span class="oa-chip">${esc(c.oa)}</span><span class="sub">${esc(EJES[c.eje] || "")}</span>` : `<span class="sub">criterio propio</span>`}
+          ${c.oa ? `<span class="oa-chip">${esc(c.oa)}</span><span class="sub">${esc(EJES[c.eje] || "")}</span>`
+                 : `<span class="idx mono">C${j + 1}</span><span class="sub">criterio propio</span>`}
           <button class="btn btn-mini btn-peligro" style="margin-left:auto" data-accion="borrar-criterio" data-j="${j}" ${ev.criterios.length <= 1 ? "disabled" : ""} title="Quitar criterio">×</button>
         </div>
         <textarea data-campo="criterio" data-j="${j}" rows="2" placeholder="Criterio, dimensión u objetivo de aprendizaje" style="width:100%;min-height:54px">${esc(c.texto)}</textarea>
@@ -1486,7 +1486,6 @@ function panelAjustes(ev) {
           ${opcionesOAsHTML(S.cursoId, ev)}
         </select></label>
       <div class="fila">
-        <button class="btn btn-mini btn-lleno" data-accion="agregar-criterio">+ Agregar otro criterio</button>
         <button class="btn btn-mini" data-accion="oa-picker">Ver los objetivos completos</button>
       </div>
     </div>
@@ -1659,9 +1658,9 @@ function vistaPorCriterio(ev) {
   return `
   <div class="tarjeta">
     <div class="fila no-imprimir" style="gap:5px;margin-bottom:10px;overflow-x:auto">
-      ${ev.criterios.map((x, k) => `<button class="chip-crit" data-accion="criterio" data-j="${k}" aria-pressed="${k === j}">C${k + 1}</button>`).join("")}
+      ${ev.criterios.map((x, k) => `<button class="chip-crit" data-accion="criterio" data-j="${k}" aria-pressed="${k === j}">${esc(x.oa || "C" + (k + 1))}</button>`).join("")}
     </div>
-    ${c.oa ? `<div class="fila" style="gap:6px;margin-bottom:4px"><span class="oa-chip">${esc(c.oa)}</span><span class="sub">${esc(EJES[c.eje] || "")}</span></div>` : ""}
+    ${c.oa ? `<p class="sub" style="margin:0 0 4px">${esc(EJES[c.eje] || "")}</p>` : ""}
     <h2 style="font-size:15px;line-height:1.35">${esc(c.texto || "Criterio " + (j + 1))}</h2>
     ${esEscala(ev) ? `<p class="sub" style="margin:6px 0 0">${leyendaEscala(ev)}</p>`
       : `<ol class="lista-ind">${c.indicadores.map((ind, q) => `<li><b class="mono">${q + 1}</b> ${esc(ind.texto || "Indicador sin redactar")} <span class="pts-pill oscuro">${ind.pts} pts</span></li>`).join("")}</ol>`}
