@@ -1,0 +1,15 @@
+{
+  "name": "Evaluaciones EF y Salud",
+  "short_name": "Evaluaciones EF",
+  "description": "Escala de apreciación 1–4 con nota calculada para Educación Física y Salud, 1° a 8° básico",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f9fb",
+  "theme_color": "#2b8fc7",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,2643 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Evaluaciones EF y Salud</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Evaluaciones EF">
+<meta name="theme-color" content="#2b8fc7">
+<style>
+:root{
+  --bg:#f5f9fb; --surface:#fff; --surface-2:#eef5f9;
+  --ink:#14303d; --soft:#5a7382; --line:#d7e3ea;
+  --verde:#2b8fc7; --verde-oscuro:#1f6d99; --verde-claro:#e3f1fa;
+  --n1:#c0392b; --n2:#e0a50f; --n3:#7fa83f; --n4:#2e9e6b;
+  --alerta:#c0392b;
+  --r:12px; --r-s:8px;
+  --display:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--body);
+  font-size:16px; line-height:1.45; -webkit-text-size-adjust:100%;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+h1,h2,h3{font-family:var(--display); font-weight:700; letter-spacing:-.015em; margin:0}
+button,input,select,textarea{font:inherit; color:inherit}
+button{cursor:pointer}
+.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+.oculto{display:none !important}
+
+/* ---------- Estructura ---------- */
+.envoltura{max-width:900px; margin:0 auto; padding:0 14px 120px}
+.barra-sup{
+  position:sticky; top:0; z-index:30; color:#fff;
+  background:linear-gradient(180deg,#3aa0d6,#1f6d99);
+  border-bottom:4px solid #f0a500;
+  padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
+}
+.barra-sup .interior{max-width:900px; margin:0 auto; display:flex; align-items:center; gap:10px}
+.marca{font-family:var(--display); font-size:15px; font-weight:700; letter-spacing:-.01em; line-height:1.15}
+.marca small{display:block; font-family:var(--body); font-weight:400; font-size:11px; opacity:.75; letter-spacing:.04em; text-transform:uppercase}
+.estado{margin-left:auto; display:flex; align-items:center; gap:8px; font-size:11.5px; opacity:.9}
+.punto{width:8px; height:8px; border-radius:50%; background:#9FD8BE}
+.punto.trabajando{background:#F3D26A; animation:latido 1s infinite}
+.punto.error{background:#F2A099}
+@keyframes latido{50%{opacity:.35}}
+.btn-salir{background:rgba(255,255,255,.14); border:0; color:#fff; border-radius:8px; padding:5px 9px; font-size:12px}
+
+/* ---------- Cursos ---------- */
+.cursos{display:grid; grid-template-columns:repeat(4,1fr); gap:7px; padding:12px 0 4px}
+.curso{
+  padding:8px 4px; border-radius:var(--r-s); border:1px solid var(--line);
+  background:var(--surface); color:var(--verde); text-align:center; line-height:1.1;
+}
+.curso b{display:block; font-size:17px; font-weight:700}
+.curso small{display:block; font-size:8.5px; letter-spacing:.09em; color:var(--soft); margin-top:2px}
+.curso[aria-pressed="true"]{background:var(--verde); border-color:var(--verde); color:#fff; box-shadow:inset 0 -3px 0 #f0a500}
+.curso[aria-pressed="true"] small{color:rgba(255,255,255,.82)}
+/* fila de criterios en la vista por criterio */
+.chip-crit{flex:0 0 auto; min-width:44px; padding:8px 10px; border-radius:var(--r-s); border:1px solid var(--line); background:var(--surface); color:var(--soft); font-weight:600}
+.chip-crit[aria-pressed="true"]{background:var(--verde); border-color:var(--verde); color:#fff}
+
+/* ---------- Pestañas ---------- */
+.pestanas{display:flex; gap:2px; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-s); padding:3px; margin:10px 0 14px}
+.pestana{flex:1; border:0; background:transparent; border-radius:7px; padding:8px 4px; font-size:13.5px; font-weight:500; color:var(--soft)}
+.pestana[aria-pressed="true"]{background:var(--verde-claro); color:var(--verde-oscuro); font-weight:600}
+
+/* ---------- Tarjetas ---------- */
+.tarjeta{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:14px; margin-bottom:12px}
+.tarjeta > h2{font-size:16px; margin-bottom:2px}
+.sub{color:var(--soft); font-size:12.5px}
+.fila{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.fila-sep{justify-content:space-between}
+.pasos{margin:0; padding-left:20px}
+.pasos li{margin-bottom:9px; line-height:1.45; font-size:14px}
+.pasos li:last-child{margin-bottom:0}
+.rotulo-seccion{display:block; font-size:11px; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--soft); margin:16px 0 7px}
+.bloque-seccion{border-top:1px solid var(--line); margin-top:14px; padding-top:2px}
+.fila-peligro{border-top:1px solid var(--line); margin-top:14px; padding-top:11px}
+.campo{display:block; margin-bottom:10px}
+.campo span{display:block; font-size:12px; font-weight:600; color:var(--soft); margin-bottom:4px; letter-spacing:.01em}
+input[type=text],input[type=date],input[type=number],input[type=email],input[type=password],select,textarea{
+  width:100%; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-s);
+  padding:10px 11px; font-size:15px; outline:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--verde); box-shadow:0 0 0 3px var(--verde-claro)}
+textarea{resize:vertical; min-height:76px}
+.btn{
+  border:1px solid var(--line); background:var(--surface); border-radius:var(--r-s);
+  padding:9px 13px; font-size:14px; font-weight:500;
+}
+.btn:active{transform:translateY(1px)}
+.btn-lleno{background:var(--verde); border-color:var(--verde); color:#fff; font-weight:600}
+.btn-peligro{color:var(--alerta); border-color:#E7C4C0}
+.btn-mini{padding:6px 9px; font-size:12.5px; border-radius:7px}
+.btn-ancho{width:100%; justify-content:center}
+
+/* ---------- Medidor de niveles (elemento distintivo) ---------- */
+.medidor{display:grid; grid-template-columns:repeat(4,1fr); gap:4px}
+.nivel{
+  position:relative; border:1px solid var(--line); background:var(--surface-2); border-radius:8px;
+  padding:7px 0 5px; display:flex; flex-direction:column; align-items:center; gap:4px; min-height:46px;
+  transition:background .12s, border-color .12s;
+}
+.nivel .barra{width:14px; border-radius:2px 2px 0 0; background:var(--line)}
+.nivel .num{font-family:var(--mono); font-size:12px; font-weight:600; color:var(--soft); line-height:1}
+.nivel[aria-pressed="true"]{background:var(--c,var(--verde)); border-color:transparent}
+.nivel[aria-pressed="true"] .num{color:#fff}
+.nivel[aria-pressed="true"] .barra{background:rgba(255,255,255,.92)}
+.medidor .nivel:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
+
+/* ---------- Filas de estudiantes ---------- */
+.alumno{border-top:1px solid var(--line); padding:11px 0}
+.alumno:first-of-type{border-top:0}
+.alumno-cab{display:flex; align-items:center; gap:8px; margin-bottom:7px}
+.n-orden{font-family:var(--mono); font-size:11px; color:var(--soft); min-width:20px}
+.nombre{font-weight:500; font-size:14.5px; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.nota{font-family:var(--mono); font-weight:600; font-size:14px; padding:2px 7px; border-radius:6px; background:var(--surface-2); border:1px solid var(--line)}
+.nota.roja{color:var(--n1); border-color:#EBC9C5; background:#FCF2F1}
+.nota.azul{color:var(--verde); border-color:#BEDFCE; background:var(--verde-claro)}
+.marca-est{border:1px solid var(--line); background:var(--surface); border-radius:7px; width:30px; height:30px; font-family:var(--mono); font-size:12px; font-weight:600; color:var(--soft)}
+.marca-est.activa{background:var(--ink); border-color:var(--ink); color:#fff}
+.ausente-aviso{font-size:12px; color:var(--soft); font-style:italic; padding:4px 0}
+.criterio-linea{margin:9px 0 0}
+.criterio-linea .rotulo{font-size:12.5px; color:var(--soft); margin-bottom:5px; display:flex; gap:6px}
+.criterio-linea .rotulo b{font-family:var(--mono); font-weight:600; color:var(--ink); font-size:11.5px}
+.obs-boton{background:none; border:0; padding:4px 0; font-size:12.5px; color:var(--verde); text-decoration:underline; text-underline-offset:2px}
+
+/* ---------- Tabla ---------- */
+.envoltura-tabla{overflow-x:auto; border:1px solid var(--line); border-radius:var(--r); background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:13px}
+th,td{border-bottom:1px solid var(--line); padding:7px 8px; text-align:center; white-space:nowrap}
+th{background:var(--surface-2); font-size:11.5px; font-weight:600; color:var(--soft); text-transform:uppercase; letter-spacing:.03em}
+td.izq,th.izq{text-align:left}
+.col-fija{position:sticky; left:0; background:var(--surface); z-index:2; box-shadow:1px 0 0 var(--line)}
+th.col-fija{background:var(--surface-2); z-index:3}
+.celda-n{font-family:var(--mono); font-weight:600}
+.celda-n[data-v="1"]{color:var(--n1)} .celda-n[data-v="2"]{color:var(--n2)}
+.celda-n[data-v="3"]{color:var(--n3)} .celda-n[data-v="4"]{color:var(--n4)}
+.celda-n[data-v="0"]{color:var(--line)}
+
+/* ---------- Resumen ---------- */
+.metricas{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
+.metrica{background:var(--surface-2); border-radius:var(--r-s); padding:10px; text-align:center}
+.metrica b{display:block; font-family:var(--mono); font-size:20px; font-weight:600}
+.metrica span{font-size:11px; color:var(--soft); letter-spacing:.02em}
+.logro{margin-top:12px}
+.logro-item{margin-bottom:11px}
+.logro-item .rotulo{display:flex; justify-content:space-between; gap:10px; font-size:12.5px; margin-bottom:4px}
+.logro-item .rotulo em{font-family:var(--mono); font-style:normal; font-weight:600}
+.pista{height:7px; border-radius:4px; background:var(--surface-2); overflow:hidden}
+.pista i{display:block; height:100%; border-radius:4px; background:var(--verde)}
+.pista i.baja{background:var(--n2)} .pista i.critica{background:var(--n1)}
+
+/* ---------- Criterios (editor) ---------- */
+.criterio-edit{display:flex; gap:7px; align-items:flex-start; margin-bottom:7px}
+.criterio-edit .idx{font-family:var(--mono); font-size:11px; color:var(--soft); padding-top:12px; min-width:18px}
+
+/* ---------- Casillas de verificación ---------- */
+.cas{
+  width:30px; height:30px; flex:0 0 30px; border-radius:7px; border:1.5px solid #b9cfdc;
+  background:var(--surface); font-size:15px; font-weight:700; color:#fff;
+  display:inline-flex; align-items:center; justify-content:center; line-height:1;
+}
+.cas.si{background:var(--verde); border-color:var(--verde); box-shadow:0 1px 2px rgba(20,48,61,.18)}
+.cas.no.si{background:var(--n1); border-color:var(--n1)}
+.cas.nivel-cas{font-family:var(--mono); font-size:13px; color:var(--soft)}
+.cas:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
+.par-cas{display:inline-flex; gap:5px}
+.par-cas.compacto .cas{width:26px; height:26px; flex:0 0 26px; font-size:13px}
+.indicadores{display:flex; flex-direction:column; gap:9px; margin-top:4px}
+.indicador{display:flex; gap:10px; align-items:center; font-size:13.5px; line-height:1.3}
+.indicador-mini{display:flex; flex-direction:column; align-items:center; gap:3px}
+.indicador-mini b{font-size:10.5px; color:var(--soft)}
+.insignia-nivel{
+  font-family:var(--mono); font-size:11.5px; padding:4px 8px; border-radius:6px;
+  border:1px solid var(--line); color:var(--soft); background:var(--surface-2); white-space:nowrap;
+}
+.insignia-nivel.verde{background:#e6f5ee; border-color:#b9e0cd; color:#1c7a55}
+.insignia-nivel.media{background:#fdf3e0; border-color:#f0d9a8; color:#8a6300}
+.insignia-nivel.roja{background:#fbeeec; border-color:#eecac5; color:#a33327}
+.pts-pill{
+  display:inline-block; font-family:var(--mono); font-size:10px; padding:1px 6px; border-radius:999px;
+  background:rgba(255,255,255,.22); color:#fff; margin-top:3px;
+}
+.pts-pill.oscuro{background:var(--surface-2); color:var(--soft); border:1px solid var(--line)}
+.planilla .th-ind .pts-pill{display:block; width:fit-content; margin:4px auto 0}
+.lista-ind{margin:8px 0 0; padding:0; list-style:none; font-size:13px; color:var(--soft)}
+.lista-ind li{margin:3px 0; display:flex; gap:8px; align-items:baseline}
+.lista-ind b{color:var(--ink); font-size:11.5px}
+.bloque-criterio{border:1px solid var(--line); border-radius:var(--r-s); padding:9px; margin-bottom:9px; background:var(--surface-2)}
+.bloque-criterio textarea,.bloque-criterio input{background:var(--surface)}
+.par-mapa{display:flex; align-items:center; gap:4px}
+/* ---------- Currículum ---------- */
+.oa-chip{
+  display:inline-block; font-family:var(--mono); font-size:10.5px; font-weight:600;
+  background:var(--verde-claro); color:var(--verde-oscuro); border:1px solid #bcdcee;
+  border-radius:5px; padding:2px 6px; white-space:nowrap;
+}
+.caja-oas{max-height:46vh; overflow:auto; border:1px solid var(--line); border-radius:var(--r-s); padding:10px; background:var(--surface-2)}
+.eje-tit{font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--verde-oscuro); margin:10px 0 6px}
+.eje-tit:first-child{margin-top:0}
+.oa-item{
+  display:flex; gap:9px; align-items:flex-start; width:100%; text-align:left;
+  background:var(--surface); border:1px solid var(--line); border-radius:7px;
+  padding:8px 9px; margin-bottom:6px; font-size:12.5px; line-height:1.35;
+}
+.oa-item input{width:auto; flex:0 0 auto; margin-top:2px}
+.oa-item b{color:var(--verde-oscuro)}
+.caja-escala{border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface-2); padding:10px; margin:0 0 14px}
+.rejilla-escala{display:grid; grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); gap:6px; max-height:46vh; overflow:auto}
+.par-nota{
+  display:flex; flex-direction:column; align-items:center; gap:1px; padding:6px 4px;
+  border:1px solid var(--line); border-radius:7px; background:var(--surface);
+}
+.par-nota b{font-size:11px; color:var(--soft); font-weight:600}
+.par-nota i{font-style:normal; font-size:14px; font-weight:600; color:var(--verde)}
+.par-nota.roja i{color:var(--n1)}
+.bloque-unidad{border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface); padding:10px; margin-bottom:10px}
+.titulo-unidad{font-weight:600; font-size:14px; margin:0; color:var(--verde-oscuro); line-height:1.3}
+.fuente{font-size:10.5px; color:var(--soft); margin:12px 0 0; line-height:1.4}
+.par-mapa select{padding:4px 6px; font-size:13px; width:auto}
+
+/* ---------- Cabecera de la evaluación ---------- */
+.titulo-curso{font-size:21px; color:var(--verde); letter-spacing:-.02em}
+.pastilla{
+  display:inline-flex; align-items:center; gap:4px; font-size:12px; color:var(--soft);
+  border:1px solid var(--line); border-radius:999px; padding:5px 11px; background:var(--surface);
+  white-space:nowrap;
+}
+.pastilla b{color:var(--verde); font-weight:700}
+.pastillas{margin-top:11px; gap:7px}
+.titulo-eval{font-size:16px; color:var(--verde-oscuro)}
+.tiras{display:flex; gap:7px; overflow-x:auto; margin-top:12px; padding:9px; border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface-2); scrollbar-width:none}
+.tiras::-webkit-scrollbar{display:none}
+.tira{
+  flex:0 0 auto; min-width:52px; padding:7px 8px; border-radius:7px; border:1px solid var(--line);
+  background:var(--surface); color:var(--verde); text-align:center; line-height:1.15;
+}
+.tira b{display:block; font-size:15px; font-weight:700}
+.tira small{display:block; font-size:10px; color:var(--soft)}
+.tira.activa{background:var(--verde); border-color:var(--verde); color:#fff}
+.tira.activa small{color:rgba(255,255,255,.85)}
+.tira.nueva{border-style:dashed; color:var(--soft); font-size:18px; display:flex; align-items:center; justify-content:center}
+.ayuda{font-size:12.5px; color:var(--soft); line-height:1.5; margin:0 0 11px}
+.ayuda b{color:var(--ink)}
+
+/* ---------- Planilla ---------- */
+.planilla table{font-size:12.5px}
+.planilla thead th{background:#1f6d99; color:#fff; border-bottom:1px solid #17587e; text-transform:none}
+.planilla th.col-fija{background:#1f6d99; color:#fff}
+.planilla .th-grupo{
+  border-left:1px solid rgba(255,255,255,.25); font-size:11px; font-weight:600;
+  white-space:normal; min-width:120px; padding:7px 8px; text-align:center;
+}
+.rot-crit{display:inline-block; background:rgba(255,255,255,.2); border-radius:5px; padding:1px 5px; margin-right:4px; font-family:var(--mono); font-size:10px}
+.btn-mas{margin-left:6px; border:1px solid rgba(255,255,255,.5); background:transparent; color:#fff; border-radius:6px; width:22px; height:22px; font-size:14px; line-height:1}
+.planilla .th-ind{border-left:1px solid rgba(255,255,255,.18); padding:5px 6px; min-width:112px}
+.planilla .rot-crit{font-size:9.5px}
+.planilla .th-ind input{
+  width:100%; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.3);
+  color:#fff; font-size:11px; padding:5px 6px; border-radius:6px; text-align:center;
+}
+.planilla .th-ind input::placeholder{color:rgba(255,255,255,.6)}
+.planilla .th-ind input:focus{background:#fff; color:var(--ink); box-shadow:none; border-color:#f0a500}
+.btn-todos{margin-top:4px; border:1px solid rgba(255,255,255,.45); background:rgba(255,255,255,.12); color:#fff; border-radius:6px; padding:2px 9px; font-size:11px}
+.sub-blanco{font-size:10.5px; color:rgba(255,255,255,.8)}
+.th-lnl{font-size:10px; padding:3px 4px; background:#17587e !important; color:rgba(255,255,255,.9); font-weight:600}
+.planilla td{padding:4px 5px}
+.planilla tbody tr:nth-child(even) td{background:#f7fbfd}
+.planilla tbody tr:nth-child(even) td.col-fija{background:#f7fbfd}
+.planilla td.izq{min-width:170px}
+.celda-tap{width:38px}
+.raya{color:var(--line)}
+.fila-ausente td{background:#eef2f4 !important; color:var(--soft)}
+.asis{
+  width:34px; height:30px; border-radius:7px; border:1px solid var(--line); background:var(--surface);
+  font-family:var(--mono); font-size:12px; font-weight:700; color:var(--soft);
+}
+.asis.ausente{background:#4a5d66; border-color:#4a5d66; color:#fff}
+.asis.justificado{background:#f0a500; border-color:#f0a500; color:#3d2d00}
+.btn-obs{width:30px; height:30px; border-radius:7px; border:1px dashed var(--line); background:transparent; color:var(--soft)}
+.btn-obs.con-texto{border-style:solid; background:var(--verde-claro); color:var(--verde-oscuro)}
+
+/* ---------- Modal ---------- */
+.velo{position:fixed; inset:0; background:rgba(15,33,27,.45); display:flex; align-items:flex-end; justify-content:center; z-index:60; padding:0}
+.modal{background:var(--surface); width:100%; max-width:520px; border-radius:18px 18px 0 0; padding:18px 16px calc(18px + env(safe-area-inset-bottom)); max-height:88vh; overflow:auto}
+.modal h3{font-size:17px; margin-bottom:4px}
+@media(min-width:640px){
+  .velo{align-items:center; padding:20px}
+  .modal{border-radius:var(--r)}
+}
+
+/* ---------- Ingreso ---------- */
+.ingreso{max-width:400px; margin:0 auto; padding:34px 16px 60px}
+.ingreso .logo{display:flex; gap:3px; align-items:flex-end; height:34px; margin-bottom:16px}
+.ingreso .logo i{width:9px; border-radius:2px 2px 0 0; display:block}
+.ingreso h1{font-size:23px; line-height:1.15; margin-bottom:6px}
+.aviso{background:#FCF2F1; border:1px solid #EBC9C5; color:var(--alerta); border-radius:var(--r-s); padding:9px 11px; font-size:13px; margin-bottom:10px}
+.aviso.info{background:var(--verde-claro); border-color:#BEDFCE; color:var(--verde-oscuro)}
+
+.vacio{text-align:center; padding:26px 14px; color:var(--soft); font-size:14px}
+.vacio strong{display:block; color:var(--ink); font-family:var(--display); font-size:16px; margin-bottom:4px}
+
+.hoja-impresion{display:none}
+@media print{
+  body{background:#fff}
+  .barra-sup,.cursos,.pestanas,.no-imprimir{display:none !important}
+  .envoltura{padding:0; max-width:none}
+  .hoja-impresion{display:block}
+  .tarjeta{border:0; padding:0}
+  table{font-size:10px}
+  th,td{padding:3px 4px}
+  .col-fija{position:static; box-shadow:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
+</style>
+</head>
+<body>
+<div id="raiz"></div>
+<div id="capa-modal"></div>
+<script type="module">
+/* =========================================================
+   Bases Curriculares de Educación Física y Salud
+   Objetivos de Aprendizaje 1° a 8° básico
+   Fuente: Unidad de Currículum y Evaluación, Mineduc
+   www.curriculumnacional.cl
+   ========================================================= */
+
+const EJES = {
+  hm: "Habilidades motrices",
+  vas: "Vida activa y saludable",
+  sjl: "Seguridad, juego limpio y liderazgo",
+  rps: "Responsabilidad personal y social en el deporte y la actividad física",
+  act: "Actitudes"
+};
+
+const OAA_1_6 = [
+  { n: "A", t: "Valorar los efectos positivos de la práctica regular de actividad física en la salud." },
+  { n: "B", t: "Demostrar disposición a mejorar su condición física e interés por practicar actividad física de forma regular." },
+  { n: "C", t: "Demostrar confianza en sí mismos al practicar actividad física." },
+  { n: "D", t: "Demostrar disposición a participar de manera activa en la clase." },
+  { n: "E", t: "Promover la participación equitativa de hombres y mujeres en toda actividad física y deporte." },
+  { n: "F", t: "Respetar la diversidad física de las personas, sin discriminar por características como altura, peso, color de piel o pelo, etc." },
+  { n: "G", t: "Demostrar disposición a trabajar en equipo, colaborar con otros y aceptar consejos y críticas." },
+  { n: "H", t: "Demostrar disposición al esfuerzo personal, superación y perseverancia." }
+];
+
+const OAA_7_8 = [
+  { n: "A", t: "Demostrar respeto por los demás al participar en actividades físicas y/o deportivas; por ejemplo: aplicar el principio de juego limpio, llegar a acuerdos, jugar en forma cooperativa, aceptar el resultado y manejar el triunfo." },
+  { n: "B", t: "Promover la participación de todos en las actividades físicas, valorando la diversidad de las personas, sin discriminar por características como altura, peso, color de piel, origen, condición física, discapacidades, etc." },
+  { n: "C", t: "Trabajar en equipo, asumiendo responsablemente roles y tareas, colaborando con otros y aceptando consejos y críticas." },
+  { n: "D", t: "Apreciar la práctica regular de actividades físicas y deportivas como fuente de bienestar, recreación y crecimiento en lo personal y social." },
+  { n: "E", t: "Demostrar valoración de la práctica regular de actividades físicas y/o deportivas como medios de crecimiento, bienestar y recreación personal y social." },
+  { n: "F", t: "Demostrar iniciativa en la promoción de una vida activa y los deportes, con sus compañeros y en la comunidad escolar." },
+  { n: "G", t: "Cuidar el medio ambiente, la infraestructura y los materiales utilizados durante la práctica de actividad física y/o deportiva." }
+];
+
+const CURRICULO = {
+  c1: { sigla: "EF01", oaa: OAA_1_6, oas: [
+    { n: 1, e: "hm", t: "Demostrar habilidades motrices básicas de locomoción, manipulación y estabilidad en una variedad de juegos y actividades físicas, como saltar con dos pies consecutivamente en una dirección, lanzar un balón hacia un compañero, caminar y correr consecutivamente, lanzar y recoger un balón, caminar sobre una línea manteniendo el control del cuerpo, realizar suspensiones, giros y rodadas o volteos." },
+    { n: 2, e: "hm", t: "Ejecutar acciones motrices con relación a sí mismo, a un objeto o un compañero, usando diferentes categorías de ubicación espacial y temporal, como derecha, izquierda, adelante, atrás, arriba, abajo, adentro, afuera, entre, al lado, antes, durante, después, rápido y lento." },
+    { n: 3, e: "hm", t: "Practicar una amplia gama de juegos con y sin oposición, con y sin colaboración, de persecución, individuales y colectivos." },
+    { n: 4, e: "hm", t: "Ejecutar habilidades motrices básicas en diferentes entornos, como las plazas activas, el patio del colegio, parques, playas, entre otros." },
+    { n: 5, e: "hm", t: "Ejecutar movimientos corporales, expresando sensaciones, ideas, estados de ánimo y emociones en variados espacios y a diferentes ritmos." },
+    { n: 6, e: "vas", t: "Ejecutar actividades físicas de intensidad moderada a vigorosa que incrementen la condición física, por medio de juegos y circuitos." },
+    { n: 7, e: "vas", t: "Practicar en su vida cotidiana actividades físicas de intensidad moderada a vigorosa de forma guiada, por medio de juegos tradicionales y actividades lúdicas." },
+    { n: 8, e: "vas", t: "Reconocer las sensaciones y respuestas corporales provocadas por la práctica de actividad física, como cambios del color de la piel, sudor, agitación, ritmo de respiración, cansancio y dificultad al hablar." },
+    { n: 9, e: "vas", t: "Practicar actividades físicas en forma segura, demostrando la adquisición de hábitos de higiene, posturales y de vida saludable, como lavarse las manos y la cara después de la clase, mantener una correcta postura y comer una colación saludable antes y después de practicar actividad física." },
+    { n: 10, e: "sjl", t: "Practicar juegos o actividades motrices para aprender a trabajar en equipo, asumiendo diferentes roles (respetar al otro, recoger los materiales solicitados o liderar si se le asigna ese rol)." },
+    { n: 11, e: "sjl", t: "Practicar actividades físicas, demostrando comportamientos seguros como: realizar un calentamiento mediante un juego; escuchar y seguir instrucciones; utilizar implementos bajo supervisión; mantener su posición dentro de los límites establecidos para la actividad." }
+  ] },
+
+  c2: { sigla: "EF02", oaa: OAA_1_6, oas: [
+    { n: 1, e: "hm", t: "Demostrar habilidades motrices básicas de locomoción, manipulación y estabilidad en diferentes direcciones, alturas y niveles, como saltar de forma continua en un pie y luego en el otro, botear un balón mientras camina, mantener el equilibrio sobre una base a una pequeña altura, realizar suspensiones, giros y rodadas o volteos." },
+    { n: 2, e: "hm", t: "Ejecutar acciones motrices que presenten una solución a un problema, por ejemplo, agrupaciones, representaciones de símbolos, letras, números o figuras geométricas." },
+    { n: 3, e: "hm", t: "Practicar una amplia gama de juegos con y sin oposición, con y sin colaboración, de persecución, individuales y colectivos." },
+    { n: 4, e: "hm", t: "Ejecutar habilidades motrices básicas en diferentes entornos, como plazas activas, patio del colegio, playa, entre otros, utilizando referencias (rutas, mapas, símbolos, etc.) guiados por el profesor." },
+    { n: 5, e: "hm", t: "Ejecutar movimientos corporales, expresando sensaciones, ideas, estados de ánimo y emociones en variados espacios y a diferentes ritmos e intensidades." },
+    { n: 6, e: "vas", t: "Ejecutar actividades físicas de intensidad moderada a vigorosa que incrementen la condición física por medio de juegos y circuitos." },
+    { n: 7, e: "vas", t: "Ejecutar e incorporar a su vida cotidiana juegos y actividades físicas de intensidad moderada a vigorosa (cinco veces por semana), como juegos tradicionales, saltar la cuerda y realizar caminatas al aire libre." },
+    { n: 8, e: "vas", t: "Describir las sensaciones y respuestas corporales provocadas por la práctica de actividad física, como cambios del color de la piel, sudor, agitación, ritmo de respiración, cansancio y dificultad al hablar." },
+    { n: 9, e: "vas", t: "Practicar actividades físicas en forma segura, demostrando la adquisición de hábitos de higiene, posturales y de vida saludable, como lavarse las manos y la cara después de la clase, mantener una correcta postura y comer una colación saludable antes y luego de la práctica de actividad física." },
+    { n: 10, e: "sjl", t: "Practicar juegos o actividades motrices para aprender a trabajar en equipo, asumiendo diferentes roles (respetar al otro, recoger los materiales solicitados o liderar si se le asigna ese rol)." },
+    { n: 11, e: "sjl", t: "Practicar actividades físicas, demostrando comportamientos seguros, como: realizar un calentamiento mediante un juego; escuchar y seguir instrucciones; utilizar implementos bajo supervisión; mantener su posición dentro de los límites establecidos para la actividad." }
+  ] },
+
+  c3: { sigla: "EF03", oaa: OAA_1_6, oas: [
+    { n: 1, e: "hm", t: "Demostrar capacidad para ejecutar de forma combinada las habilidades motrices básicas de locomoción, manipulación y estabilidad en diferentes direcciones, alturas y niveles, ejemplo, correr y lanzar un objeto con una mano, caminar sobre una línea y realizar un giro de 180° en un pie." },
+    { n: 2, e: "hm", t: "Ejecutar acciones motrices que presenten una solución a un problema, reconociendo diversos criterios (tiempo, espacio y números de personas), por ejemplo, juegos de uno contra uno, juegos en grupos reducidos y juegos con superioridad numérica." },
+    { n: 3, e: "hm", t: "Practicar juegos pre-deportivos con reglas y espacios adaptados, aplicando los principios generales de juego, como avanzar y retroceder en bloque, recuperar el balón, acompañar la jugada y la visión periférica." },
+    { n: 4, e: "hm", t: "Ejecutar actividades físicas y/o lúdicas en diferentes entornos, aplicando medidas para conservar limpios y ordenados los espacios, por ejemplo: jugar en plazas activas; jugar un partido en la plaza o la playa; realizar caminatas en el entorno natural; andar en bicicleta en un parque o en un camino rural." },
+    { n: 5, e: "hm", t: "Ejecutar movimientos o elementos de danzas tradicionales de forma coordinada, utilizando actividades rítmicas y lúdicas de forma individual o grupal." },
+    { n: 6, e: "vas", t: "Ejecutar actividades físicas de intensidad moderada a vigorosa que desarrollen la condición física por medio de la práctica de ejercicios de resistencia cardiovascular, fuerza, flexibilidad y velocidad, mejorando sus resultados personales." },
+    { n: 7, e: "vas", t: "Practicar de manera regular y autónoma actividades físicas de intensidad moderada a vigorosa, como saltar la cuerda y caminar hasta el colegio." },
+    { n: 8, e: "vas", t: "Describir y registrar las respuestas corporales provocadas por la práctica de actividad física, como aumento de la frecuencia cardiaca y respiratoria." },
+    { n: 9, e: "vas", t: "Practicar actividades físicas en forma segura, demostrando la adquisición de hábitos de higiene, posturales y de vida saludable, como utilizar protección solar, lavarse y cambiarse de ropa después de la clase, hidratarse con agua, comer una colación saludable después de la práctica de actividad física." },
+    { n: 10, e: "sjl", t: "Practicar actividades físicas y/o juegos colectivos con responsabilidad y honestidad, cumpliendo las reglas, los roles asignados y los principios de un juego limpio." },
+    { n: 11, e: "sjl", t: "Practicar actividades físicas, demostrando comportamientos seguros, como: participar en actividades de calentamiento en forma apropiada; escuchar y seguir instrucciones; mantener su posición dentro de los límites establecidos para la actividad; asegurar que el espacio está libre de obstáculos." }
+  ] },
+
+  c4: { sigla: "EF04", oaa: OAA_1_6, oas: [
+    { n: 1, e: "hm", t: "Demostrar control en la ejecución de las habilidades motrices básicas de locomoción, manipulación y estabilidad en diferentes direcciones, alturas y niveles; por ejemplo: atrapar un objeto con una mano a diferentes alturas, desplazarse botando un objeto en zigzag y saltar, caminar sobre una base a una pequeña altura y realizar un giro de 360° en un solo pie." },
+    { n: 2, e: "hm", t: "Ejecutar juegos colectivos y crear estrategias con el apoyo del docente para resolver problemas en relación con el tiempo, el espacio y el número de personas; por ejemplo: dar cinco pases sin que el equipo rival lo intercepte o sin que el objeto caiga." },
+    { n: 3, e: "hm", t: "Practicar juegos predeportivos con reglas y espacios adaptados, aplicando los principios generales de juego, como acoplarse en ataque y replegarse en defensa, utilizar el campo de juego a lo largo y ancho o reconocer el espacio del adversario." },
+    { n: 4, e: "hm", t: "Ejecutar actividades físicas y/o lúdicas en diferentes entornos, aplicando medidas para conservar limpios y ordenados los espacios, como: jugar en plazas activas; jugar un partido en la plaza o la playa; realizar caminatas en el entorno natural; andar en bicicleta en un parque o en un camino rural." },
+    { n: 5, e: "hm", t: "Ejecutar movimientos o elementos de danzas tradicionales de forma coordinada, utilizando actividades rítmicas y lúdicas de forma individual o grupal." },
+    { n: 6, e: "vas", t: "Ejecutar actividades físicas de intensidad moderada a vigorosa que desarrollen la condición física por medio de la práctica de ejercicios de resistencia cardiovascular, fuerza, flexibilidad y velocidad, mejorando sus resultados personales." },
+    { n: 7, e: "vas", t: "Practicar de manera regular y autónoma actividades físicas de intensidad moderada a vigorosa, como saltar la cuerda y caminar hasta el colegio." },
+    { n: 8, e: "vas", t: "Medir y registrar las respuestas corporales provocadas por la actividad física mediante el pulso o utilizando escalas de percepción de esfuerzo." },
+    { n: 9, e: "vas", t: "Practicar actividades físicas en forma segura, demostrando la adquisición de hábitos de higiene, posturales y de vida saludable, como utilizar protección solar, lavarse y cambiarse de ropa después de la clase, hidratarse con agua, comer una colación saludable después de la práctica de actividad física." },
+    { n: 10, e: "sjl", t: "Practicar actividades físicas y/o juegos colectivos con responsabilidad y honestidad, cumpliendo las reglas y los roles asignados, respetando las decisiones de la autoridad, y organizar equitativamente los equipos." },
+    { n: 11, e: "sjl", t: "Practicar actividades físicas, demostrando comportamientos seguros, como: realizar un calentamiento en forma apropiada; utilizar de manera adecuada los materiales y las instalaciones para evitar el riesgo personal y de otros; escuchar y seguir instrucciones; asegurar de que el espacio está libre de obstáculos." }
+  ] },
+
+  c5: { sigla: "EF05", oaa: OAA_1_6, oas: [
+    { n: 1, e: "hm", t: "Demostrar la aplicación de las habilidades motrices básicas adquiridas, en una variedad de actividades deportivas; por ejemplo: realizar un giro sobre una viga de equilibrio, lanzar un balón hacia la portería y correr una distancia determinada (por ejemplo: 50 o 100 metros)." },
+    { n: 2, e: "hm", t: "Ejecutar juegos colectivos y deportes, creando tácticas y estrategias y demostrando formas para resolver un problema en relación con el espacio, el objeto y los adversarios; por ejemplo: dar tres pases en cinco segundos o dar tres pasos y dar un pase a un compañero." },
+    { n: 3, e: "hm", t: "Practicar deportes individuales y colectivos con reglas y espacios adaptados en los que aplican estrategias defensivas y ofensivas; por ejemplo: reducir y ampliar espacios, obtener y mantener la posesión del balón y transportar el balón de forma controlada." },
+    { n: 4, e: "hm", t: "Ejecutar actividades físicas y/o deportivas, utilizando diferentes entornos y aplicando medidas para conservar limpios y ordenados los espacios; por ejemplo: caminatas recreativas urbanas, bailes recreativos, cicletadas, juegos de balón en plazas y parques." },
+    { n: 5, e: "hm", t: "Demostrar la correcta ejecución de una danza nacional, utilizando pasos básicos y música folclórica de forma individual o grupal; por ejemplo: danzas de la zona norte, central, sur e Isla de Pascua." },
+    { n: 6, e: "vas", t: "Ejecutar actividades físicas de intensidad moderada a vigorosa que desarrollen la condición física por medio de la práctica de ejercicios de resistencia cardiovascular, fuerza, flexibilidad y velocidad, estableciendo metas de superación personal." },
+    { n: 7, e: "vas", t: "Practicar y planificar de forma regular actividades físicas y/o deportivas de intensidad moderada a vigorosa, como planificar un partido, participar en una caminata o corrida familiar e integrar talleres deportivos." },
+    { n: 8, e: "vas", t: "Determinar la intensidad del esfuerzo físico de forma manual, mediante el pulso o utilizando escalas de percepción de esfuerzo." },
+    { n: 9, e: "vas", t: "Practicar actividades físicas en forma segura, demostrando la adquisición de hábitos de higiene, posturales y de vida saludable, como utilizar una ropa distinta para la clase, mantener una correcta postura, utilizar protectores solares e hidratarse con agua antes, durante y después de la clase." },
+    { n: 10, e: "sjl", t: "Practicar actividades físicas y/o juegos colectivos, demostrando responsabilidad, liderazgo y respeto al participar; por ejemplo: conversar y plantear discrepancias, aceptar las diferencias individuales e intentar llegar a acuerdos, jugar en forma cooperativa, aceptar el resultado y manejar el triunfo." },
+    { n: 11, e: "sjl", t: "Practicar actividades físicas y/o deportivas, demostrando comportamientos seguros y un manejo adecuado de los materiales y los procedimientos, como: realizar un calentamiento específico individual o grupal; usar ropa adecuada para la actividad; cuidar sus pertenencias; manipular de forma segura los implementos y las instalaciones." }
+  ] },
+
+  c6: { sigla: "EF06", oaa: OAA_1_6, oas: [
+    { n: 1, e: "hm", t: "Demostrar la aplicación de las habilidades motrices básicas adquiridas, en una variedad de actividades deportivas; por ejemplo: realizar un giro sobre una viga de equilibrio, lanzar un balón hacia la portería y correr una distancia determinada (por ejemplo, 50 o 100 metros), superando pequeños obstáculos." },
+    { n: 2, e: "hm", t: "Ejecutar juegos colectivos y deportes que requieran tomar decisiones y evaluar las estrategias utilizadas para perfeccionar su juego; por ejemplo: aplicar las orientaciones dadas por el entrenador durante el tiempo solicitado o parcial reglamentado durante el juego." },
+    { n: 3, e: "hm", t: "Practicar deportes individuales y colectivos que apliquen reglas y estrategias específicas del juego; por ejemplo: generar superioridad numérica, cambiar la posición o la función de los jugadores durante el partido." },
+    { n: 4, e: "hm", t: "Planificar y ejecutar actividades físicas y deportivas, utilizando diversos entornos y aplicando medidas para conservar limpios y ordenados los espacios; por ejemplo: planificar un campamento, incluyendo actividades deportivas." },
+    { n: 5, e: "hm", t: "Demostrar la correcta ejecución de una danza nacional, utilizando pasos básicos y música folclórica de forma individual o grupal; por ejemplo: danzas de la zona norte, central, sur e Isla de Pascua." },
+    { n: 6, e: "vas", t: "Ejecutar actividades físicas de intensidad moderada a vigorosa que desarrollen la condición física por medio de la práctica de ejercicios de resistencia cardiovascular, fuerza, flexibilidad y velocidad, estableciendo metas de superación personal." },
+    { n: 7, e: "vas", t: "Practicar y planificar de forma regular actividades físicas y/o deportivas de intensidad moderada a vigorosa, como planificar un partido, participar en una caminata, corrida o cicletada familiar e integrar talleres deportivos." },
+    { n: 8, e: "vas", t: "Determinar la intensidad del esfuerzo físico de forma manual, mediante el pulso o utilizando escalas de percepción de esfuerzo." },
+    { n: 9, e: "vas", t: "Practicar actividades físicas en forma segura, demostrando la adquisición de hábitos de higiene, posturales y de vida saludable, como ducharse después de realizar actividad física, utilizar una ropa distinta para la clase, mantener una correcta postura, utilizar protectores solares e hidratarse con agua antes, durante y después de la clase." },
+    { n: 10, e: "sjl", t: "Practicar actividades físicas y/o juegos colectivos, demostrando responsabilidad, liderazgo y respeto al participar; por ejemplo: conversar y plantear discrepancias, aceptar las diferencias individuales e intentar llegar a acuerdos, jugar en forma cooperativa, aceptar el resultado y manejar el triunfo." },
+    { n: 11, e: "sjl", t: "Practicar actividades físicas y/o deportivas, demostrando comportamientos seguros y un manejo adecuado de los materiales y los procedimientos, como: realizar un calentamiento específico individual o grupal; usar ropa adecuada para la actividad; cuidar sus pertenencias; manipular de forma segura los implementos y las instalaciones." }
+  ] },
+
+  c7: { sigla: "EF07", oaa: OAA_7_8, oas: [
+    { n: 1, e: "hm", t: "Aplicar, combinar y ajustar las habilidades motrices específicas de locomoción, manipulación y estabilidad en, al menos: un deporte individual (atletismo, gimnasia artística, entre otros); un deporte de oposición (tenis, bádminton, entre otros); un deporte de colaboración (escalada, vóleibol duplas, entre otros); un deporte de oposición/colaboración (básquetbol, hándbol, hockey, entre otros); una danza (folclórica, moderna, entre otras)." },
+    { n: 2, e: "hm", t: "Seleccionar y aplicar estrategias y tácticas específicas para la resolución de problemas durante la práctica de juegos o deportes; por ejemplo: ubicar la pelota lejos de un contrincante, utilizar los espacios para recibir un objeto sin oponentes, aplicar un sistema de juego (uno contra uno, tres contra tres, entre otros)." },
+    { n: 3, e: "vas", t: "Desarrollar la resistencia cardiovascular, la fuerza muscular, la velocidad y la flexibilidad para alcanzar una condición física saludable, considerando: frecuencia; intensidad; tiempo de duración; tipo de ejercicio (correr, andar en bicicleta, realizar trabajo de fuerza, ejercicios de flexibilidad, entre otros)." },
+    { n: 4, e: "vas", t: "Practicar regularmente una variedad de actividades físicas alternativas y/o deportivas en diferentes entornos, aplicando conductas de autocuidado y seguridad, como realizar al menos 30 minutos diarios de actividades físicas de su interés, evitar el consumo de drogas, tabaco y alcohol, ejecutar un calentamiento, aplicar reglas y medidas de seguridad, hidratarse con agua de forma permanente, entre otras." },
+    { n: 5, e: "rps", t: "Participar en una variedad de actividades físicas y/o deportivas de su interés y que se desarrollan en su comunidad escolar y/o en su entorno; por ejemplo: integrarse en talleres extraprogramáticos; asumir variados roles en la participación y promoción de una vida activa; utilizar los entornos cercanos para realizar alguna actividad física y/o deportiva." }
+  ] },
+
+  c8: { sigla: "EF08", oaa: OAA_7_8, oas: [
+    { n: 1, e: "hm", t: "Seleccionar, combinar y aplicar con mayor dominio las habilidades motrices específicas de locomoción, manipulación y estabilidad en, al menos: un deporte individual (atletismo, gimnasia artística, entre otros); un deporte de oposición (tenis, bádminton, entre otros); un deporte de colaboración (escalada, vóleibol duplas, entre otros); un deporte de oposición/colaboración (básquetbol, hándbol, hockey, entre otros); una danza (folclórica, moderna, entre otras)." },
+    { n: 2, e: "hm", t: "Seleccionar, evaluar y aplicar estrategias y tácticas específicas para la resolución de problemas durante la práctica de juegos o deportes; por ejemplo: ubicar la pelota lejos de un contrincante, utilizar los espacios para recibir un objeto sin oponentes, aplicar un sistema de juego (uno contra uno, tres contra tres, entre otros)." },
+    { n: 3, e: "vas", t: "Desarrollar la resistencia cardiovascular, la fuerza muscular, la velocidad y la flexibilidad para alcanzar una condición física saludable, considerando: frecuencia; intensidad; tiempo de duración y recuperación; progresión; tipo de ejercicio (correr, andar en bicicleta, realizar trabajo de fuerza, ejercicios de flexibilidad, entre otros)." },
+    { n: 4, e: "vas", t: "Practicar regularmente una variedad de actividades físicas alternativas y/o deportivas en diferentes entornos, aplicando conductas de autocuidado y seguridad, como realizar al menos 30 minutos diarios de actividades físicas de su interés, evitar el consumo de drogas, tabaco y alcohol, ejecutar un calentamiento, aplicar reglas y medidas de seguridad, hidratarse con agua de forma permanente, entre otras." },
+    { n: 5, e: "rps", t: "Participar y promover una variedad de actividades físicas y/o deportivas de su interés y que se desarrollan en su comunidad escolar y/o en su entorno; por ejemplo: promover la práctica regular de actividad física y deportiva; participar en la organización de actividades de interés personal y de la comunidad; utilizar estrategias de promoción como afiches o diarios murales." }
+  ] }
+};
+
+/* Indicadores sugeridos por eje. Son propuestas de redacción observable,
+   no forman parte del texto oficial de las Bases Curriculares. */
+const SUGERENCIAS = {
+  hm: [
+    "Ejecuta el gesto técnico con control del cuerpo",
+    "Coordina brazos y piernas durante la ejecución",
+    "Mantiene el equilibrio en el desplazamiento",
+    "Se ubica en los espacios libres de la cancha",
+    "Aplica la habilidad en situación de juego",
+    "Ajusta su movimiento según la instrucción recibida",
+    "Ejecuta pases y recepciones eficaces",
+    "Toma decisiones adecuadas en el juego reducido"
+  ],
+  vas: [
+    "Se mantiene en movimiento durante toda la clase",
+    "Ejecuta la activación inicial completa",
+    "Realiza la vuelta a la calma",
+    "Reconoce señales de esfuerzo en su cuerpo",
+    "Mide su pulso siguiendo el procedimiento indicado",
+    "Se hidrata con agua durante la sesión",
+    "Explica un hábito saludable trabajado en la unidad",
+    "Registra sus resultados y se plantea una meta personal"
+  ],
+  sjl: [
+    "Respeta las reglas acordadas del juego",
+    "Acepta las decisiones del profesor o del árbitro",
+    "Colabora con sus compañeros en la tarea",
+    "Incluye a todos en el juego",
+    "Resuelve desacuerdos sin agresión",
+    "Asume el rol que se le asigna en el equipo",
+    "Usa los materiales de forma segura",
+    "Ordena y guarda los materiales al finalizar"
+  ],
+  rps: [
+    "Participa activamente en la actividad propuesta",
+    "Asume un rol de organización o liderazgo",
+    "Promueve la participación de sus compañeros",
+    "Cuida los materiales y el espacio utilizado",
+    "Propone actividades físicas para la comunidad",
+    "Aplica conductas de autocuidado y seguridad"
+  ],
+  act: [
+    "Participa de manera activa durante toda la clase",
+    "Demuestra esfuerzo y perseverancia ante la dificultad",
+    "Trabaja en equipo y acepta consejos",
+    "Respeta la diversidad de sus compañeros",
+    "Demuestra confianza al practicar actividad física",
+    "Valora los efectos de la actividad física en su salud"
+  ]
+};
+
+function oasDelCurso(cursoId) {
+  const c = CURRICULO[cursoId];
+  if (!c) return [];
+  const lista = c.oas.map((o) => ({
+    codigo: `${c.sigla} OA ${String(o.n).padStart(2, "0")}`,
+    eje: o.e, ejeNombre: EJES[o.e], texto: o.t
+  }));
+  c.oaa.forEach((o) => lista.push({
+    codigo: `${c.sigla} OAA ${o.n}`,
+    eje: "act", ejeNombre: EJES.act, texto: o.t
+  }));
+  return lista;
+}
+
+function opcionesOAsHTML(cursoId, ev) {
+  const usados = new Set((ev && ev.criterios ? ev.criterios : []).map((c) => c.oa).filter(Boolean));
+  const grupos = {};
+  oasDelCurso(cursoId).forEach((o) => { (grupos[o.ejeNombre] = grupos[o.ejeNombre] || []).push(o); });
+  return Object.entries(grupos).map(([eje, lista]) => `
+    <optgroup label="${esc(eje)}">
+      ${lista.map((o) => `<option value="${esc(o.codigo)}" ${usados.has(o.codigo) ? "disabled" : ""}>${esc(o.codigo)}${usados.has(o.codigo) ? " (ya está)" : ""} · ${esc(recorte(o.texto, 70))}</option>`).join("")}
+    </optgroup>`).join("");
+}
+
+function aplicarUnidad(ev, u, cods) {
+  ev.oa = `Unidad ${u.n}: ${u.titulo}`;
+  if (!ev.nombre || /^Lista de cotejo$/.test(ev.nombre)) ev.nombre = `Unidad ${u.n} · ${u.titulo}`;
+  cods = cods || [];
+  const vacio = ev.criterios.length === 1 && !ev.criterios[0].texto.trim() && !ev.criterios[0].oa;
+  if (vacio && cods.length) { ev.criterios = []; ev.marcas.forEach((f) => { f.length = 0; }); ev.datos.forEach((f) => { f.length = 0; }); }
+  cods.forEach((cod) => {
+    if (ev.criterios.some((c) => c.oa === cod)) return;
+    ev.criterios.push(criterioDesdeOA(cod, S.cursoId, 3));
+    ev.marcas.forEach((f) => f.push([0, 0, 0]));
+    ev.datos.forEach((f) => f.push(0));
+  });
+  S.criterioActivo = 0; marcarCambio(); pintar();
+}
+
+function buscarOA(cursoId, codigo) {
+  return oasDelCurso(cursoId).find((o) => o.codigo === codigo) || null;
+}
+
+/* =========================================================
+   Indicadores sugeridos por objetivo de aprendizaje.
+   Redacción de apoyo para la lista de cotejo; no forman parte
+   del texto oficial de las Bases Curriculares.
+   ========================================================= */
+const _SUG = [
+  /* --- Habilidades motrices --- */
+  [["EF01 OA 01", "EF02 OA 01"], [
+    "Salta con los dos pies y luego en un pie manteniendo el control",
+    "Lanza y recibe el balón hacia un compañero",
+    "Camina sobre una línea o base baja sin perder el equilibrio",
+    "Realiza giros y rodadas con el cuerpo controlado"]],
+  [["EF03 OA 01", "EF04 OA 01"], [
+    "Combina dos habilidades seguidas, como correr y lanzar",
+    "Controla el objeto mientras se desplaza en zigzag",
+    "Ejecuta el giro manteniendo el equilibrio",
+    "Ajusta la altura y la dirección del movimiento según la tarea"]],
+  [["EF05 OA 01", "EF06 OA 01"], [
+    "Ejecuta el gesto técnico del deporte con control corporal",
+    "Lanza hacia el objetivo con precisión",
+    "Corre la distancia indicada manteniendo la técnica",
+    "Supera los obstáculos sin detener la carrera"]],
+  [["EF01 OA 02", "EF02 OA 02"], [
+    "Se ubica según la referencia espacial indicada",
+    "Ejecuta la acción en el tiempo pedido (antes, durante, después)",
+    "Se agrupa con sus compañeros para formar la figura solicitada"]],
+  [["EF03 OA 02"], [
+    "Propone una solución motriz al problema planteado",
+    "Considera el espacio disponible al resolver la tarea",
+    "Adapta su acción al número de compañeros y adversarios"]],
+  [["EF04 OA 02"], [
+    "Participa en la creación de la estrategia del equipo",
+    "Ejecuta la estrategia acordada durante el juego",
+    "Usa el espacio libre para recibir el balón"]],
+  [["EF05 OA 02", "EF06 OA 02"], [
+    "Aplica la táctica acordada durante el juego",
+    "Toma decisiones adecuadas según la situación de juego",
+    "Evalúa con su equipo qué resultó y qué no",
+    "Aplica las indicaciones dadas durante el partido"]],
+  [["EF01 OA 03", "EF02 OA 03"], [
+    "Participa en los juegos respetando su turno",
+    "Colabora con su equipo durante el juego",
+    "Se mantiene en el juego hasta el final"]],
+  [["EF03 OA 03", "EF04 OA 03"], [
+    "Avanza y retrocede junto a su equipo",
+    "Ocupa el ancho y el largo de la cancha",
+    "Recupera el balón o marca al adversario",
+    "Acompaña la jugada de sus compañeros"]],
+  [["EF05 OA 03", "EF06 OA 03"], [
+    "Aplica las reglas específicas del deporte",
+    "Mantiene la posesión y transporta el balón controlado",
+    "Reduce o amplía espacios según ataque o defensa",
+    "Cumple la posición o función asignada"]],
+  [["EF01 OA 04", "EF02 OA 04"], [
+    "Ejecuta la habilidad en el entorno propuesto",
+    "Sigue las referencias o el recorrido indicado",
+    "Se desplaza con seguridad en el espacio nuevo"]],
+  [["EF03 OA 04", "EF04 OA 04"], [
+    "Participa activamente en la actividad al aire libre",
+    "Mantiene limpio y ordenado el espacio utilizado",
+    "Sigue las indicaciones de seguridad del entorno"]],
+  [["EF05 OA 04", "EF06 OA 04"], [
+    "Participa en la planificación de la actividad",
+    "Ejecuta la actividad en el entorno seleccionado",
+    "Deja el espacio limpio y ordenado al finalizar",
+    "Cumple el rol que le corresponde en la organización"]],
+  [["EF01 OA 05", "EF02 OA 05"], [
+    "Expresa con el cuerpo la idea o emoción propuesta",
+    "Ajusta su movimiento al ritmo de la música",
+    "Ocupa distintos espacios y niveles al moverse"]],
+  [["EF03 OA 05", "EF04 OA 05"], [
+    "Ejecuta los pasos de la danza en el orden correcto",
+    "Mantiene el ritmo durante toda la secuencia",
+    "Coordina sus movimientos con los del grupo"]],
+  [["EF05 OA 05", "EF06 OA 05"], [
+    "Ejecuta los pasos básicos de la danza nacional",
+    "Mantiene el ritmo de la música folclórica",
+    "Coordina su desplazamiento con su pareja o grupo",
+    "Mantiene la postura característica de la danza"]],
+
+  /* --- Vida activa y saludable --- */
+  [["EF01 OA 06", "EF02 OA 06"], [
+    "Completa todas las estaciones del circuito",
+    "Mantiene el movimiento durante el juego propuesto",
+    "Retoma la actividad después de la pausa"]],
+  [["EF03 OA 06", "EF04 OA 06", "EF05 OA 06", "EF06 OA 06"], [
+    "Ejecuta los ejercicios de resistencia cardiovascular",
+    "Ejecuta los ejercicios de fuerza con la técnica indicada",
+    "Realiza los ejercicios de flexibilidad y velocidad",
+    "Registra su resultado y se plantea una meta personal"]],
+  [["EF01 OA 07", "EF02 OA 07"], [
+    "Participa en los juegos tradicionales propuestos",
+    "Menciona una actividad física que realiza fuera del colegio",
+    "Se mantiene activo durante toda la actividad"]],
+  [["EF03 OA 07", "EF04 OA 07"], [
+    "Realiza la actividad física de forma autónoma",
+    "Registra las actividades físicas de su semana",
+    "Sostiene la intensidad durante el tiempo indicado"]],
+  [["EF05 OA 07", "EF06 OA 07"], [
+    "Participa en la planificación de la actividad deportiva",
+    "Cumple el plan acordado durante la sesión",
+    "Registra su participación en actividades fuera de la clase"]],
+  [["EF01 OA 08", "EF02 OA 08"], [
+    "Reconoce cambios en su respiración después del ejercicio",
+    "Identifica el sudor y el aumento del ritmo cardíaco",
+    "Describe cómo se siente su cuerpo al terminar la actividad"]],
+  [["EF03 OA 08"], [
+    "Describe los cambios de su frecuencia cardíaca y respiratoria",
+    "Registra sus respuestas corporales en la pauta",
+    "Relaciona el esfuerzo realizado con lo que registró"]],
+  [["EF04 OA 08"], [
+    "Ubica correctamente el pulso en la muñeca o el cuello",
+    "Cuenta las pulsaciones en el tiempo indicado",
+    "Registra la medición antes y después del ejercicio"]],
+  [["EF05 OA 08", "EF06 OA 08"], [
+    "Toma su pulso siguiendo el procedimiento indicado",
+    "Determina la intensidad de su esfuerzo con la escala de percepción",
+    "Relaciona la intensidad medida con la actividad realizada"]],
+  [["EF01 OA 09", "EF02 OA 09"], [
+    "Se lava las manos y la cara después de la clase",
+    "Mantiene una postura correcta durante los ejercicios",
+    "Trae y consume una colación saludable"]],
+  [["EF03 OA 09", "EF04 OA 09"], [
+    "Usa protección solar antes de la clase al aire libre",
+    "Se cambia de ropa después de la actividad",
+    "Se hidrata con agua durante la sesión",
+    "Elige una colación saludable al terminar"]],
+  [["EF05 OA 09", "EF06 OA 09"], [
+    "Usa ropa adecuada y distinta para la clase",
+    "Se hidrata con agua antes, durante y después",
+    "Mantiene una postura correcta en los ejercicios",
+    "Aplica los hábitos de higiene al terminar la clase"]],
+
+  /* --- Seguridad, juego limpio y liderazgo --- */
+  [["EF01 OA 10", "EF02 OA 10"], [
+    "Asume el rol que se le asigna en el equipo",
+    "Respeta a sus compañeros durante el juego",
+    "Recoge y entrega los materiales solicitados"]],
+  [["EF03 OA 10", "EF04 OA 10"], [
+    "Cumple las reglas acordadas del juego",
+    "Reconoce sus faltas con honestidad",
+    "Acepta las decisiones del profesor o del árbitro",
+    "Organiza los equipos de forma equitativa"]],
+  [["EF05 OA 10", "EF06 OA 10"], [
+    "Plantea sus discrepancias de forma respetuosa",
+    "Juega de forma cooperativa con su equipo",
+    "Acepta el resultado y maneja el triunfo",
+    "Asume roles de liderazgo cuando corresponde"]],
+  [["EF01 OA 11", "EF02 OA 11"], [
+    "Participa en el calentamiento inicial",
+    "Escucha y sigue las instrucciones dadas",
+    "Usa los implementos solo con autorización",
+    "Se mantiene dentro de los límites del espacio"]],
+  [["EF03 OA 11", "EF04 OA 11"], [
+    "Ejecuta el calentamiento de forma apropiada",
+    "Usa los materiales sin generar riesgo para otros",
+    "Verifica que el espacio esté libre de obstáculos",
+    "Sigue las instrucciones de seguridad"]],
+  [["EF05 OA 11", "EF06 OA 11"], [
+    "Realiza un calentamiento específico para la actividad",
+    "Usa ropa adecuada y cuida sus pertenencias",
+    "Manipula los implementos de forma segura",
+    "Guarda y ordena las instalaciones al finalizar"]],
+
+  /* --- 7° y 8° básico --- */
+  [["EF07 OA 01", "EF08 OA 01"], [
+    "Aplica el gesto técnico específico del deporte practicado",
+    "Combina habilidades de locomoción y manipulación en el juego",
+    "Mantiene el equilibrio y el control en la ejecución",
+    "Ajusta su movimiento a la situación de juego"]],
+  [["EF07 OA 02", "EF08 OA 02"], [
+    "Selecciona la estrategia adecuada a la situación",
+    "Ocupa los espacios libres para recibir el objeto",
+    "Aplica el sistema de juego acordado",
+    "Evalúa con su equipo el resultado de la táctica usada"]],
+  [["EF07 OA 03", "EF08 OA 03"], [
+    "Ejecuta el trabajo de resistencia cardiovascular indicado",
+    "Realiza los ejercicios de fuerza con técnica segura",
+    "Trabaja la flexibilidad y la velocidad en la sesión",
+    "Aplica los principios de frecuencia, intensidad y duración"]],
+  [["EF07 OA 04", "EF08 OA 04"], [
+    "Ejecuta el calentamiento antes de la actividad",
+    "Aplica las medidas de seguridad de la actividad",
+    "Se hidrata con agua durante la sesión",
+    "Registra su práctica de actividad física de la semana"]],
+  [["EF07 OA 05", "EF08 OA 05"], [
+    "Participa en la actividad física propuesta por la comunidad",
+    "Asume un rol en la organización de la actividad",
+    "Promueve la participación de sus compañeros",
+    "Aporta ideas para difundir la vida activa"]]
+];
+
+const SUG_OA = {};
+_SUG.forEach(([codigos, arr]) => codigos.forEach((c) => { SUG_OA[c] = arr; }));
+
+function sugerenciasPara(criterio) {
+  if (criterio.oa && SUG_OA[criterio.oa]) return { lista: SUG_OA[criterio.oa], rotulo: criterio.oa };
+  const eje = criterio.eje || "hm";
+  return { lista: SUGERENCIAS[eje] || SUGERENCIAS.hm, rotulo: EJES[eje] };
+}
+
+/* =========================================================
+   Unidades de los Programas de Estudio con sus OA.
+   Fuente: Programa de Estudio de Educación Física y Salud,
+   Unidad de Currículum y Evaluación, Mineduc.
+   ========================================================= */
+const UNIDADES = {
+  c1: [
+    { n: 1, titulo: "Habilidades motrices básicas de locomoción, manipulación y estabilidad", horas: 30,
+      desc: "Habilidades motrices básicas de locomoción, manipulación y estabilidad en una variedad de juegos y actividades físicas. Hábitos de higiene, prevención y seguridad.",
+      objetivos: ["EF01 OA 01", "EF01 OA 02", "EF01 OA 06", "EF01 OA 08", "EF01 OA 09", "EF01 OA 11"],
+      actitudes: ["EF01 OAA B", "EF01 OAA D", "EF01 OAA H"] },
+    { n: 2, titulo: "Acciones motrices en relación a sí mismos, un objeto o un compañero", horas: 28,
+      desc: "Acciones motrices en relación a sí mismos, un objeto o un compañero. Nociones básicas para orientarse en el espacio. Hábitos de higiene, prevención y seguridad.",
+      objetivos: ["EF01 OA 01", "EF01 OA 02", "EF01 OA 06", "EF01 OA 08", "EF01 OA 09", "EF01 OA 11"],
+      actitudes: ["EF01 OAA A", "EF01 OAA B", "EF01 OAA D", "EF01 OAA H"] },
+    { n: 3, titulo: "Movimientos corporales para expresar ideas, estados de ánimo y emociones", horas: 28,
+      desc: "Expresión de ideas, estados de ánimo y emociones, por medio de movimientos corporales. Práctica de juegos tradicionales y diversas actividades lúdicas.",
+      objetivos: ["EF01 OA 01", "EF01 OA 05", "EF01 OA 06", "EF01 OA 07", "EF01 OA 08", "EF01 OA 09", "EF01 OA 11"],
+      actitudes: ["EF01 OAA B", "EF01 OAA D", "EF01 OAA E", "EF01 OAA H"] },
+    { n: 4, titulo: "Movimiento en diferentes ambientes, juegos colectivos e individuales y trabajo en equipo", horas: 30,
+      desc: "Movimiento en diferentes ambientes: patio del colegio, plazas, parques, playas o cerros. Práctica de juegos colectivos e individuales. Trabajo en equipo, roles.",
+      objetivos: ["EF01 OA 03", "EF01 OA 04", "EF01 OA 06", "EF01 OA 08", "EF01 OA 09", "EF01 OA 10", "EF01 OA 11"],
+      actitudes: ["EF01 OAA C", "EF01 OAA E", "EF01 OAA F", "EF01 OAA G"] }
+  ],
+  c2: [
+    { n: 1, titulo: "Desarrollo de habilidades motrices", horas: 30,
+      desc: "Desarrollo de habilidades motrices para saltar, botear el balón simultáneo a la marcha, la mantención del equilibrio y las suspensiones, giros y volteos.",
+      objetivos: ["EF02 OA 01", "EF02 OA 02", "EF02 OA 06", "EF02 OA 08", "EF02 OA 09", "EF02 OA 11"],
+      actitudes: ["EF02 OAA B", "EF02 OAA D", "EF02 OAA H"] },
+    { n: 2, titulo: "Continuar con el desarrollo de las habilidades motrices básicas", horas: 28,
+      desc: "Continuar con el desarrollo de las habilidades motrices básicas de locomoción, manipulación y estabilidad. Normas de higiene. Identificación de acciones de riesgo.",
+      objetivos: ["EF02 OA 01", "EF02 OA 02", "EF02 OA 06", "EF02 OA 08", "EF02 OA 09", "EF02 OA 11"],
+      actitudes: ["EF02 OAA A", "EF02 OAA B", "EF02 OAA D", "EF02 OAA H"] },
+    { n: 3, titulo: "Movimientos corporales que expresen ideas, sensaciones, estados de ánimo y emociones", horas: 28,
+      desc: "Desarrollo de las habilidades motrices básicas y ejecución de movimientos corporales que expresen ideas, sensaciones, estados de ánimo y emociones.",
+      objetivos: ["EF02 OA 01", "EF02 OA 05", "EF02 OA 06", "EF02 OA 07", "EF02 OA 08", "EF02 OA 09", "EF02 OA 11"],
+      actitudes: ["EF02 OAA B", "EF02 OAA D", "EF02 OAA E", "EF02 OAA H"] },
+    { n: 4, titulo: "Ejecución de habilidades motrices básicas en diferentes ambientes", horas: 30,
+      desc: "Ejecución de habilidades motrices básicas en diferentes ambientes. Juegos individuales y colectivos. Trabajo en equipo (asumir roles, colaborar y liderar).",
+      objetivos: ["EF02 OA 03", "EF02 OA 04", "EF02 OA 06", "EF02 OA 08", "EF02 OA 09", "EF02 OA 10", "EF02 OA 11"],
+      actitudes: ["EF02 OAA C", "EF02 OAA E", "EF02 OAA F", "EF02 OAA G"] }
+  ],
+  c3: [
+    { n: 1, titulo: "Combinando habilidades motrices", horas: 30,
+      desc: "Habilidades motrices, manipulación de objetos y estabilidad corporal. Juegos colectivos, resolviendo problemas de espacio, tiempo y número de personas.",
+      objetivos: ["EF03 OA 01", "EF03 OA 02", "EF03 OA 06", "EF03 OA 08", "EF03 OA 09", "EF03 OA 11"],
+      actitudes: ["EF03 OAA B", "EF03 OAA D", "EF03 OAA H"] },
+    { n: 2, titulo: "Planificando juegos colectivos", horas: 28,
+      desc: "Ejercicios que refuercen la estabilidad y juegos colectivos. Aprender a registrar respuestas corporales provocadas por la exigencia física.",
+      objetivos: ["EF03 OA 01", "EF03 OA 02", "EF03 OA 06", "EF03 OA 08", "EF03 OA 09", "EF03 OA 11"],
+      actitudes: ["EF03 OAA A", "EF03 OAA B", "EF03 OAA D", "EF03 OAA H"] },
+    { n: 3, titulo: "Juegos predeportivos y danzas tradicionales", horas: 28,
+      desc: "Práctica de juegos predeportivos y actividades rítmicas y lúdicas. Dar regularidad a la actividad física de los alumnos con guía del docente.",
+      objetivos: ["EF03 OA 03", "EF03 OA 05", "EF03 OA 06", "EF03 OA 07", "EF03 OA 08", "EF03 OA 09", "EF03 OA 11"],
+      actitudes: ["EF03 OAA B", "EF03 OAA D", "EF03 OAA E", "EF03 OAA H"] },
+    { n: 4, titulo: "Aprendiendo las reglas y roles de los juegos deportivos", horas: 30,
+      desc: "Incorporar la responsabilidad y la honestidad como valores fundamentales en la práctica deportiva. Ejecución de la actividad física en un entorno natural.",
+      objetivos: ["EF03 OA 03", "EF03 OA 04", "EF03 OA 06", "EF03 OA 08", "EF03 OA 09", "EF03 OA 10", "EF03 OA 11"],
+      actitudes: ["EF03 OAA C", "EF03 OAA E", "EF03 OAA F", "EF03 OAA G"] }
+  ],
+  c4: [
+    { n: 1, titulo: "Control motriz y estrategias de juego", horas: 30,
+      desc: "Control de habilidades de locomoción, manipulación y estabilidad. Juegos colectivos: resolver problemas de espacio, tiempo y número de personas.",
+      objetivos: ["EF04 OA 01", "EF04 OA 02", "EF04 OA 06", "EF04 OA 08", "EF04 OA 09", "EF04 OA 11"],
+      actitudes: ["EF04 OAA B", "EF04 OAA D", "EF04 OAA H"] },
+    { n: 2, titulo: "Mejorar las habilidades motrices", horas: 28,
+      desc: "Habilidades para atrapar objetos, desplazarse botando un balón en zigzag, saltar y caminar sobre una base a pequeña altura. Medición de la frecuencia cardiaca.",
+      objetivos: ["EF04 OA 01", "EF04 OA 02", "EF04 OA 06", "EF04 OA 08", "EF04 OA 09", "EF04 OA 11"],
+      actitudes: ["EF04 OAA A", "EF04 OAA B", "EF04 OAA D", "EF04 OAA H"] },
+    { n: 3, titulo: "Practicar juegos predeportivos y danzas tradicionales", horas: 28,
+      desc: "Realizar juegos predeportivos, aplicando reglas. Ejecutar movimientos de danzas tradicionales. Fomento de la práctica de la actividad física de manera regular.",
+      objetivos: ["EF04 OA 03", "EF04 OA 05", "EF04 OA 06", "EF04 OA 07", "EF04 OA 08", "EF04 OA 09", "EF04 OA 11"],
+      actitudes: ["EF04 OAA B", "EF04 OAA D", "EF04 OAA E", "EF04 OAA H"] },
+    { n: 4, titulo: "Practicando juegos predeportivos", horas: 30,
+      desc: "Aplicar reglas y principios de juegos predeportivos. Incorporar responsabilidad y honestidad al juego, asumiendo roles en este. Respetar las decisiones de la autoridad.",
+      objetivos: ["EF04 OA 03", "EF04 OA 04", "EF04 OA 06", "EF04 OA 08", "EF04 OA 09", "EF04 OA 10", "EF04 OA 11"],
+      actitudes: ["EF04 OAA C", "EF04 OAA E", "EF04 OAA F", "EF04 OAA G"] }
+  ],
+  c5: [
+    { n: 1, titulo: "Habilidades motrices básicas", horas: 22,
+      desc: "Habilidades motrices básicas en múltiples actividades deportivas y predeportivas. Resolución de problemas al practicar juegos colectivos y deportes.",
+      objetivos: ["EF05 OA 01", "EF05 OA 02", "EF05 OA 06", "EF05 OA 08", "EF05 OA 09", "EF05 OA 11"],
+      actitudes: ["EF05 OAA B", "EF05 OAA D", "EF05 OAA H"] },
+    { n: 2, titulo: "Práctica de deportes individuales y colectivos", horas: 0,
+      desc: "Práctica de deportes individuales y colectivos, acorde a reglas y aplicando estrategias específicas. Resolución de problemas.",
+      objetivos: ["EF05 OA 02", "EF05 OA 03", "EF05 OA 06", "EF05 OA 08", "EF05 OA 09", "EF05 OA 11"],
+      actitudes: ["EF05 OAA A", "EF05 OAA B", "EF05 OAA D", "EF05 OAA H"] },
+    { n: 3, titulo: "Ejecución de una danza nacional", horas: 12,
+      desc: "Ejecución de una danza nacional. Práctica de una actividad física de intensidad moderada a vigorosa de forma regular.",
+      objetivos: ["EF05 OA 05", "EF05 OA 06", "EF05 OA 07", "EF05 OA 08", "EF05 OA 09", "EF05 OA 11"],
+      actitudes: ["EF05 OAA B", "EF05 OAA D", "EF05 OAA E", "EF05 OAA H"] },
+    { n: 4, titulo: "Práctica de deportes y juegos colectivos", horas: 22,
+      desc: "Práctica de deportes y juegos colectivos con sus reglas y estrategias. Fomento de la responsabilidad, liderazgo y respeto por los demás.",
+      objetivos: ["EF05 OA 03", "EF05 OA 04", "EF05 OA 06", "EF05 OA 08", "EF05 OA 09", "EF05 OA 10", "EF05 OA 11"],
+      actitudes: ["EF05 OAA C", "EF05 OAA E", "EF05 OAA F", "EF05 OAA G"] }
+  ],
+  c6: [
+    { n: 1, titulo: "Aplicar habilidades motrices a las actividades deportivas", horas: 20,
+      desc: "Aplicación de habilidades motrices básicas en una variedad de actividades deportivas. Ejecución de juegos colectivos que impliquen implementar estrategias y aplicar reglas.",
+      objetivos: ["EF06 OA 01", "EF06 OA 02", "EF06 OA 06", "EF06 OA 08", "EF06 OA 09", "EF06 OA 11"],
+      actitudes: ["EF06 OAA B", "EF06 OAA D", "EF06 OAA H"] },
+    { n: 2, titulo: "Práctica de juegos y deportes individuales y colectivos", horas: 20,
+      desc: "Práctica de juegos y deportes individuales y colectivos, donde apliquen reglas, principios, estrategias y las orientaciones del entrenador.",
+      objetivos: ["EF06 OA 02", "EF06 OA 03", "EF06 OA 06", "EF06 OA 08", "EF06 OA 09", "EF06 OA 11"],
+      actitudes: ["EF06 OAA A", "EF06 OAA B", "EF06 OAA D", "EF06 OAA H"] },
+    { n: 3, titulo: "Ejecución de una danza nacional", horas: 16,
+      desc: "Ejecución de una danza nacional. Promoción de la práctica regular de actividad física. Desarrollo de la resistencia, fuerza, flexibilidad y velocidad.",
+      objetivos: ["EF06 OA 05", "EF06 OA 06", "EF06 OA 07", "EF06 OA 08", "EF06 OA 09", "EF06 OA 11"],
+      actitudes: ["EF06 OAA B", "EF06 OAA D", "EF06 OAA E", "EF06 OAA H"] },
+    { n: 4, titulo: "Práctica de deportes individuales y colectivos", horas: 20,
+      desc: "Práctica de deportes individuales y colectivos, con una actitud de liderazgo y respeto. Los alumnos deben asumir diversos roles para colaborar en las actividades colectivas.",
+      objetivos: ["EF06 OA 03", "EF06 OA 04", "EF06 OA 06", "EF06 OA 08", "EF06 OA 09", "EF06 OA 10", "EF06 OA 11"],
+      actitudes: ["EF06 OAA C", "EF06 OAA E", "EF06 OAA F", "EF06 OAA G"] }
+  ],
+  c7: [
+    { n: 1, titulo: "Dominando los deportes individuales", horas: 20,
+      desc: "Que los estudiantes apliquen, combinen y ajusten sus habilidades motrices específicas en un deporte individual y uno de oposición. Aplicar variedad de estrategias y tácticas para resolver un problema durante la práctica de algún juego o deporte.",
+      objetivos: ["EF07 OA 01", "EF07 OA 02", "EF07 OA 03", "EF07 OA 04", "EF07 OA 05"],
+      actitudes: ["EF07 OAA B", "EF07 OAA D", "EF07 OAA E"] },
+    { n: 2, titulo: "Juego colectivo", horas: 20,
+      desc: "Se espera que los estudiantes desarrollen sus habilidades motrices en, al menos, un deporte de colaboración y uno de oposición/colaboración. Que trabajen en equipo, implementen estrategias y apliquen las reglas y principios de las actividades deportivas.",
+      objetivos: ["EF07 OA 01", "EF07 OA 02", "EF07 OA 03", "EF07 OA 04", "EF07 OA 05"],
+      actitudes: ["EF07 OAA B", "EF07 OAA E"] },
+    { n: 3, titulo: "Deporte y danza", horas: 16,
+      desc: "Aplicar las habilidades motrices en, al menos, un deporte de oposición/colaboración, y una danza. Desarrollando la resistencia cardiovascular, la fuerza muscular, la flexibilidad y la velocidad, aplicando los principios de frecuencia, intensidad, duración y tipo de ejercicio a efectuar.",
+      objetivos: ["EF07 OA 01", "EF07 OA 02", "EF07 OA 03", "EF07 OA 04", "EF07 OA 05"],
+      actitudes: ["EF07 OAA A", "EF07 OAA C", "EF07 OAA F"] },
+    { n: 4, titulo: "Mejorando la resistencia física", horas: 20,
+      desc: "Combinar sus habilidades motrices en, al menos, un deporte de oposición/colaboración. Asimismo, se pretende que manejen los principios de frecuencia, intensidad, duración y tipo de ejercicio para desarrollar la resistencia cardiovascular, la fuerza muscular, la flexibilidad y la velocidad.",
+      objetivos: ["EF07 OA 01", "EF07 OA 02", "EF07 OA 03", "EF07 OA 04", "EF07 OA 05"],
+      actitudes: ["EF07 OAA A", "EF07 OAA F", "EF07 OAA G"] }
+  ],
+  c8: [
+    { n: 1, titulo: "Incrementar su desempeño deportivo", horas: 20,
+      desc: "Controlar sus habilidades motrices en al menos un deporte individual y uno de oposición. Se espera que sean capaces de evaluar, tomar decisiones, implementar estrategias y aplicar reglas y principios específicos de las actividades deportivas.",
+      objetivos: ["EF08 OA 01", "EF08 OA 02", "EF08 OA 03", "EF08 OA 04", "EF08 OA 05"],
+      actitudes: ["EF08 OAA B", "EF08 OAA D", "EF08 OAA E"] },
+    { n: 2, titulo: "Deportes colectivos", horas: 20,
+      desc: "Aplicar sus habilidades motrices específicas en al menos un deporte de colaboración y en uno de oposición/colaboración. Se espera que sean capaces de trabajar en equipo, tomar decisiones, evaluar las estrategias utilizadas y aplicar reglas y principios específicos de las actividades deportivas.",
+      objetivos: ["EF08 OA 01", "EF08 OA 02", "EF08 OA 03", "EF08 OA 04", "EF08 OA 05"],
+      actitudes: ["EF08 OAA B", "EF08 OAA D", "EF08 OAA E"] },
+    { n: 3, titulo: "Coordinación para un deporte y la danza", horas: 16,
+      desc: "Dominar habilidades motrices específicas en un deporte de oposición/colaboración y usar esas habilidades de forma más coordinada en una secuencia de movimientos en una danza.",
+      objetivos: ["EF08 OA 01", "EF08 OA 02", "EF08 OA 03", "EF08 OA 04", "EF08 OA 05"],
+      actitudes: ["EF08 OAA A", "EF08 OAA C", "EF08 OAA F"] },
+    { n: 4, titulo: "Incrementando la resistencia física", horas: 20,
+      desc: "Controlar las habilidades motrices en al menos un deporte de oposición/colaboración. Aplicar los principios de frecuencia, intensidad, duración y tipo de ejercicio para desarrollar la resistencia cardiovascular, la fuerza muscular, la flexibilidad y la velocidad.",
+      objetivos: ["EF08 OA 01", "EF08 OA 02", "EF08 OA 03", "EF08 OA 04", "EF08 OA 05"],
+      actitudes: ["EF08 OAA A", "EF08 OAA F", "EF08 OAA G"] }
+  ]
+};
+
+const unidadesDelCurso = (cursoId) => UNIDADES[cursoId] || [];
+
+/* =========================================================
+   Evaluaciones EF y Salud · lista de cotejo
+   Indicadores con casillas Logrado / No logrado y nota por puntaje
+   Datos: Supabase (tabla evaluaciones_ef) + respaldo local
+   ========================================================= */
+
+const SUPABASE_URL = "https://oktinlfoxjdohjukhwqw.supabase.co";
+const SUPABASE_KEY = "sb_publishable_xcSV6janC_6H0PqWcMvrAg_lyCU6cj1";
+const TABLA = "evaluaciones_ef";
+const PREFIJO = "evalef:";
+
+const CURSOS = [
+  { id: "c1", label: "1°", nombre: "1° Básico" }, { id: "c2", label: "2°", nombre: "2° Básico" },
+  { id: "c3", label: "3°", nombre: "3° Básico" }, { id: "c4", label: "4°", nombre: "4° Básico" },
+  { id: "c5", label: "5°", nombre: "5° Básico" }, { id: "c6", label: "6°", nombre: "6° Básico" },
+  { id: "c7", label: "7°", nombre: "7° Básico" }, { id: "c8", label: "8°", nombre: "8° Básico" }
+];
+
+const PTS_DEFECTO = 3;
+
+/* ===== Utilidades ===== */
+const $ = (sel, cx) => (cx || document).querySelector(sel);
+const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const hoy = () => new Date().toISOString().slice(0, 10);
+const fechaLarga = (f) => { if (!f) return "sin fecha"; const [a, m, d] = f.split("-"); return `${d}/${m}/${a}`; };
+const num1 = (n) => (n === null || n === undefined ? "—" : n.toFixed(1).replace(".", ","));
+const idNuevo = () => "e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+/* ===== Escala de notas =====
+   Exigencia fija del 60%. Nota mínima 2,0 · aprobación 4,0 con el 60% del
+   puntaje · nota máxima 7,0 con el puntaje total. Los tramos son lineales. */
+const EXIGENCIA = 60;
+const NOTA_MIN = 2, NOTA_APROB = 4, NOTA_MAX = 7;
+
+function calcularNota(puntaje, total) {
+  if (!total || total <= 0) return null;
+  const corte = (total * EXIGENCIA) / 100;
+  let n;
+  if (corte <= 0) n = NOTA_MAX;
+  else if (puntaje <= corte) n = NOTA_MIN + (NOTA_APROB - NOTA_MIN) * (puntaje / corte);
+  else if (total - corte <= 0) n = NOTA_MAX;
+  else n = NOTA_APROB + (NOTA_MAX - NOTA_APROB) * ((puntaje - corte) / (total - corte));
+  return Math.round(Math.min(NOTA_MAX, Math.max(NOTA_MIN, n)) * 10) / 10;
+}
+
+/* Puntaje mínimo que alcanza cada nota, para mostrar la escala completa */
+function tablaNotas(total) {
+  const filas = [];
+  for (let p = 0; p <= total; p++) filas.push({ p, nota: calcularNota(p, total) });
+  return filas;
+}
+const ptsAprobacion = (total) => Math.round((total * EXIGENCIA) / 100 * 10) / 10;
+
+/* ===== Modo escala de apreciación (opcional) ===== */
+const ESCALA_BASE = [
+  { r: "Por lograr", p: 1 }, { r: "En desarrollo", p: 2 },
+  { r: "Logrado", p: 3 }, { r: "Destacado", p: 4 }
+];
+const esEscala = (ev) => ev.modo === "escala";
+const nNiveles = (ev) => ev.escala.niveles.length;
+const maxNivel = (ev) => Math.max(...ev.escala.niveles.map((n) => Number(n.p) || 0), 1);
+const puntosNivel = (ev, v) => (v && ev.escala.niveles[v - 1] ? Number(ev.escala.niveles[v - 1].p) || 0 : 0);
+
+const PALETA = ["#c0392b", "#d9701f", "#e0a50f", "#7fa83f", "#2e9e6b"];
+function mezclar(a, b, t) {
+  const h = (c) => [1, 3, 5].map((i) => parseInt(c.substr(i, 2), 16));
+  const [r1, g1, b1] = h(a), [r2, g2, b2] = h(b);
+  const v = (x, y) => Math.round(x + (y - x) * t).toString(16).padStart(2, "0");
+  return `#${v(r1, r2)}${v(g1, g2)}${v(b1, b2)}`;
+}
+function colorNivel(k, total) {
+  if (total <= 1) return PALETA[4];
+  const t = ((k - 1) / (total - 1)) * (PALETA.length - 1);
+  const i = Math.min(PALETA.length - 2, Math.floor(t));
+  return mezclar(PALETA[i], PALETA[i + 1], t - i);
+}
+
+/* ===== Cálculo de la lista de cotejo ===== */
+function puntajeTotal(ev) {
+  if (esEscala(ev)) return ev.criterios.length * maxNivel(ev);
+  let t = 0;
+  ev.criterios.forEach((c) => c.indicadores.forEach((ind) => { t += Number(ind.pts) || 0; }));
+  return t;
+}
+
+function totalIndicadores(ev) {
+  return ev.criterios.reduce((a, c) => a + c.indicadores.length, 0);
+}
+
+function marcaDe(ev, i, j, q) {
+  const f = ev.marcas[i];
+  if (!f || !f[j]) return 0;
+  return f[j][q] || 0;
+}
+
+/* Resultado de un estudiante: puntaje logrado sobre el total del instrumento */
+function resultado(ev, i) {
+  let puntaje = 0, marcados = 0, logrados = 0, sinMarca = 0;
+  if (esEscala(ev)) {
+    ev.criterios.forEach((c, j) => {
+      const v = (ev.datos[i] || [])[j] || 0;
+      if (v) { puntaje += puntosNivel(ev, v); marcados++; if (v === nNiveles(ev)) logrados++; }
+      else sinMarca++;
+    });
+    const tot = puntajeTotal(ev);
+    return { puntaje, total: tot, marcados, logrados, sinMarca,
+      nota: marcados ? calcularNota(puntaje, tot) : null };
+  }
+  ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
+    const v = marcaDe(ev, i, j, q);
+    if (v === 1) { puntaje += Number(ind.pts) || 0; logrados++; marcados++; }
+    else if (v === 2) marcados++;
+    else sinMarca++;
+  }));
+  const total = puntajeTotal(ev);
+  return {
+    puntaje, total, marcados, logrados, sinMarca,
+    nota: marcados ? calcularNota(puntaje, total) : null
+  };
+}
+
+/* Logro de un criterio para un estudiante */
+function logroCriterio(ev, i, j) {
+  const c = ev.criterios[j];
+  let logrados = 0, marcados = 0, puntaje = 0, total = 0;
+  c.indicadores.forEach((ind, q) => {
+    const v = marcaDe(ev, i, j, q);
+    total += Number(ind.pts) || 0;
+    if (v === 1) { logrados++; marcados++; puntaje += Number(ind.pts) || 0; }
+    else if (v === 2) marcados++;
+  });
+  return { logrados, marcados, puntaje, total, n: c.indicadores.length };
+}
+
+/* ===== Estructura de datos ===== */
+function normalizarIndicador(x, ptsDefecto) {
+  if (typeof x === "string") return { texto: x, pts: ptsDefecto };
+  const o = x && typeof x === "object" ? x : {};
+  const pts = Number(o.pts);
+  return { texto: String(o.texto == null ? "" : o.texto), pts: Number.isFinite(pts) && pts >= 0 ? pts : ptsDefecto };
+}
+
+function normalizarCriterio(c, ptsDefecto) {
+  const base = typeof c === "string" ? { texto: c } : (c && typeof c === "object" ? c : {});
+  const texto = String(base.texto == null ? "" : base.texto);
+  const oa = String(base.oa || "");
+  const eje = String(base.eje || "");
+  let indicadores = Array.isArray(base.indicadores) ? base.indicadores.map((x) => normalizarIndicador(x, ptsDefecto)) : [];
+  if (!indicadores.length) indicadores = [{ texto: "", pts: ptsDefecto }];
+  return { texto, oa, eje, indicadores };
+}
+
+function criterioDesdeOA(codigo, cursoId, nInd) {
+  const oa = buscarOA(cursoId, codigo);
+  return {
+    texto: oa ? oa.texto : "",
+    oa: oa ? oa.codigo : "",
+    eje: oa ? oa.eje : "",
+    indicadores: Array.from({ length: nInd || 3 }, () => ({ texto: "", pts: PTS_DEFECTO }))
+  };
+}
+
+function nuevaEvaluacion(nAlumnos, oaCodigos, nombre, cursoId) {
+  const cods = Array.isArray(oaCodigos) ? oaCodigos : [];
+  let criterios = cods.map((c) => criterioDesdeOA(c, cursoId, 3));
+  if (!criterios.length) criterios = [{ texto: "", oa: "", eje: "", indicadores: [
+    { texto: "", pts: PTS_DEFECTO }, { texto: "", pts: PTS_DEFECTO }, { texto: "", pts: PTS_DEFECTO }] }];
+  const auto = cods.length === 1 ? cods[0] : cods.length ? `${cods.length} objetivos` : "Lista de cotejo";
+  return {
+    id: idNuevo(),
+    nombre: nombre || auto,
+    fecha: hoy(),
+    oa: "",
+    exigencia: EXIGENCIA,
+    ptsDefecto: PTS_DEFECTO,
+    modo: "cotejo",
+    escala: { niveles: ESCALA_BASE.map((n) => ({ ...n })) },
+    criterios,
+    marcas: Array.from({ length: nAlumnos }, () => criterios.map((c) => Array(c.indicadores.length).fill(0))),
+    datos: Array.from({ length: nAlumnos }, () => criterios.map(() => 0)),
+    estado: Array(nAlumnos).fill(0),
+    obs: Array(nAlumnos).fill("")
+  };
+}
+
+function cursoVacio(cursoId) {
+  return { roster: [], evaluaciones: [nuevaEvaluacion(0, [], "", cursoId)] };
+}
+
+function normalizar(d) {
+  const base = d && typeof d === "object" ? d : {};
+  const roster = Array.isArray(base.roster) ? base.roster.map((n) => String(n || "")) : [];
+  let evs = Array.isArray(base.evaluaciones) ? base.evaluaciones : [];
+  if (!evs.length) evs = [nuevaEvaluacion(roster.length, [], "", S.cursoId)];
+  const n = roster.length;
+  return {
+    roster,
+    evaluaciones: evs.map((e) => {
+      const ptsDefecto = Number(e.ptsDefecto) > 0 ? Number(e.ptsDefecto) : PTS_DEFECTO;
+      const crudos = Array.isArray(e.criterios) && e.criterios.length ? e.criterios : [""];
+      const criterios = crudos.map((c) => normalizarCriterio(c, ptsDefecto));
+      return {
+        id: e.id || idNuevo(),
+        nombre: e.nombre || "Lista de cotejo",
+        fecha: e.fecha || hoy(),
+        oa: e.oa || "",
+        exigencia: EXIGENCIA,
+        ptsDefecto,
+        modo: e.modo === "escala" ? "escala" : "cotejo",
+        escala: { niveles: (Array.isArray(e.escala && e.escala.niveles) && e.escala.niveles.length >= 2
+          ? e.escala.niveles : ESCALA_BASE).slice(0, 8).map((x, k) => ({
+            r: String(x && x.r != null ? x.r : "Nivel " + (k + 1)),
+            p: Number.isFinite(Number(x && x.p)) ? Number(x.p) : k + 1 })) },
+        criterios,
+        marcas: Array.from({ length: n }, (_, i) =>
+          criterios.map((c, j) =>
+            Array.from({ length: c.indicadores.length }, (_, q) => {
+              const v = e.marcas && e.marcas[i] && e.marcas[i][j] ? Number(e.marcas[i][j][q]) : 0;
+              return v === 1 || v === 2 ? v : 0;
+            }))),
+        datos: Array.from({ length: n }, (_, i) =>
+          criterios.map((c, j) => {
+            const v = e.datos && e.datos[i] ? Number(e.datos[i][j]) : 0;
+            return v >= 1 && v <= 8 ? v : 0;
+          })),
+        estado: Array.from({ length: n }, (_, i) => {
+          const v = e.estado ? Number(e.estado[i]) : 0;
+          return v === 1 || v === 2 ? v : 0;
+        }),
+        obs: Array.from({ length: n }, (_, i) => (e.obs && e.obs[i]) || "")
+      };
+    })
+  };
+}
+
+/* ===== Almacenamiento ===== */
+let sb = null;
+let sbListo = (async () => {
+  try {
+    const m = await import("https://esm.sh/@supabase/supabase-js@2");
+    sb = m.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, storageKey: "sb-evalef-auth" }
+    });
+  } catch (err) {
+    console.warn("Sin conexión con el servidor:", err);
+    sb = null;
+  }
+})();
+
+async function usuarioActual() {
+  if (!sb) return null;
+  try {
+    const { data } = await sb.auth.getSession();
+    return data && data.session && data.session.user ? data.session.user : null;
+  } catch { return null; }
+}
+
+const almacen = {
+  async leer(cursoId) {
+    const u = await usuarioActual();
+    if (u) {
+      const { data, error } = await sb.from(TABLA).select("contenido")
+        .eq("user_id", u.id).eq("curso_id", cursoId).maybeSingle();
+      if (!error && data && data.contenido) {
+        try { localStorage.setItem(PREFIJO + cursoId, JSON.stringify(data.contenido)); } catch {}
+        return normalizar(data.contenido);
+      }
+      if (error) throw new Error(error.message);
+    }
+    const local = localStorage.getItem(PREFIJO + cursoId);
+    if (local) { try { return normalizar(JSON.parse(local)); } catch {} }
+    return cursoVacio(cursoId);
+  },
+  async escribir(cursoId, obj) {
+    try { localStorage.setItem(PREFIJO + cursoId, JSON.stringify(obj)); } catch {}
+    const u = await usuarioActual();
+    if (!u) throw new Error("sin-sesion");
+    const { error } = await sb.from(TABLA).upsert(
+      { user_id: u.id, curso_id: cursoId, contenido: obj, actualizado: new Date().toISOString() },
+      { onConflict: "user_id,curso_id" }
+    );
+    if (error) throw new Error(error.message);
+  }
+};
+
+/* ===== Estado ===== */
+const S = {
+  sesion: null, verificando: true, sinCuenta: false, errorIngreso: "",
+  cursoId: localStorage.getItem(PREFIJO + "ultimoCurso") || "c6",
+  datos: null, cargando: true, errorCarga: "",
+  evalIdx: 0, pestana: "evaluar", modo: "planilla", criterioActivo: 0, alumnoActivo: 0,
+  ajustes: false, guardado: "ok", detalleError: ""
+};
+
+const evalActual = () => (S.datos ? S.datos.evaluaciones[Math.min(S.evalIdx, S.datos.evaluaciones.length - 1)] : null);
+
+/* ===== Guardado ===== */
+let temporizador = null, cursoPendiente = null, datosPendientes = null;
+function marcarCambio() {
+  /* Se recuerda a qué curso pertenece el cambio: si se cambia de curso antes de
+     que alcance a guardar, los datos igual van a donde corresponden. */
+  cursoPendiente = S.cursoId;
+  datosPendientes = S.datos;
+  S.guardado = "pendiente";
+  pintarEstado();
+  clearTimeout(temporizador);
+  temporizador = setTimeout(guardar, 700);
+}
+async function guardar() {
+  const curso = cursoPendiente || S.cursoId;
+  const datos = datosPendientes || S.datos;
+  cursoPendiente = null; datosPendientes = null;
+  if (!datos) return;
+  S.guardado = "guardando"; S.detalleError = ""; pintarEstado();
+  try {
+    await almacen.escribir(curso, datos);
+    S.guardado = "ok";
+  } catch (e) {
+    S.guardado = e.message === "sin-sesion" ? "local" : "error";
+    S.detalleError = e.message === "sin-sesion" ? "" : e.message;
+  }
+  pintarEstado();
+}
+function pintarEstado() {
+  const c = $("#estado");
+  if (!c) return;
+  const mapa = {
+    ok: ["", "Guardado automático"], guardando: ["trabajando", "Guardando…"],
+    pendiente: ["trabajando", "Guardando…"], local: ["error", "Solo en este equipo"],
+    error: ["error", "No se pudo guardar"]
+  };
+  const [cls, txt] = mapa[S.guardado] || mapa.ok;
+  c.innerHTML = `<span class="punto ${cls}"></span><span>${esc(txt)}</span>`;
+}
+
+/* ===== Carga de curso ===== */
+async function cargarCurso(id) {
+  if (datosPendientes) { clearTimeout(temporizador); await guardar(); }
+  S.cursoId = id; S.cargando = true; S.errorCarga = ""; S.evalIdx = 0;
+  S.criterioActivo = 0; S.alumnoActivo = 0; S.ajustes = false;
+  try { localStorage.setItem(PREFIJO + "ultimoCurso", id); } catch {}
+  pintar();
+  try { S.datos = await almacen.leer(id); }
+  catch (e) { S.errorCarga = e.message; S.datos = cursoVacio(id); }
+  S.cargando = false;
+  pintar();
+}
+
+/* =========================================================
+   Vistas
+   ========================================================= */
+function pintar() {
+  const raiz = $("#raiz");
+  if (S.verificando) { raiz.innerHTML = `<div class="vacio" style="padding-top:60px">Verificando sesión…</div>`; return; }
+  if (!S.sesion && !S.sinCuenta) { raiz.innerHTML = vistaIngreso(); return; }
+  raiz.innerHTML = vistaApp();
+  pintarEstado();
+}
+
+function vistaIngreso() {
+  return `
+  <div class="ingreso">
+    <div class="logo">
+      <i style="height:10px;background:var(--n1)"></i><i style="height:17px;background:var(--n2)"></i>
+      <i style="height:25px;background:var(--n3)"></i><i style="height:34px;background:var(--n4)"></i>
+    </div>
+    <h1>Evaluaciones de<br>Educación Física y Salud</h1>
+    <p class="sub" style="margin:0 0 18px">Listas de cotejo con nota automática. 1° a 8° básico.</p>
+    ${S.errorIngreso ? `<div class="aviso">${esc(S.errorIngreso)}</div>` : ""}
+    ${!sb ? `<div class="aviso">No hay conexión con el servidor. Puedes trabajar solo en este equipo.</div>` : ""}
+    <div class="tarjeta">
+      <label class="campo"><span>Correo</span><input type="email" id="correo" autocomplete="username" inputmode="email"></label>
+      <label class="campo"><span>Contraseña</span><input type="password" id="clave" autocomplete="current-password"></label>
+      <button class="btn btn-lleno btn-ancho" data-accion="entrar">Entrar</button>
+      <p class="sub" style="margin:12px 0 0">Tus evaluaciones se sincronizan entre teléfono, tablet y computador.</p>
+    </div>
+    <button class="btn btn-ancho" data-accion="sin-cuenta">Trabajar solo en este equipo</button>
+  </div>`;
+}
+
+function vistaApp() {
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  return `
+  <header class="barra-sup no-imprimir">
+    <div class="interior">
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico</small></div>
+      <div class="estado" id="estado"></div>
+      ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
+    </div>
+  </header>
+  <div class="envoltura">
+    <nav class="cursos no-imprimir">
+      ${CURSOS.map((c) => `<button class="curso" data-accion="curso" data-id="${c.id}" aria-pressed="${c.id === S.cursoId}">
+        <b>${c.label}</b><small>BÁSICO</small></button>`).join("")}
+    </nav>
+    ${S.cargando ? `<div class="tarjeta"><div class="vacio">Cargando ${esc(curso.nombre)}…</div></div>` : `
+    ${S.errorCarga ? `<div class="aviso">No se pudieron traer los datos guardados. ${esc(S.errorCarga)}</div>` : ""}
+    <div class="pestanas no-imprimir">
+      <button class="pestana" data-accion="pestana" data-v="evaluar" aria-pressed="${S.pestana === "evaluar"}">Evaluar</button>
+      <button class="pestana" data-accion="pestana" data-v="resumen" aria-pressed="${S.pestana === "resumen"}">Resumen</button>
+      <button class="pestana" data-accion="pestana" data-v="consolidado" aria-pressed="${S.pestana === "consolidado"}">Consolidado</button>
+      <button class="pestana" data-accion="pestana" data-v="curso" aria-pressed="${S.pestana === "curso"}">Curso</button>
+    </div>
+    ${S.pestana === "evaluar" ? vistaEvaluar() : S.pestana === "resumen" ? vistaResumen()
+      : S.pestana === "consolidado" ? vistaConsolidado() : vistaCurso()}
+    `}
+    <div class="hoja-impresion" id="impresion"></div>
+  </div>`;
+}
+
+/* --- Cabecera de la evaluación --- */
+function estadisticas(ev) {
+  const n = S.datos.roster.length;
+  let puntaje = 0, maximo = 0, sinEvaluar = 0, ausentes = 0;
+  const notas = [];
+  const total = puntajeTotal(ev);
+  for (let i = 0; i < n; i++) {
+    if (ev.estado[i]) { ausentes++; continue; }
+    const r = resultado(ev, i);
+    puntaje += r.puntaje;
+    maximo += total;
+    if (r.sinMarca > 0) sinEvaluar++;
+    if (r.nota !== null) notas.push(r.nota);
+  }
+  return {
+    puntaje, maximo, sinEvaluar, ausentes,
+    logro: maximo ? Math.round((puntaje / maximo) * 100) : null,
+    prom: notas.length ? notas.reduce((a, b) => a + b, 0) / notas.length : null
+  };
+}
+
+function codigosOA(ev) {
+  return [...new Set(ev.criterios.map((c) => c.oa).filter(Boolean))];
+}
+
+function cabeceraEvaluacion() {
+  const ev = evalActual();
+  const lista = S.datos.evaluaciones;
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  const e = estadisticas(ev);
+  const total = puntajeTotal(ev);
+  const corto = (f) => (f ? f.slice(8, 10) + "/" + f.slice(5, 7) : "—");
+  return `
+  <div class="tarjeta no-imprimir">
+    <div class="fila" style="gap:9px">
+      <h2 class="titulo-curso">${esc(curso.nombre.toUpperCase())}</h2>
+      <span class="pastilla"><b>${S.datos.roster.length}</b> estudiantes</span>
+      <span class="pastilla"><b>${lista.length}</b> listas</span>
+    </div>
+    <div class="fila" style="margin-top:11px">
+      <button class="btn" data-accion="pestana" data-v="resumen">Ver resumen</button>
+      <button class="btn" data-accion="excel">Exportar curso (Excel)</button>
+      <button class="btn" data-accion="ayuda">¿Cómo funciona?</button>
+    </div>
+
+    <span class="rotulo-seccion">Listas del curso</span>
+    <div class="tiras">
+      ${lista.map((x, i) => `<button class="tira ${i === S.evalIdx ? "activa" : ""}" data-accion="abrir-eval" data-i="${i}">
+        <b>${i + 1}</b><small>${corto(x.fecha)}</small></button>`).join("")}
+      <button class="tira nueva" data-accion="nueva-eval" title="Nueva lista de cotejo">+</button>
+    </div>
+
+    <span class="rotulo-seccion">Lista abierta</span>
+    <h3 class="titulo-eval">${esc(ev.nombre || "Sin nombre")}</h3>
+    <p class="sub" style="margin:3px 0 0">${esEscala(ev) ? `escala 1–${nNiveles(ev)} · ${ev.criterios.length} criterios` : `${totalIndicadores(ev)} indicadores`} · ${total} pts · nota de 2,0 a 7,0</p>
+    ${codigosOA(ev).length ? `<div class="fila" style="gap:5px;margin-top:6px">${codigosOA(ev).map((x) => `<span class="oa-chip">${esc(x)}</span>`).join("")}</div>` : ""}
+    <label class="campo" style="max-width:200px;margin:11px 0 0"><span>FECHA DE LA CLASE</span>
+      <input type="date" data-campo="fecha" value="${esc(ev.fecha)}"></label>
+
+    <div class="fila pastillas">
+      <span class="pastilla"><b>${e.puntaje}</b>/${e.maximo} pts${e.logro === null ? "" : ` · <b>${e.logro}%</b> logro`}</span>
+      <span class="pastilla">Prom. <b>${num1(e.prom)}</b></span>
+      <span class="pastilla"><b>${e.sinEvaluar}</b> sin completar</span>
+      <span class="pastilla"><b>${e.ausentes}</b> ausentes</span>
+    </div>
+
+    <div class="fila" style="margin-top:11px">
+      <button class="btn btn-mini" data-accion="ajustes">${S.ajustes ? "Cerrar ajustes" : "Ajustes de la lista"}</button>
+      <button class="btn btn-mini" data-accion="imprimir">Exportar esta lista (PDF)</button>
+      <button class="btn btn-mini" data-accion="limpiar-marcas">Limpiar marcas</button>
+    </div>
+    <div class="fila fila-peligro">
+      <button class="btn btn-mini btn-peligro" data-accion="borrar-eval">Eliminar lista</button>
+    </div>
+    ${S.ajustes ? panelAjustes(ev) : ""}
+  </div>`;
+}
+
+function panelAjustes(ev) {
+  const total = puntajeTotal(ev);
+  return `
+  <div class="bloque-seccion">
+    <span class="rotulo-seccion" style="margin-top:10px">Datos de la lista</span>
+    <label class="campo"><span>Nombre de la lista de cotejo</span><input type="text" data-campo="nombre" value="${esc(ev.nombre)}"></label>
+    ${esEscala(ev) ? "" : `<label class="campo"><span>Puntos por indicador</span><input type="number" min="1" max="20" step="1" data-campo="ptsDefecto" value="${ev.ptsDefecto}"></label>`}
+    <label class="campo"><span>Unidad del programa</span>
+      <select data-accion="elegir-unidad">
+        <option value="">Elige una unidad del nivel…</option>
+        ${unidadesDelCurso(S.cursoId).map((u, k) => `<option value="${k}" ${ev.oa === `Unidad ${u.n}: ${u.titulo}` ? "selected" : ""}>Unidad ${u.n} · ${esc(u.titulo)}</option>`).join("")}
+      </select></label>
+    <div class="fila" style="gap:7px;margin:-4px 0 10px">
+      <input type="text" data-campo="oa" placeholder="o escribe la unidad a mano" value="${esc(ev.oa)}" style="flex:1;min-width:0">
+      <button class="btn btn-mini" data-accion="unidad-picker">Ver detalle</button>
+    </div>
+    <span class="rotulo-seccion">Escala de notas</span>
+    <div class="caja-escala">
+      <div class="fila fila-sep">
+        <span class="sub">60% de exigencia</span>
+        <button class="btn btn-mini" data-accion="ver-escala">Ver escala completa</button>
+      </div>
+      <div class="fila" style="gap:7px;margin-top:8px">
+        <span class="pastilla"><b>0</b> pts = 2,0</span>
+        <span class="pastilla"><b>${ptsAprobacion(total).toString().replace(".", ",")}</b> pts = 4,0</span>
+        <span class="pastilla"><b>${total}</b> pts = 7,0</span>
+      </div>
+    </div>
+
+    <div>
+      <span class="rotulo-seccion">Instrumento</span>
+      <div class="pestanas" style="margin:0">
+        <button class="pestana" data-accion="cambiar-modo" data-v="cotejo" aria-pressed="${!esEscala(ev)}">Lista de cotejo</button>
+        <button class="pestana" data-accion="cambiar-modo" data-v="escala" aria-pressed="${esEscala(ev)}">Escala de apreciación</button>
+      </div>
+      ${esEscala(ev) ? `
+        <div style="margin-top:12px">
+          <span class="sub">Niveles de la escala · ${nNiveles(ev)} niveles, máximo ${maxNivel(ev)} pts por criterio</span>
+          ${ev.escala.niveles.map((n, k) => `
+            <div class="criterio-edit" style="margin-top:6px">
+              <span class="idx mono" style="padding-top:12px">${k + 1}</span>
+              <input type="text" data-campo="nivel-r" data-k="${k}" value="${esc(n.r)}" placeholder="Descripción del nivel" style="flex:1;min-width:0">
+              <input type="number" min="0" max="20" step="1" data-campo="nivel-p" data-k="${k}" value="${n.p}" title="Puntos" style="flex:0 0 62px;width:62px;text-align:center">
+              <button class="btn btn-mini btn-peligro" data-accion="borrar-nivel" data-k="${k}" ${nNiveles(ev) <= 2 ? "disabled" : ""}>×</button>
+            </div>`).join("")}
+          <div class="fila" style="margin-top:8px"><button class="btn btn-mini" data-accion="agregar-nivel">Agregar nivel</button></div>
+        </div>` : ""}
+    </div>
+
+    <span class="rotulo-seccion">${esEscala(ev) ? "Criterios" : "Criterios e indicadores"}</span>
+    ${ev.criterios.map((c, j) => `
+      <div class="bloque-criterio">
+        <div class="fila" style="gap:6px;margin-bottom:6px">
+          <span class="idx mono">C${j + 1}</span>
+          ${c.oa ? `<span class="oa-chip">${esc(c.oa)}</span><span class="sub">${esc(EJES[c.eje] || "")}</span>` : `<span class="sub">criterio propio</span>`}
+          <button class="btn btn-mini btn-peligro" style="margin-left:auto" data-accion="borrar-criterio" data-j="${j}" ${ev.criterios.length <= 1 ? "disabled" : ""} title="Quitar criterio">×</button>
+        </div>
+        <textarea data-campo="criterio" data-j="${j}" rows="2" placeholder="Criterio, dimensión u objetivo de aprendizaje" style="width:100%;min-height:54px">${esc(c.texto)}</textarea>
+        ${esEscala(ev) ? "" : `<div style="padding-left:24px">
+          ${c.indicadores.map((ind, q) => `
+            <div class="criterio-edit">
+              <span class="idx mono" style="padding-top:12px">${j + 1}.${q + 1}</span>
+              <input type="text" data-campo="indicador" data-j="${j}" data-q="${q}" value="${esc(ind.texto)}" placeholder="Indicador observable" style="flex:1;min-width:0">
+              <input type="number" min="0" max="20" step="1" data-campo="pts" data-j="${j}" data-q="${q}" value="${ind.pts}" title="Puntos" style="flex:0 0 62px;width:62px;text-align:center">
+              <button class="btn btn-mini btn-peligro" data-accion="borrar-indicador" data-j="${j}" data-q="${q}" ${c.indicadores.length <= 1 ? "disabled" : ""} title="Quitar indicador">×</button>
+            </div>`).join("")}
+          <div class="fila" style="margin-top:4px">
+            <button class="btn btn-mini" data-accion="agregar-indicador" data-j="${j}">Agregar indicador</button>
+            <button class="btn btn-mini" data-accion="sugerir" data-j="${j}">Sugeridos</button>
+            <span class="sub">${c.indicadores.length} indicadores · ${c.indicadores.reduce((a, x) => a + (Number(x.pts) || 0), 0)} pts</span>
+          </div>
+        </div>`}
+      </div>`).join("")}
+    <div style="margin-top:12px">
+      <label class="campo" style="margin-bottom:6px"><span>Agregar un objetivo de aprendizaje</span>
+        <select data-accion="elegir-oa">
+          <option value="">Elige un objetivo del nivel…</option>
+          ${opcionesOAsHTML(S.cursoId, ev)}
+        </select></label>
+      <div class="fila">
+        <button class="btn btn-mini btn-lleno" data-accion="agregar-criterio">+ Agregar otro criterio</button>
+        <button class="btn btn-mini" data-accion="oa-picker">Ver los objetivos completos</button>
+      </div>
+    </div>
+    <div class="fila fila-peligro">
+      <button class="btn btn-mini" data-accion="duplicar-eval">Duplicar lista</button>
+    </div>
+  </div>`;
+}
+
+function pasosHTML() {
+  const pasos = [
+    ["Carga la nómina", "En la pestaña <b>Curso</b> pegas la lista de estudiantes, un nombre por línea. Se guarda para todas las listas de ese curso."],
+    ["Arma los criterios", "En <b>Ajustes de la lista</b> eliges la unidad del programa y agregas los objetivos que vas a evaluar, uno por uno, desde el desplegable <i>Agregar un objetivo de aprendizaje</i>. La lista parte con un criterio en blanco."],
+    ["Marca en clases", "En <b>Planilla</b>, cada indicador tiene L (logrado) y NL (no logrado). La nota se calcula sola, al 60% de exigencia."]
+  ];
+  return `<ol class="pasos">${pasos.map(([t, d]) => `<li><b>${t}.</b> ${d}</li>`).join("")}</ol>`;
+}
+
+/* --- Pestaña Evaluar --- */
+function vistaEvaluar() {
+  const ev = evalActual();
+  if (!S.datos.roster.length) {
+    const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+    return `<div class="tarjeta">
+      <h3 style="margin:0 0 4px">Empecemos por ${esc(curso.nombre)}</h3>
+      <p class="sub" style="margin:0 0 12px">Todavía no hay estudiantes en este curso. Son tres pasos.</p>
+      ${pasosHTML()}
+      <div style="margin-top:14px">
+        <button class="btn btn-lleno btn-ancho" data-accion="pestana" data-v="curso">1 · Cargar la nómina del curso</button>
+      </div>
+    </div>` + cabeceraEvaluacion();
+  }
+  return cabeceraEvaluacion() + `
+  <div class="pestanas no-imprimir" style="margin-top:0">
+    <button class="pestana" data-accion="modo" data-v="planilla" aria-pressed="${S.modo === "planilla"}">Planilla</button>
+    <button class="pestana" data-accion="modo" data-v="criterio" aria-pressed="${S.modo === "criterio"}">Por criterio</button>
+    <button class="pestana" data-accion="modo" data-v="alumno" aria-pressed="${S.modo === "alumno"}">Por estudiante</button>
+  </div>
+  ${S.modo === "criterio" ? vistaPorCriterio(ev) : S.modo === "alumno" ? vistaPorAlumno(ev) : vistaPlanilla(ev)}`;
+}
+
+function parCasillas(ev, i, j, q, compacto) {
+  const v = marcaDe(ev, i, j, q);
+  return `<span class="par-cas${compacto ? " compacto" : ""}">
+    <button class="cas ${v === 1 ? "si" : ""}" data-accion="marca-l" data-i="${i}" data-j="${j}" data-q="${q}"
+      aria-pressed="${v === 1}" title="Logrado">${v === 1 ? "✓" : ""}</button>
+    <button class="cas no ${v === 2 ? "si" : ""}" data-accion="marca-nl" data-i="${i}" data-j="${j}" data-q="${q}"
+      aria-pressed="${v === 2}" title="No logrado">${v === 2 ? "✗" : ""}</button>
+  </span>`;
+}
+
+function medidor(ev, i, j, compacto) {
+  const N = nNiveles(ev), valor = (ev.datos[i] || [])[j] || 0;
+  return `<div class="medidor${compacto ? " compacto" : ""}" style="grid-template-columns:repeat(${N},1fr)">
+    ${ev.escala.niveles.map((n, k) => {
+      const k1 = k + 1, alto = 6 + Math.round((k / Math.max(1, N - 1)) * 12);
+      return `<button class="nivel" style="--c:${colorNivel(k1, N)}" data-accion="poner-nivel"
+        data-i="${i}" data-j="${j}" data-k="${k1}" aria-pressed="${valor === k1}"
+        title="${esc(n.r)} · ${n.p} pt"><span class="barra" style="height:${alto}px"></span>
+        <span class="num">${k1}</span></button>`;
+    }).join("")}
+  </div>`;
+}
+
+function leyendaEscala(ev) {
+  return ev.escala.niveles.map((n, k) => `${k + 1} ${esc(n.r)} (${n.p} pt)`).join(" · ");
+}
+
+function botonAsistencia(ev, i) {
+  const e = ev.estado[i] || 0;
+  const cls = e === 1 ? "ausente" : e === 2 ? "justificado" : "";
+  const txt = e === 1 ? "A" : e === 2 ? "J" : "P";
+  const tit = e === 1 ? "Ausente" : e === 2 ? "Ausente justificado" : "Presente";
+  return `<button class="asis ${cls}" data-accion="asistencia" data-i="${i}" title="${tit}">${txt}</button>`;
+}
+
+function insigniaCriterio(ev, i, j) {
+  const l = logroCriterio(ev, i, j);
+  const cls = !l.marcados ? "" : l.puntaje === l.total ? "verde" : l.puntaje === 0 ? "roja" : "media";
+  return `<span class="insignia-nivel ${cls}">${l.marcados ? `${l.logrados}/${l.n} · ${l.puntaje} pts` : "sin marcar"}</span>`;
+}
+
+/* --- Planilla --- */
+function columnasPlanilla(ev) {
+  if (esEscala(ev)) return ev.criterios.map((c, j) => ({ j, q: -1, ind: null }));
+  const cols = [];
+  ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => cols.push({ j, q, ind })));
+  return cols;
+}
+
+function vistaPlanilla(ev) {
+  const cols = columnasPlanilla(ev);
+  const total = puntajeTotal(ev);
+  return `
+  <p class="ayuda no-imprimir">${esEscala(ev) ? `Cada criterio se marca con un nivel de la escala: <b>${leyendaEscala(ev)}</b>.
+  Toca la celda para avanzar de nivel y sigue tocando para volver a dejarla vacía.` : `Cada indicador tiene dos casillas: <b>L</b> logrado y <b>NL</b> no logrado.
+  Toca para marcar y vuelve a tocar la misma casilla para dejarla sin marca. El botón <b>✓✓</b> del encabezado
+  marca logrado ese indicador a todo el curso presente, y lo limpia si ya estaban todos. El botón de asistencia
+  cicla <b>P → A</b> (ausente) <b>→ J</b> (justificado). El botón <b>✎</b> agrega una observación. Con <b>+</b>
+  agregas otro indicador al criterio, y el texto del encabezado se edita tocándolo.`}
+  Escala automática al 60%: <b>0</b> pts = 2,0 · <b>${ptsAprobacion(total).toString().replace(".", ",")}</b> pts = 4,0 · <b>${total}</b> pts = 7,0.</p>
+  <div class="envoltura-tabla planilla">
+    <table>
+      <thead>
+        <tr>
+          <th class="izq col-fija" rowspan="3">ESTUDIANTE</th>
+          <th rowspan="3">ASIS.</th>
+          ${ev.criterios.map((c, j) => `<th class="th-grupo" colspan="${esEscala(ev) ? 1 : c.indicadores.length * 2}">
+            <span class="rot-crit">${esc(c.oa || "C" + (j + 1))}</span> ${esc(recorte(c.texto || "Criterio " + (j + 1), 90))}
+            ${esEscala(ev) ? "" : `<button class="btn-mas" data-accion="agregar-indicador" data-j="${j}" title="Agregar indicador">+</button>`}
+          </th>`).join("")}
+          <th rowspan="3">PTS</th><th rowspan="3">NOTA</th><th rowspan="3">OBS</th>
+        </tr>
+        <tr>
+          ${esEscala(ev)
+            ? ev.criterios.map(() => `<th class="th-ind"><span class="sub-blanco">escala 1–${nNiveles(ev)}</span></th>`).join("")
+            : ev.criterios.map((c, j) => c.indicadores.map((ind, q) => `<th colspan="2" class="th-ind">
+              <input type="text" data-campo="indicador" data-j="${j}" data-q="${q}" value="${esc(ind.texto)}" placeholder="Indicador ${q + 1}">
+              <span class="pts-pill">${ind.pts} pts</span>
+              <button class="btn-todos" data-accion="todos-marca" data-j="${j}" data-q="${q}" title="Marcar logrado a todo el curso">✓✓</button>
+            </th>`).join("")).join("")}
+        </tr>
+        <tr>
+          ${cols.map(() => esEscala(ev) ? `<th class="th-lnl">nivel</th>` : `<th class="th-lnl">L</th><th class="th-lnl">NL</th>`).join("")}
+        </tr>
+      </thead>
+      <tbody>
+        ${S.datos.roster.map((nom, i) => {
+          const r = resultado(ev, i);
+          const est = ev.estado[i] || 0;
+          return `<tr class="${est ? "fila-ausente" : ""}">
+            <td class="izq col-fija"><span class="n-orden">${String(i + 1).padStart(2, "0")}</span> ${esc(nom || "—")}</td>
+            <td>${botonAsistencia(ev, i)}</td>
+            ${cols.map((col) => {
+              if (esEscala(ev)) {
+                if (est) return `<td class="raya">—</td>`;
+                const v = (ev.datos[i] || [])[col.j] || 0;
+                return `<td class="celda-tap"><button class="cas nivel-cas"
+                  style="${v ? `background:${colorNivel(v, nNiveles(ev))};color:#fff;border-color:transparent` : ""}"
+                  data-accion="ciclo-nivel" data-i="${i}" data-j="${col.j}"
+                  title="${v ? esc(ev.escala.niveles[v - 1].r) : "Sin marca"}">${v || ""}</button></td>`;
+              }
+              if (est) return `<td class="raya">—</td><td class="raya">—</td>`;
+              const v = marcaDe(ev, i, col.j, col.q);
+              return `<td class="celda-tap"><button class="cas ${v === 1 ? "si" : ""}" data-accion="marca-l"
+                  data-i="${i}" data-j="${col.j}" data-q="${col.q}" aria-pressed="${v === 1}"
+                  aria-label="Logrado">${v === 1 ? "✓" : ""}</button></td>
+                <td class="celda-tap"><button class="cas no ${v === 2 ? "si" : ""}" data-accion="marca-nl"
+                  data-i="${i}" data-j="${col.j}" data-q="${col.q}" aria-pressed="${v === 2}"
+                  aria-label="No logrado">${v === 2 ? "✗" : ""}</button></td>`;
+            }).join("")}
+            <td class="mono">${est ? "—" : r.puntaje + "/" + total}</td>
+            <td>${est ? "—" : `<span class="nota ${r.nota === null ? "" : r.nota < 4 ? "roja" : "azul"}">${num1(r.nota)}</span>`}</td>
+            <td><button class="btn-obs ${ev.obs[i] ? "con-texto" : ""}" data-accion="obs" data-i="${i}" title="Observación">✎</button></td>
+          </tr>`;
+        }).join("")}
+      </tbody>
+    </table>
+  </div>
+  <div class="fila no-imprimir" style="margin-top:10px">
+    <button class="btn btn-mini" data-accion="imprimir">Imprimir o guardar PDF</button>
+    <button class="btn btn-mini" data-accion="excel">Descargar Excel</button>
+  </div>`;
+}
+
+/* --- Por criterio --- */
+function vistaPorCriterio(ev) {
+  const j = Math.min(S.criterioActivo, ev.criterios.length - 1);
+  const c = ev.criterios[j];
+  return `
+  <div class="tarjeta">
+    <div class="fila no-imprimir" style="gap:5px;margin-bottom:10px;overflow-x:auto">
+      ${ev.criterios.map((x, k) => `<button class="chip-crit" data-accion="criterio" data-j="${k}" aria-pressed="${k === j}">C${k + 1}</button>`).join("")}
+    </div>
+    ${c.oa ? `<div class="fila" style="gap:6px;margin-bottom:4px"><span class="oa-chip">${esc(c.oa)}</span><span class="sub">${esc(EJES[c.eje] || "")}</span></div>` : ""}
+    <h2 style="font-size:15px;line-height:1.35">${esc(c.texto || "Criterio " + (j + 1))}</h2>
+    ${esEscala(ev) ? `<p class="sub" style="margin:6px 0 0">${leyendaEscala(ev)}</p>`
+      : `<ol class="lista-ind">${c.indicadores.map((ind, q) => `<li><b class="mono">${q + 1}</b> ${esc(ind.texto || "Indicador sin redactar")} <span class="pts-pill oscuro">${ind.pts} pts</span></li>`).join("")}</ol>`}
+    <div class="fila no-imprimir" style="gap:5px;padding:10px 0;border-bottom:1px solid var(--line)">
+      ${esEscala(ev)
+        ? `<span class="sub">Marcar a todo el curso:</span>
+           ${ev.escala.niveles.map((n, k) => `<button class="btn btn-mini" data-accion="todos-nivel" data-j="${j}" data-k="${k + 1}" title="${esc(n.r)}">${k + 1}</button>`).join("")}`
+        : `<span class="sub">✓ a todo el curso:</span>
+           ${c.indicadores.map((ind, q) => `<button class="btn btn-mini" data-accion="todos-marca" data-j="${j}" data-q="${q}" title="${esc(ind.texto)}">${q + 1}</button>`).join("")}`}
+      <button class="btn btn-mini" data-accion="limpiar-criterio" data-j="${j}">Limpiar</button>
+    </div>
+    ${S.datos.roster.map((nombre, i) => {
+      const r = resultado(ev, i);
+      const est = ev.estado[i] || 0;
+      return `<div class="alumno">
+        <div class="alumno-cab">
+          <span class="n-orden">${String(i + 1).padStart(2, "0")}</span>
+          <span class="nombre">${esc(nombre || "—")}</span>
+          <span class="nota ${r.nota === null ? "" : r.nota < 4 ? "roja" : "azul"}">${num1(r.nota)}</span>
+          ${botonAsistencia(ev, i)}
+        </div>
+        ${est ? `<p class="ausente-aviso">${est === 1 ? "Ausente" : "Ausente justificado"} · no se promedia</p>`
+          : esEscala(ev) ? medidor(ev, i, j)
+          : `<div class="fila" style="gap:9px;align-items:flex-end">
+              ${c.indicadores.map((ind, q) => `<div class="indicador-mini"><b class="mono">${q + 1}</b>${parCasillas(ev, i, j, q, true)}</div>`).join("")}
+              <span style="margin-left:auto">${insigniaCriterio(ev, i, j)}</span>
+            </div>`}
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+
+/* --- Por estudiante --- */
+function vistaPorAlumno(ev) {
+  const i = Math.min(S.alumnoActivo, S.datos.roster.length - 1);
+  const r = resultado(ev, i);
+  const est = ev.estado[i] || 0;
+  return `
+  <div class="tarjeta">
+    <div class="fila fila-sep no-imprimir" style="margin-bottom:10px">
+      <button class="btn btn-mini" data-accion="alumno-mover" data-d="-1" ${i === 0 ? "disabled" : ""}>‹ Anterior</button>
+      <select data-accion="elegir-alumno" style="flex:1;min-width:140px">
+        ${S.datos.roster.map((n, k) => `<option value="${k}" ${k === i ? "selected" : ""}>${esc(n || "—")}</option>`).join("")}
+      </select>
+      <button class="btn btn-mini" data-accion="alumno-mover" data-d="1" ${i === S.datos.roster.length - 1 ? "disabled" : ""}>Siguiente ›</button>
+    </div>
+    <div class="fila fila-sep" style="border-bottom:1px solid var(--line);padding-bottom:10px">
+      <div>
+        <h2 style="font-size:16px">${esc(S.datos.roster[i] || "—")}</h2>
+        <p class="sub" style="margin:2px 0 0">${esEscala(ev) ? `${r.marcados} de ${ev.criterios.length} criterios evaluados` : `${r.logrados} de ${totalIndicadores(ev)} indicadores logrados`} · ${r.puntaje} de ${r.total} pts${r.sinMarca ? ` · ${r.sinMarca} sin marcar` : ""}</p>
+      </div>
+      <div class="fila">
+        <span class="nota ${r.nota === null ? "" : r.nota < 4 ? "roja" : "azul"}" style="font-size:17px">${num1(r.nota)}</span>
+        ${botonAsistencia(ev, i)}
+      </div>
+    </div>
+    ${est ? `<p class="ausente-aviso">${est === 1 ? "Ausente" : "Ausente justificado"} · no se promedia</p>`
+      : ev.criterios.map((c, j) => `
+        <div class="criterio-linea">
+          <div class="rotulo"><b>${esc(c.oa || "C" + (j + 1))}</b><span>${esc(c.texto || "Criterio " + (j + 1))}</span></div>
+          ${esEscala(ev) ? medidor(ev, i, j) : `<div class="indicadores">
+            ${c.indicadores.map((ind, q) => `<div class="indicador">${parCasillas(ev, i, j, q)}
+              <span>${esc(ind.texto || "Indicador " + (q + 1))} <span class="pts-pill oscuro">${ind.pts} pts</span></span></div>`).join("")}
+          </div>
+          <div class="fila" style="margin-top:7px">${insigniaCriterio(ev, i, j)}</div>`}
+        </div>`).join("")}
+    <div style="margin-top:12px">
+      <button class="obs-boton" data-accion="obs" data-i="${i}">${ev.obs[i] ? "Ver observación" : "Agregar observación"}</button>
+      ${ev.obs[i] ? `<p class="sub" style="margin:2px 0 0">${esc(ev.obs[i])}</p>` : ""}
+      <div style="margin-top:6px"><button class="obs-boton" data-accion="ficha" data-i="${i}">Ver todas sus observaciones del curso</button></div>
+    </div>
+  </div>`;
+}
+
+/* --- Pestaña Resumen --- */
+function vistaResumen() {
+  const ev = evalActual();
+  const n = S.datos.roster.length;
+  if (!n) return `<div class="tarjeta"><div class="vacio"><strong>Sin datos</strong>Carga la nómina del curso.</div></div>`;
+
+  const e = estadisticas(ev);
+  const notas = [];
+  for (let i = 0; i < n; i++) {
+    if (ev.estado[i]) continue;
+    const r = resultado(ev, i);
+    if (r.nota !== null) notas.push(r.nota);
+  }
+  const aprob = notas.filter((x) => x >= 4).length;
+
+  const logros = [];
+  if (esEscala(ev)) {
+    ev.criterios.forEach((c, j) => {
+      let suma = 0, cont = 0;
+      for (let i = 0; i < n; i++) {
+        if (ev.estado[i]) continue;
+        const v = (ev.datos[i] || [])[j] || 0;
+        if (v) { suma += puntosNivel(ev, v); cont++; }
+      }
+      logros.push({ rot: c.oa || `C${j + 1}`, texto: c.texto || `Criterio ${j + 1}`,
+        pct: cont ? Math.round((suma / (cont * maxNivel(ev))) * 100) : null });
+    });
+  } else ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
+    let log = 0, marc = 0;
+    for (let i = 0; i < n; i++) {
+      if (ev.estado[i]) continue;
+      const v = marcaDe(ev, i, j, q);
+      if (v === 1) { log++; marc++; } else if (v === 2) marc++;
+    }
+    logros.push({ rot: `${j + 1}.${q + 1}`, texto: ind.texto || `Indicador ${q + 1}`, pct: marc ? Math.round((log / marc) * 100) : null, log, marc });
+  }));
+
+  return `
+  <div class="tarjeta">
+    <h2>${esc(ev.nombre)}</h2>
+    <p class="sub" style="margin:2px 0 12px">${fechaLarga(ev.fecha)} · ${esc((CURSOS.find((c) => c.id === S.cursoId) || {}).nombre)} · ${esEscala(ev) ? "escala de apreciación" : totalIndicadores(ev) + " indicadores"} · ${puntajeTotal(ev)} pts</p>
+    <div class="metricas">
+      <div class="metrica"><b>${num1(e.prom)}</b><span>PROMEDIO</span></div>
+      <div class="metrica"><b>${notas.length ? Math.round((aprob / notas.length) * 100) + "%" : "—"}</b><span>SOBRE 4,0</span></div>
+      <div class="metrica"><b>${e.logro === null ? "—" : e.logro + "%"}</b><span>LOGRO DEL CURSO</span></div>
+    </div>
+    ${e.ausentes ? `<p class="sub" style="margin:10px 0 0">${e.ausentes} estudiante${e.ausentes > 1 ? "s" : ""} sin evaluar por inasistencia.</p>` : ""}
+    ${e.sinEvaluar ? `<p class="sub" style="margin:4px 0 0">${e.sinEvaluar} con indicadores sin marcar.</p>` : ""}
+  </div>
+
+  <div class="tarjeta">
+    <h2 style="font-size:15px">${esEscala(ev) ? "Logro por criterio" : "Logro por indicador"}</h2>
+    <p class="sub" style="margin:2px 0 12px">${esEscala(ev) ? "Porcentaje del puntaje posible alcanzado en cada criterio." : "Porcentaje de estudiantes que logró cada indicador, entre quienes ya tienen marca."}</p>
+    <div class="logro">
+      ${logros.map((l) => `
+        <div class="logro-item">
+          <div class="rotulo"><span><b class="mono" style="font-size:11px">${l.rot}</b> ${esc(l.texto)}</span><em>${l.pct === null ? "—" : l.pct + "%"}</em></div>
+          <div class="pista"><i class="${l.pct === null ? "" : l.pct < 50 ? "critica" : l.pct < 70 ? "baja" : ""}" style="width:${l.pct || 0}%"></i></div>
+        </div>`).join("")}
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <h2 style="font-size:15px">Notas del curso</h2>
+    <div style="margin-top:8px">
+      ${S.datos.roster.map((nom, i) => {
+        const r = resultado(ev, i);
+        const est = ev.estado[i] || 0;
+        return `<div class="alumno-cab" style="padding:6px 0;border-top:1px solid var(--line)">
+          <span class="n-orden">${String(i + 1).padStart(2, "0")}</span>
+          <span class="nombre">${esc(nom || "—")}</span>
+          ${est ? `<span class="sub">${est === 1 ? "Ausente" : "Justificado"}</span>`
+            : `<span class="sub mono">${r.puntaje}/${r.total}</span>
+               <span class="nota ${r.nota === null ? "" : r.nota < 4 ? "roja" : "azul"}">${num1(r.nota)}</span>`}
+        </div>`;
+      }).join("")}
+    </div>
+    <div class="fila no-imprimir" style="margin-top:14px">
+      <button class="btn btn-mini" data-accion="imprimir">Imprimir o guardar PDF</button>
+      <button class="btn btn-mini" data-accion="excel">Descargar Excel</button>
+    </div>
+  </div>`;
+}
+
+/* --- Pestaña Consolidado --- */
+function datosConsolidado() {
+  const evs = S.datos.evaluaciones;
+  const filas = S.datos.roster.map((nom, i) => {
+    const notas = evs.map((ev) => (ev.estado[i] ? null : resultado(ev, i).nota));
+    const val = notas.filter((x) => x !== null);
+    return { nom, notas, val, prom: val.length ? val.reduce((a, b) => a + b, 0) / val.length : null };
+  });
+  const proms = filas.map((f) => f.prom).filter((x) => x !== null);
+  return {
+    evs, filas,
+    promCurso: proms.length ? proms.reduce((a, b) => a + b, 0) / proms.length : null,
+    aprob: proms.filter((x) => x >= 4).length, conNota: proms.length
+  };
+}
+
+function fichaDe(i) {
+  const evs = S.datos.evaluaciones;
+  const items = evs.map((ev) => {
+    const est = ev.estado[i] || 0;
+    const r = est ? null : resultado(ev, i);
+    return { ev, est, nota: r ? r.nota : null, obs: (ev.obs[i] || "").trim() };
+  });
+  const notas = items.map((x) => x.nota).filter((n) => n !== null);
+  return {
+    nombre: S.datos.roster[i] || "—",
+    items,
+    conObs: items.filter((x) => x.obs).length,
+    prom: notas.length ? notas.reduce((a, b) => a + b, 0) / notas.length : null
+  };
+}
+
+function fichaHTML(i) {
+  const f = fichaDe(i);
+  return f.items.map((x) => `
+    <div class="bloque-unidad">
+      <div class="fila fila-sep">
+        <b>${esc(x.ev.nombre)}</b>
+        <span class="nota ${x.nota === null ? "" : x.nota < 4 ? "roja" : "azul"}">${x.est ? (x.est === 1 ? "A" : "J") : num1(x.nota)}</span>
+      </div>
+      <p class="sub" style="margin:2px 0 6px">${fechaLarga(x.ev.fecha)}${x.ev.oa ? " · " + esc(x.ev.oa) : ""}</p>
+      ${x.obs ? `<p style="margin:0">${esc(x.obs)}</p>`
+              : `<p class="sub" style="margin:0">Sin observación en esta lista.</p>`}
+    </div>`).join("");
+}
+
+function vistaConsolidado() {
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  if (!S.datos.roster.length) return `<div class="tarjeta"><div class="vacio"><strong>Sin datos</strong>Carga la nómina del curso.</div></div>`;
+  const { evs, filas, promCurso, aprob, conNota } = datosConsolidado();
+  const corto = (f) => (f ? f.slice(8, 10) + "/" + f.slice(5, 7) : "—");
+  return `
+  <div class="tarjeta">
+    <h2>Consolidado de ${esc(curso.nombre)}</h2>
+    <p class="sub" style="margin:2px 0 12px">${evs.length} listas · promedio de las notas registradas por estudiante. Las listas donde estuvo ausente no se promedian.
+      Toca el nombre de un estudiante para ver todas sus observaciones juntas.</p>
+    <div class="metricas">
+      <div class="metrica"><b>${num1(promCurso)}</b><span>PROMEDIO DEL CURSO</span></div>
+      <div class="metrica"><b>${conNota ? Math.round((aprob / conNota) * 100) + "%" : "—"}</b><span>SOBRE 4,0</span></div>
+      <div class="metrica"><b>${evs.length}</b><span>LISTAS</span></div>
+    </div>
+  </div>
+  <div class="envoltura-tabla planilla">
+    <table>
+      <thead><tr>
+        <th class="izq col-fija">ESTUDIANTE</th>
+        ${evs.map((ev, k) => `<th title="${esc(ev.nombre)}"><span class="rot-crit">${k + 1}</span><br>${corto(ev.fecha)}</th>`).join("")}
+        <th>PROM.</th>
+      </tr></thead>
+      <tbody>
+        ${filas.map((f, i) => `<tr>
+          <td class="izq col-fija"><span class="n-orden">${String(i + 1).padStart(2, "0")}</span>
+            <button class="obs-boton" data-accion="ficha" data-i="${i}" title="Ver sus observaciones">${esc(f.nom || "—")}</button></td>
+          ${f.notas.map((n) => `<td class="mono" style="color:${n === null ? "var(--line)" : n < 4 ? "var(--n1)" : "var(--ink)"}">${n === null ? "—" : num1(n)}</td>`).join("")}
+          <td><span class="nota ${f.prom === null ? "" : f.prom < 4 ? "roja" : "azul"}">${num1(f.prom)}</span></td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+  </div>
+  <div class="fila no-imprimir" style="margin-top:10px">
+    <button class="btn btn-mini" data-accion="imprimir">Imprimir o guardar PDF</button>
+    <button class="btn btn-mini" data-accion="excel">Descargar Excel</button>
+  </div>`;
+}
+
+/* --- Pestaña Curso --- */
+function vistaCurso() {
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  return `
+  <div class="tarjeta">
+    <h2>Nómina de ${esc(curso.nombre)}</h2>
+    <p class="sub" style="margin:2px 0 12px">${S.datos.roster.length} estudiantes. Los cambios se aplican a todas las listas del curso.</p>
+    <div class="fila" style="margin-bottom:12px">
+      <input type="text" id="nuevo-alumno" placeholder="Nombre y apellido" style="flex:1;min-width:150px">
+      <button class="btn btn-mini btn-lleno" data-accion="agregar-alumno">Agregar</button>
+    </div>
+    ${S.datos.roster.length ? S.datos.roster.map((n, i) => `
+      <div class="alumno-cab" style="padding:5px 0;border-top:1px solid var(--line)">
+        <span class="n-orden">${String(i + 1).padStart(2, "0")}</span>
+        <input type="text" data-campo="alumno" data-i="${i}" value="${esc(n)}" style="flex:1;padding:6px 8px;font-size:14px">
+        <button class="btn btn-mini btn-peligro" data-accion="borrar-alumno" data-i="${i}">×</button>
+      </div>`).join("") : `<div class="vacio"><strong>Nómina vacía</strong>Pega la lista del curso para empezar.</div>`}
+    <div class="fila" style="margin-top:14px">
+      <button class="btn btn-mini" data-accion="pegar-nomina">Pegar lista completa</button>
+      <button class="btn btn-mini" data-accion="copiar-nomina">Copiar desde otro curso</button>
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <h2 style="font-size:15px">Listas de cotejo del curso</h2>
+    <div style="margin-top:8px">
+      ${S.datos.evaluaciones.map((e, i) => `
+        <div class="alumno-cab" style="padding:7px 0;border-top:1px solid var(--line)">
+          <span class="nombre">${esc(e.nombre)}</span>
+          <span class="sub">${fechaLarga(e.fecha)}</span>
+          <button class="btn btn-mini" data-accion="abrir-eval" data-i="${i}">Abrir</button>
+        </div>`).join("")}
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <h2 style="font-size:15px">Respaldo</h2>
+    <p class="sub" style="margin:2px 0 12px">Descarga una copia de todo el curso o recupera una guardada antes.</p>
+    <div class="fila">
+      <button class="btn btn-mini" data-accion="respaldo">Descargar respaldo</button>
+      <button class="btn btn-mini" data-accion="restaurar">Restaurar respaldo</button>
+    </div>
+  </div>`;
+}
+
+/* ===== Selector de objetivos de aprendizaje ===== */
+const recorte = (t, n) => (t.length > n ? t.slice(0, n).trim() + "…" : t);
+
+function listaOAsHTML(cursoId, modo) {
+  const oas = oasDelCurso(cursoId);
+  const grupos = {};
+  oas.forEach((o) => { (grupos[o.eje] = grupos[o.eje] || []).push(o); });
+  return Object.entries(grupos).map(([e, arr]) => `
+    <h4 class="eje-tit">${esc(EJES[e])}</h4>
+    ${arr.map((o) => modo === "check"
+      ? `<label class="oa-item"><input type="checkbox" class="oa-check" value="${esc(o.codigo)}">
+           <span><b class="mono">${esc(o.codigo)}</b> ${esc(recorte(o.texto, 150))}</span></label>`
+      : `<button class="oa-item" data-accion="agregar-oa" data-codigo="${esc(o.codigo)}">
+           <span><b class="mono">${esc(o.codigo)}</b> ${esc(recorte(o.texto, 150))}</span></button>`).join("")}`).join("") +
+    `<p class="fuente">Objetivos de Aprendizaje de las Bases Curriculares de Educación Física y Salud,
+     Unidad de Currículum y Evaluación, Mineduc (curriculumnacional.cl).</p>`;
+}
+
+/* =========================================================
+   Modales
+   ========================================================= */
+function abrirModal(html) {
+  $("#capa-modal").innerHTML = `<div class="velo" data-accion="cerrar-modal"><div class="modal" data-detener>${html}</div></div>`;
+}
+function cerrarModal() { $("#capa-modal").innerHTML = ""; }
+
+let pendienteConfirmar = null;
+function confirmar(mensaje, alAceptar) {
+  pendienteConfirmar = alAceptar;
+  abrirModal(`
+    <h3>Confirma</h3>
+    <p class="sub" style="margin:6px 0 16px">${esc(mensaje)}</p>
+    <div class="fila">
+      <button class="btn btn-lleno" data-accion="confirmar-si">Sí, continuar</button>
+      <button class="btn" data-accion="cerrar-modal">Cancelar</button>
+    </div>`);
+}
+
+/* =========================================================
+   Acciones
+   ========================================================= */
+document.addEventListener("click", async (evt) => {
+  const btn = evt.target.closest("[data-accion]");
+  if (!btn) return;
+  const a = btn.dataset.accion;
+  const ev = evalActual();
+
+  if (a === "cerrar-modal") { if (btn.classList.contains("velo") && evt.target !== btn) return; cerrarModal(); return; }
+  if (a === "confirmar-si") { cerrarModal(); if (pendienteConfirmar) pendienteConfirmar(); pendienteConfirmar = null; return; }
+
+  /* --- sesión --- */
+  if (a === "entrar") {
+    const correo = $("#correo").value.trim(), clave = $("#clave").value;
+    if (!sb) { S.errorIngreso = "No hay conexión con el servidor."; pintar(); return; }
+    btn.disabled = true; btn.textContent = "Entrando…";
+    const { data, error } = await sb.auth.signInWithPassword({ email: correo, password: clave });
+    if (error) { S.errorIngreso = "Correo o contraseña incorrectos."; pintar(); return; }
+    S.sesion = data.user; S.errorIngreso = ""; await cargarCurso(S.cursoId); return;
+  }
+  if (a === "sin-cuenta") { S.sinCuenta = true; await cargarCurso(S.cursoId); return; }
+  if (a === "salir") {
+    confirmar("Vas a cerrar la sesión en este equipo.", async () => {
+      if (sb) await sb.auth.signOut();
+      S.sesion = null; S.sinCuenta = false; S.datos = null; pintar();
+    });
+    return;
+  }
+
+  /* --- navegación --- */
+  if (a === "curso") { await cargarCurso(btn.dataset.id); return; }
+  if (a === "pestana") { S.pestana = btn.dataset.v; pintar(); return; }
+  if (a === "modo") { S.modo = btn.dataset.v; pintar(); return; }
+  if (a === "criterio") { S.criterioActivo = +btn.dataset.j; pintar(); return; }
+  if (a === "ajustes") { S.ajustes = !S.ajustes; pintar(); return; }
+  if (a === "abrir-eval") { S.evalIdx = +btn.dataset.i; S.pestana = "evaluar"; S.criterioActivo = 0; pintar(); return; }
+  if (a === "alumno-mover") {
+    S.alumnoActivo = Math.max(0, Math.min(S.datos.roster.length - 1, S.alumnoActivo + +btn.dataset.d));
+    pintar(); return;
+  }
+
+  /* --- marcado --- */
+  if (a === "marca-l" || a === "marca-nl") {
+    const i = +btn.dataset.i, j = +btn.dataset.j, q = +btn.dataset.q;
+    const objetivo = a === "marca-l" ? 1 : 2;
+    const fila = ev.marcas[i][j];
+    fila[q] = fila[q] === objetivo ? 0 : objetivo;
+    marcarCambio(); pintar(); return;
+  }
+  if (a === "ciclo-nivel") {
+    const i = +btn.dataset.i, j = +btn.dataset.j;
+    ev.datos[i][j] = ((ev.datos[i][j] || 0) + 1) % (nNiveles(ev) + 1);
+    marcarCambio(); pintar(); return;
+  }
+  if (a === "poner-nivel") {
+    const i = +btn.dataset.i, j = +btn.dataset.j, k = +btn.dataset.k;
+    ev.datos[i][j] = ev.datos[i][j] === k ? 0 : k;
+    marcarCambio(); pintar(); return;
+  }
+  if (a === "todos-nivel") {
+    const j = +btn.dataset.j, k = +btn.dataset.k;
+    S.datos.roster.forEach((_, i) => { if (!ev.estado[i]) ev.datos[i][j] = k; });
+    marcarCambio(); pintar(); return;
+  }
+  if (a === "cambiar-modo") {
+    const v = btn.dataset.v;
+    if (ev.modo === v) return;
+    ev.modo = v;
+    marcarCambio(); pintar(); return;
+  }
+  if (a === "agregar-nivel") {
+    ev.escala.niveles.push({ r: "Nivel " + (nNiveles(ev) + 1), p: maxNivel(ev) + 1 });
+    marcarCambio(); pintar(); return;
+  }
+  if (a === "borrar-nivel") {
+    const k = +btn.dataset.k;
+    if (nNiveles(ev) <= 2) return;
+    confirmar("Se quitará ese nivel y las marcas más altas bajarán al nivel máximo disponible.", () => {
+      ev.escala.niveles.splice(k, 1);
+      const N = nNiveles(ev);
+      ev.datos.forEach((f) => f.forEach((v, j) => { if (v > N) f[j] = N; }));
+      marcarCambio(); pintar();
+    });
+    return;
+  }
+  if (a === "todos-marca") {
+    const j = +btn.dataset.j, q = +btn.dataset.q;
+    const presentes = S.datos.roster.map((_, i) => i).filter((i) => !ev.estado[i]);
+    const todos = presentes.length && presentes.every((i) => ev.marcas[i][j][q] === 1);
+    presentes.forEach((i) => { ev.marcas[i][j][q] = todos ? 0 : 1; });
+    marcarCambio(); pintar(); return;
+  }
+  if (a === "limpiar-criterio") {
+    const j = +btn.dataset.j;
+    S.datos.roster.forEach((_, i) => { ev.marcas[i][j] = ev.marcas[i][j].map(() => 0); ev.datos[i][j] = 0; });
+    marcarCambio(); pintar(); return;
+  }
+  if (a === "asistencia") {
+    const i = +btn.dataset.i;
+    ev.estado[i] = ((ev.estado[i] || 0) + 1) % 3;
+    marcarCambio(); pintar(); return;
+  }
+  if (a === "limpiar-marcas") {
+    confirmar("Se borrarán todas las marcas de esta lista. La nómina y los indicadores se conservan.", () => {
+      ev.marcas = ev.marcas.map((f) => f.map((g) => g.map(() => 0)));
+      ev.datos = ev.datos.map((f) => f.map(() => 0));
+      ev.estado = ev.estado.map(() => 0);
+      marcarCambio(); pintar();
+    });
+    return;
+  }
+
+  if (a === "ayuda") {
+    abrirModal(`
+      <h3>Cómo funciona</h3>
+      <p class="sub" style="margin:4px 0 10px">Una lista de cotejo por clase, con los objetivos del programa de cada curso.</p>
+      ${pasosHTML()}
+      <p class="sub" style="margin:12px 0 0">Las otras pestañas: <b>Resumen</b> muestra cómo va el curso en la lista abierta,
+      <b>Consolidado</b> cruza todas las listas y da el promedio de cada estudiante, y <b>Curso</b> es donde editas la nómina.</p>
+      <div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="cerrar-modal">Entendido</button></div>`);
+    return;
+  }
+  if (a === "ficha") {
+    const i = +btn.dataset.i, f = fichaDe(i);
+    abrirModal(`
+      <h3>${esc(f.nombre)}</h3>
+      <p class="sub" style="margin:4px 0 10px">${f.items.length} listas · promedio ${num1(f.prom)} ·
+        ${f.conObs ? `${f.conObs} con observación` : "sin observaciones escritas"}</p>
+      <div class="caja-oas">${fichaHTML(i)}</div>
+      <div class="fila" style="margin-top:10px">
+        <button class="btn btn-lleno" data-accion="imprimir-ficha" data-i="${i}">Imprimir o guardar PDF</button>
+        <button class="btn" data-accion="cerrar-modal">Cerrar</button>
+      </div>`);
+    return;
+  }
+  if (a === "imprimir-ficha") { const i = +btn.dataset.i; cerrarModal(); imprimirFicha(i); return; }
+
+  /* --- observación --- */
+  if (a === "obs") {
+    const i = +btn.dataset.i;
+    abrirModal(`
+      <h3>Observación</h3>
+      <p class="sub" style="margin:4px 0 10px">${esc(S.datos.roster[i])}</p>
+      <textarea id="txt-obs" rows="4" placeholder="Qué observaste y qué apoyo necesita">${esc(ev.obs[i] || "")}</textarea>
+      <div class="fila" style="margin-top:12px">
+        <button class="btn btn-lleno" data-accion="guardar-obs" data-i="${i}">Guardar</button>
+        <button class="btn" data-accion="cerrar-modal">Cancelar</button>
+      </div>`);
+    return;
+  }
+  if (a === "guardar-obs") {
+    ev.obs[+btn.dataset.i] = $("#txt-obs").value.trim();
+    cerrarModal(); marcarCambio(); pintar(); return;
+  }
+
+  /* --- listas --- */
+  if (a === "nueva-eval") {
+    abrirModal(`
+      <h3>Nueva lista de cotejo</h3>
+      <label class="campo" style="margin-top:10px"><span>Nombre</span><input type="text" id="ne-nombre" placeholder="Cotejo de handball"></label>
+      <label class="campo"><span>Fecha</span><input type="date" id="ne-fecha" value="${hoy()}"></label>
+      <p class="sub" style="margin:2px 0 8px">Elige los objetivos de aprendizaje de ${esc((CURSOS.find((c) => c.id === S.cursoId) || {}).nombre)}. Cada uno se agrega como criterio de la lista.</p>
+      <div class="caja-oas">${listaOAsHTML(S.cursoId, "check")}</div>
+      <div class="fila" style="margin-top:6px">
+        <button class="btn btn-lleno" data-accion="crear-eval">Crear</button>
+        <button class="btn" data-accion="cerrar-modal">Cancelar</button>
+      </div>`);
+    return;
+  }
+  if (a === "crear-eval") {
+    const nom = $("#ne-nombre").value.trim(), f = $("#ne-fecha").value;
+    const cods = [...document.querySelectorAll(".oa-check:checked")].map((x) => x.value);
+    const nueva = nuevaEvaluacion(S.datos.roster.length, cods, nom, S.cursoId);
+    if (f) nueva.fecha = f;
+    nueva.ptsDefecto = ev.ptsDefecto;
+    S.datos.evaluaciones.push(nueva);
+    S.evalIdx = S.datos.evaluaciones.length - 1; S.criterioActivo = 0;
+    cerrarModal(); marcarCambio(); pintar(); return;
+  }
+  if (a === "duplicar-eval") {
+    const copia = JSON.parse(JSON.stringify(ev));
+    copia.id = idNuevo(); copia.nombre = ev.nombre + " (copia)"; copia.fecha = hoy();
+    copia.marcas = copia.marcas.map((f) => f.map((g) => g.map(() => 0)));
+    copia.datos = copia.datos.map((f) => f.map(() => 0));
+    copia.estado = copia.estado.map(() => 0);
+    copia.obs = copia.obs.map(() => "");
+    S.datos.evaluaciones.push(copia);
+    S.evalIdx = S.datos.evaluaciones.length - 1;
+    marcarCambio(); pintar(); return;
+  }
+  if (a === "borrar-eval") {
+    if (S.datos.evaluaciones.length === 1) {
+      confirmar("Es la única lista del curso: se vaciarán sus marcas.", () => {
+        S.datos.evaluaciones = [nuevaEvaluacion(S.datos.roster.length, [], "", S.cursoId)];
+        S.evalIdx = 0; marcarCambio(); pintar();
+      });
+      return;
+    }
+    confirmar(`Se eliminará "${ev.nombre}" con todas sus marcas.`, () => {
+      S.datos.evaluaciones.splice(S.evalIdx, 1);
+      S.evalIdx = Math.max(0, S.evalIdx - 1); marcarCambio(); pintar();
+    });
+    return;
+  }
+
+  /* --- criterios e indicadores --- */
+  if (a === "agregar-criterio") {
+    ev.criterios.push({ texto: "", oa: "", eje: "", indicadores: [{ texto: "", pts: ev.ptsDefecto }] });
+    ev.marcas.forEach((f) => f.push([0]));
+    ev.datos.forEach((f) => f.push(0));
+    marcarCambio(); pintar(); return;
+  }
+  if (a === "borrar-criterio") {
+    const j = +btn.dataset.j;
+    if (ev.criterios.length <= 1) return;
+    confirmar("Se quitará ese criterio con sus indicadores y las marcas de todo el curso.", () => {
+      ev.criterios.splice(j, 1);
+      ev.marcas.forEach((f) => f.splice(j, 1));
+      ev.datos.forEach((f) => f.splice(j, 1));
+      S.criterioActivo = 0; marcarCambio(); pintar();
+    });
+    return;
+  }
+  if (a === "agregar-indicador") {
+    const j = +btn.dataset.j;
+    ev.criterios[j].indicadores.push({ texto: "", pts: ev.ptsDefecto });
+    ev.marcas.forEach((f) => f[j].push(0));
+    marcarCambio(); pintar(); return;
+  }
+  if (a === "borrar-indicador") {
+    const j = +btn.dataset.j, q = +btn.dataset.q;
+    if (ev.criterios[j].indicadores.length <= 1) return;
+    confirmar("Se quitará ese indicador y sus marcas en todo el curso.", () => {
+      ev.criterios[j].indicadores.splice(q, 1);
+      ev.marcas.forEach((f) => f[j].splice(q, 1));
+      marcarCambio(); pintar();
+    });
+    return;
+  }
+  if (a === "ver-escala") {
+    const total = puntajeTotal(ev);
+    abrirModal(`
+      <h3>Escala de notas</h3>
+      <p class="sub" style="margin:4px 0 10px">Se calcula sola con el puntaje total de la lista: 60% de exigencia,
+      nota mínima 2,0, aprobación 4,0 con ${ptsAprobacion(total).toString().replace(".", ",")} pts y 7,0 con ${total} pts.</p>
+      <div class="rejilla-escala">
+        ${tablaNotas(total).map((f) => `<span class="par-nota ${f.nota < 4 ? "roja" : ""}">
+          <b class="mono">${f.p}</b><i class="mono">${num1(f.nota)}</i></span>`).join("")}
+      </div>
+      <button class="btn btn-ancho" style="margin-top:12px" data-accion="cerrar-modal">Cerrar</button>`);
+    return;
+  }
+  if (a === "unidad-picker") {
+    const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+    const uds = unidadesDelCurso(S.cursoId);
+    abrirModal(`
+      <h3>Unidades de ${esc(curso.nombre)}</h3>
+      ${uds.length ? `
+        <p class="sub" style="margin:4px 0 10px">Marca solo los objetivos que vas a evaluar en esta lista. Cada uno marcado se agrega como un criterio.</p>
+        <div class="caja-oas">
+          ${uds.map((u, k) => `
+            <div class="bloque-unidad">
+              <h4 class="eje-tit" style="margin-top:0">Unidad ${u.n}${u.horas ? ` · ${u.horas} horas` : ""}</h4>
+              <p class="titulo-unidad">${esc(u.titulo)}</p>
+              <p class="sub" style="margin:2px 0 8px">${esc(u.desc)}</p>
+              ${[["Objetivos de la unidad", u.objetivos || [], false], ["Actitudes", u.actitudes || [], false]]
+                .map(([rot, lista, marcado]) => lista.length ? `
+                  <span class="sub" style="display:block;margin:6px 0 4px">${rot}</span>
+                  ${lista.map((cod) => {
+                    const oa = buscarOA(S.cursoId, cod);
+                    return `<label class="oa-item"><input type="checkbox" class="u-check" data-u="${k}" value="${esc(cod)}" ${marcado ? "checked" : ""}>
+                      <span><b class="mono">${esc(cod)}</b> ${esc(recorte(oa ? oa.texto : "", 130))}</span></label>`;
+                  }).join("")}` : "").join("")}
+              ${u.pendiente ? `<p class="sub" style="margin:6px 0 8px"><b>Objetivos aún no cargados para esta unidad.</b>
+                Al usarla se registra el nombre; los objetivos los agregas desde <b>Agregar objetivo de aprendizaje</b>.</p>` : ""}
+              <button class="btn btn-lleno btn-ancho" data-accion="usar-unidad" data-u="${k}">Usar la unidad ${u.n} con lo marcado</button>
+            </div>`).join("")}
+        </div>
+        <p class="fuente">Unidades y objetivos del Programa de Estudio de Educación Física y Salud,
+        Unidad de Currículum y Evaluación, Mineduc (curriculumnacional.cl).</p>`
+      : `<p class="sub" style="margin:6px 0 12px">Las unidades de este nivel todavía no están cargadas en la app.
+         Puedes escribir el nombre de la unidad a mano y agregar los objetivos desde
+         <b>Agregar objetivo de aprendizaje</b>.</p>`}
+      <button class="btn btn-ancho" style="margin-top:10px" data-accion="cerrar-modal">Cerrar</button>`);
+    return;
+  }
+  if (a === "usar-unidad") {
+    const k = +btn.dataset.u, u = unidadesDelCurso(S.cursoId)[k];
+    if (!u) return;
+    const cods = [...document.querySelectorAll(`.u-check[data-u="${k}"]:checked`)].map((x) => x.value);
+    cerrarModal(); aplicarUnidad(ev, u, cods); return;
+  }
+  if (a === "oa-picker") {
+    abrirModal(`
+      <h3>Agregar criterio desde el currículum</h3>
+      <p class="sub" style="margin:4px 0 10px">Objetivos de ${esc((CURSOS.find((c) => c.id === S.cursoId) || {}).nombre)}. El texto queda editable después.</p>
+      <div class="caja-oas">${listaOAsHTML(S.cursoId, "boton")}</div>
+      <button class="btn btn-ancho" style="margin-top:10px" data-accion="cerrar-modal">Cerrar</button>`);
+    return;
+  }
+  if (a === "agregar-oa") {
+    ev.criterios.push(criterioDesdeOA(btn.dataset.codigo, S.cursoId, 3));
+    ev.marcas.forEach((f) => f.push([0, 0, 0]));
+    ev.datos.forEach((f) => f.push(0));
+    cerrarModal(); marcarCambio(); pintar(); return;
+  }
+  if (a === "sugerir") {
+    const j = +btn.dataset.j;
+    const sug = sugerenciasPara(ev.criterios[j]);
+    abrirModal(`
+      <h3>Indicadores sugeridos</h3>
+      <p class="sub" style="margin:4px 0 10px">${esc(sug.rotulo)}. Son propuestas de redacción observable, no texto oficial de las Bases Curriculares.</p>
+      ${sug.lista.map((t, k) => `<button class="btn btn-ancho" style="margin-bottom:6px;text-align:left"
+        data-accion="usar-sugerido" data-j="${j}" data-k="${k}">${esc(t)}</button>`).join("")}
+      <div class="fila" style="margin-top:4px">
+        <button class="btn btn-mini" data-accion="usar-todos-sugeridos" data-j="${j}">Agregar todos</button>
+        <button class="btn btn-mini" data-accion="cerrar-modal">Cerrar</button>
+      </div>`);
+    return;
+  }
+  if (a === "usar-todos-sugeridos") {
+    const j = +btn.dataset.j, c = ev.criterios[j];
+    sugerenciasPara(c).lista.forEach((texto) => {
+      const vacio = c.indicadores.findIndex((x) => !x.texto.trim());
+      if (vacio >= 0) c.indicadores[vacio].texto = texto;
+      else { c.indicadores.push({ texto, pts: ev.ptsDefecto }); ev.marcas.forEach((f) => f[j].push(0)); }
+    });
+    cerrarModal(); marcarCambio(); pintar(); return;
+  }
+  if (a === "usar-sugerido") {
+    const j = +btn.dataset.j, texto = sugerenciasPara(ev.criterios[j]).lista[+btn.dataset.k];
+    const c = ev.criterios[j];
+    const vacio = c.indicadores.findIndex((x) => !x.texto.trim());
+    if (vacio >= 0) c.indicadores[vacio].texto = texto;
+    else {
+      c.indicadores.push({ texto, pts: ev.ptsDefecto });
+      ev.marcas.forEach((f) => f[j].push(0));
+    }
+    cerrarModal(); marcarCambio(); pintar(); return;
+  }
+
+  /* --- nómina --- */
+  if (a === "agregar-alumno") {
+    const campo = $("#nuevo-alumno"); const nom = campo.value.trim();
+    if (!nom) return;
+    S.datos.roster.push(nom);
+    S.datos.evaluaciones.forEach((e) => {
+      e.marcas.push(e.criterios.map((c) => Array(c.indicadores.length).fill(0)));
+      e.datos.push(e.criterios.map(() => 0));
+      e.estado.push(0); e.obs.push("");
+    });
+    campo.value = ""; marcarCambio(); pintar(); return;
+  }
+  if (a === "borrar-alumno") {
+    const i = +btn.dataset.i;
+    confirmar(`Se quitará a ${S.datos.roster[i] || "ese estudiante"} de la nómina y de todas las listas del curso.`, () => {
+      S.datos.roster.splice(i, 1);
+      S.datos.evaluaciones.forEach((e) => { e.marcas.splice(i, 1); e.datos.splice(i, 1); e.estado.splice(i, 1); e.obs.splice(i, 1); });
+      S.alumnoActivo = 0; marcarCambio(); pintar();
+    });
+    return;
+  }
+  if (a === "copiar-nomina") {
+    const otros = CURSOS.filter((c) => c.id !== S.cursoId).map((c) => {
+      let n = 0;
+      try { const d = JSON.parse(localStorage.getItem(PREFIJO + c.id) || "{}"); n = (d.roster || []).length; } catch {}
+      return { ...c, n };
+    });
+    abrirModal(`
+      <h3>Copiar nómina desde otro curso</h3>
+      <p class="sub" style="margin:4px 0 10px">Se copian solo los nombres. Reemplaza la nómina actual y sus marcas. Aparecen los cursos guardados en este equipo.</p>
+      ${otros.map((c) => `<button class="btn btn-ancho" style="margin-bottom:6px;text-align:left" data-accion="usar-nomina" data-id="${c.id}" ${c.n ? "" : "disabled"}>
+        <b>${esc(c.nombre)}</b> <span class="sub">· ${c.n} estudiantes</span></button>`).join("")}
+      <button class="btn btn-ancho" data-accion="cerrar-modal">Cancelar</button>`);
+    return;
+  }
+  if (a === "usar-nomina") {
+    let lista = [];
+    try { lista = (JSON.parse(localStorage.getItem(PREFIJO + btn.dataset.id) || "{}").roster || []).slice(); } catch {}
+    if (!lista.length) { cerrarModal(); return; }
+    cerrarModal();
+    confirmar(`Se reemplazará la nómina actual con ${lista.length} estudiantes y se borrarán las marcas de este curso.`, () => {
+      S.datos.roster = lista;
+      S.datos.evaluaciones.forEach((e) => {
+        e.marcas = lista.map(() => e.criterios.map((c) => Array(c.indicadores.length).fill(0)));
+        e.datos = lista.map(() => e.criterios.map(() => 0));
+        e.estado = lista.map(() => 0); e.obs = lista.map(() => "");
+      });
+      S.alumnoActivo = 0; marcarCambio(); pintar();
+    });
+    return;
+  }
+  if (a === "pegar-nomina") {
+    abrirModal(`
+      <h3>Pegar lista del curso</h3>
+      <p class="sub" style="margin:4px 0 10px">Un nombre por línea. Reemplaza la nómina actual y las marcas ya registradas.</p>
+      <textarea id="txt-nomina" rows="8" placeholder="Aguilera Rojas, Martina&#10;Bravo Silva, Tomás"></textarea>
+      <div class="fila" style="margin-top:12px">
+        <button class="btn btn-lleno" data-accion="cargar-nomina">Cargar nómina</button>
+        <button class="btn" data-accion="cerrar-modal">Cancelar</button>
+      </div>`);
+    return;
+  }
+  if (a === "cargar-nomina") {
+    const lista = $("#txt-nomina").value.split("\n").map((x) => x.trim()).filter(Boolean);
+    if (!lista.length) { cerrarModal(); return; }
+    S.datos.roster = lista;
+    S.datos.evaluaciones.forEach((e) => {
+      e.marcas = lista.map(() => e.criterios.map((c) => Array(c.indicadores.length).fill(0)));
+      e.datos = lista.map(() => e.criterios.map(() => 0));
+      e.estado = lista.map(() => 0); e.obs = lista.map(() => "");
+    });
+    S.alumnoActivo = 0; cerrarModal(); marcarCambio(); pintar(); return;
+  }
+
+  /* --- salidas --- */
+  if (a === "imprimir") { imprimir(); return; }
+  if (a === "excel") { await exportarExcel(); return; }
+  if (a === "respaldo") { descargarRespaldo(); return; }
+  if (a === "restaurar") { pedirRestaurar(); return; }
+});
+
+/* --- campos de texto --- */
+document.addEventListener("input", (evt) => {
+  const el = evt.target.closest("[data-campo]");
+  if (!el || !S.datos) return;
+  const ev = evalActual();
+  const campo = el.dataset.campo;
+  if (campo === "nombre") ev.nombre = el.value;
+  else if (campo === "fecha") ev.fecha = el.value;
+  else if (campo === "oa") ev.oa = el.value;
+  else if (campo === "ptsDefecto") ev.ptsDefecto = Math.min(20, Math.max(1, +el.value || 1));
+  else if (campo === "criterio") ev.criterios[+el.dataset.j].texto = el.value;
+  else if (campo === "indicador") ev.criterios[+el.dataset.j].indicadores[+el.dataset.q].texto = el.value;
+  else if (campo === "nivel-r") ev.escala.niveles[+el.dataset.k].r = el.value;
+  else if (campo === "nivel-p") ev.escala.niveles[+el.dataset.k].p = Math.max(0, +el.value || 0);
+  else if (campo === "pts") ev.criterios[+el.dataset.j].indicadores[+el.dataset.q].pts = Math.max(0, +el.value || 0);
+  else if (campo === "alumno") S.datos.roster[+el.dataset.i] = el.value;
+  else return;
+  marcarCambio();
+});
+
+document.addEventListener("change", (evt) => {
+  const el = evt.target.closest("[data-accion]");
+  if (el) {
+    const a = el.dataset.accion;
+    if (a === "elegir-alumno") { S.alumnoActivo = +el.value; pintar(); }
+    else if (a === "elegir-unidad") {
+      const u = unidadesDelCurso(S.cursoId)[+el.value];
+      if (u) aplicarUnidad(evalActual(), u, []);
+    }
+    else if (a === "elegir-oa" && el.value) {
+      const ev = evalActual();
+      ev.criterios.push(criterioDesdeOA(el.value, S.cursoId, 3));
+      ev.marcas.forEach((f) => f.push([0, 0, 0]));
+      ev.datos.forEach((f) => f.push(0));
+      marcarCambio(); pintar();
+    }
+    return;
+  }
+  const campo = evt.target.closest('[data-campo="pts"], [data-campo="ptsDefecto"], [data-campo="nivel-p"]');
+  if (campo) pintar();
+});
+
+document.addEventListener("keydown", (evt) => {
+  if (evt.key === "Enter" && evt.target.id === "nuevo-alumno") {
+    evt.preventDefault();
+    const b = document.querySelector('[data-accion="agregar-alumno"]');
+    if (b) b.click();
+  }
+});
+
+/* =========================================================
+   Salidas: impresión, Excel, respaldo
+   ========================================================= */
+function filasDeEvaluacion(ev) {
+  const cols = columnasPlanilla(ev);
+  const total = puntajeTotal(ev);
+  const cab = ["N°", "Estudiante", "Asis.",
+    ...cols.map((c) => (esEscala(ev) ? (ev.criterios[c.j].oa || `C${c.j + 1}`) : `${c.j + 1}.${c.q + 1}`)),
+    "Puntaje", "Nota", "Observación"];
+  const filas = S.datos.roster.map((n, i) => {
+    const r = resultado(ev, i);
+    const est = ev.estado[i] || 0;
+    return [
+      i + 1, n || "", est === 1 ? "A" : est === 2 ? "J" : "P",
+      ...cols.map((c) => {
+        if (est) return "";
+        if (esEscala(ev)) return (ev.datos[i] || [])[c.j] || "";
+        const v = marcaDe(ev, i, c.j, c.q);
+        return v === 1 ? "L" : v === 2 ? "NL" : "";
+      }),
+      est ? "" : `${r.puntaje}/${total}`,
+      est ? "" : (r.nota === null ? "" : num1(r.nota)),
+      ev.obs[i] || ""
+    ];
+  });
+  return { cab, filas, total };
+}
+
+function imprimirConsolidado() {
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  const { evs, filas, promCurso } = datosConsolidado();
+  $("#impresion").innerHTML = `
+    <h1 style="font-size:15px">Consolidado · ${esc(curso.nombre)}</h1>
+    <p style="font-size:11px;margin:2px 0 6px">${evs.length} listas de cotejo · promedio del curso ${num1(promCurso)}</p>
+    <table><thead><tr><th>N°</th><th class="izq">Estudiante</th>
+      ${evs.map((ev, k) => `<th>${k + 1}</th>`).join("")}<th>Prom.</th></tr></thead>
+    <tbody>${filas.map((f, i) => `<tr><td>${i + 1}</td><td class="izq">${esc(f.nom)}</td>
+      ${f.notas.map((n) => `<td>${n === null ? "—" : num1(n)}</td>`).join("")}
+      <td>${num1(f.prom)}</td></tr>`).join("")}</tbody></table>
+    <p style="font-size:10px;margin:6px 0 0">${evs.map((ev, k) => `${k + 1}: ${esc(ev.nombre)} (${fechaLarga(ev.fecha)})`).join(" | ")}</p>`;
+  setTimeout(() => window.print(), 60);
+}
+
+function imprimir() {
+  if (S.pestana === "consolidado") return imprimirConsolidado();
+  const ev = evalActual();
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  const { cab, filas, total } = filasDeEvaluacion(ev);
+  const e = estadisticas(ev);
+  $("#impresion").innerHTML = `
+    <h1 style="font-size:15px">${esc(ev.nombre)} · ${esc(curso.nombre)}</h1>
+    <p style="font-size:11px;margin:2px 0 4px">${fechaLarga(ev.fecha)}${ev.oa ? " · " + esc(ev.oa) : ""}${codigosOA(ev).length ? " · " + codigosOA(ev).join(" ") : ""} · ${esEscala(ev) ? "escala de apreciación" : "lista de cotejo"} · ${total} pts · escala 60% (2,0–7,0) · promedio ${num1(e.prom)}</p>
+    <p style="font-size:10px;margin:0 0 8px">${ev.criterios.map((c, j) => `<b>${esc(c.oa || "C" + (j + 1))} ${esc(c.texto || "—")}:</b> ${c.indicadores.map((ind, q) => `${j + 1}.${q + 1} ${esc(ind.texto)} (${ind.pts} pts)`).join("; ")}`).join(" | ")}</p>
+    <table><thead><tr>${cab.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead>
+    <tbody>${filas.map((f) => `<tr>${f.map((v, k) => `<td class="${k === 1 || k === f.length - 1 ? "izq" : ""}">${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  setTimeout(() => window.print(), 60);
+}
+
+function imprimirFicha(i) {
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  const f = fichaDe(i);
+  $("#impresion").innerHTML = `
+    <h1 style="font-size:15px">${esc(f.nombre)} · ${esc(curso.nombre)}</h1>
+    <p style="font-size:11px;margin:2px 0 8px">Educación Física y Salud · ${f.items.length} listas · promedio ${num1(f.prom)}</p>
+    <table><thead><tr><th class="izq">Lista</th><th>Fecha</th><th>Nota</th><th class="izq">Observación</th></tr></thead>
+    <tbody>${f.items.map((x) => `<tr>
+      <td class="izq">${esc(x.ev.nombre)}</td>
+      <td>${fechaLarga(x.ev.fecha)}</td>
+      <td>${x.est ? (x.est === 1 ? "A" : "J") : esc(num1(x.nota))}</td>
+      <td class="izq">${esc(x.obs)}</td></tr>`).join("")}</tbody></table>`;
+  setTimeout(() => window.print(), 60);
+}
+
+function descargar(nombre, contenido, tipo) {
+  const b = new Blob([contenido], { type: tipo });
+  const u = URL.createObjectURL(b);
+  const a = document.createElement("a");
+  a.href = u; a.download = nombre; a.click();
+  setTimeout(() => URL.revokeObjectURL(u), 1500);
+}
+
+async function exportarExcel() {
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  let XLSX = null;
+  try {
+    if (!window.XLSX) {
+      await new Promise((res, rej) => {
+        const s = document.createElement("script");
+        s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+        s.onload = res; s.onerror = rej; document.head.appendChild(s);
+      });
+    }
+    XLSX = window.XLSX;
+  } catch { XLSX = null; }
+
+  if (!XLSX) {
+    const ev = evalActual();
+    const { cab, filas } = filasDeEvaluacion(ev);
+    const csv = [cab, ...filas].map((f) => f.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";")).join("\n");
+    descargar(`${curso.label}-${ev.nombre}.csv`, "\ufeff" + csv, "text/csv;charset=utf-8");
+    return;
+  }
+  const libro = XLSX.utils.book_new();
+  const con = datosConsolidado();
+  const hojaCon = XLSX.utils.aoa_to_sheet([
+    [`Consolidado · ${curso.nombre}`],
+    [`Promedio del curso: ${num1(con.promCurso)}`],
+    [],
+    ["N°", "Estudiante", ...con.evs.map((ev, k) => `${k + 1}. ${ev.nombre}`), "Promedio"],
+    ...con.filas.map((f, i) => [i + 1, f.nom,
+      ...f.notas.map((n) => (n === null ? "" : Number(n.toFixed(1)))),
+      f.prom === null ? "" : Number(f.prom.toFixed(1))])
+  ]);
+  hojaCon["!cols"] = [{ wch: 4 }, { wch: 28 }, ...con.evs.map(() => ({ wch: 12 })), { wch: 10 }];
+  XLSX.utils.book_append_sheet(libro, hojaCon, "Consolidado");
+  S.datos.evaluaciones.forEach((ev, k) => {
+    const { cab, filas, total } = filasDeEvaluacion(ev);
+    const encabezado = [
+      [`${ev.nombre} · ${curso.nombre}`],
+      [`Fecha: ${fechaLarga(ev.fecha)}`, `Exigencia: 60% · 2,0 a 7,0`, `Puntaje total: ${total}`],
+      [esEscala(ev) ? `Escala: ${leyendaEscala(ev).replace(/<[^>]*>/g, "")}` : "L = logrado · NL = no logrado · vacío = sin marcar"],
+      ...ev.criterios.map((c, j) => [c.oa || `C${j + 1}`, c.texto || "—",
+        ...c.indicadores.map((ind, q) => `${j + 1}.${q + 1} ${ind.texto} (${ind.pts} pts)`)]),
+      []
+    ];
+    const hoja = XLSX.utils.aoa_to_sheet([...encabezado, cab, ...filas]);
+    hoja["!cols"] = [{ wch: 4 }, { wch: 28 }, { wch: 6 },
+      ...columnasPlanilla(ev).map(() => ({ wch: 6 })), { wch: 9 }, { wch: 6 }, { wch: 30 }];
+    const nombreHoja = (ev.nombre || `Lista ${k + 1}`).replace(/[\\/*?:[\]]/g, "").slice(0, 28) || `Lista ${k + 1}`;
+    XLSX.utils.book_append_sheet(libro, hoja, nombreHoja);
+  });
+  XLSX.writeFile(libro, `Cotejo-${curso.label.replace("°", "")}basico.xlsx`);
+}
+
+function descargarRespaldo() {
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  descargar(`respaldo-${curso.label.replace("°", "")}basico-${hoy()}.json`,
+    JSON.stringify({ curso: S.cursoId, fecha: new Date().toISOString(), datos: S.datos }, null, 2),
+    "application/json");
+}
+
+function pedirRestaurar() {
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = "application/json,.json";
+  inp.onchange = () => {
+    const f = inp.files[0]; if (!f) return;
+    const lector = new FileReader();
+    lector.onload = () => {
+      try {
+        const j = JSON.parse(lector.result);
+        const d = j.datos ? j.datos : j;
+        confirmar("Se reemplazarán los datos de este curso con los del archivo.", () => {
+          S.datos = normalizar(d); S.evalIdx = 0; marcarCambio(); pintar();
+        });
+      } catch { alert("El archivo no se pudo leer."); }
+    };
+    lector.readAsText(f);
+  };
+  inp.click();
+}
+
+/* =========================================================
+   Arranque
+   ========================================================= */
+(async function iniciar() {
+  pintar();
+  await sbListo;
+  const u = await usuarioActual();
+  S.sesion = u; S.verificando = false;
+  if (!u && !sb && localStorage.getItem(PREFIJO + S.cursoId)) S.sinCuenta = true;
+  if (u || S.sinCuenta) await cargarCurso(S.cursoId);
+  else pintar();
+  if ("serviceWorker" in navigator) {
+    try { navigator.serviceWorker.register("sw.js"); } catch {}
+  }
+})();
+
+</script>
+</body>
+</html>
