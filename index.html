@@ -178,6 +178,9 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .cas.no.si{background:var(--n1); border-color:var(--n1)}
 .cas.nivel-cas{font-family:var(--mono); font-size:13px; color:var(--soft)}
 .cas:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
+.cabecera-lnl{display:flex; gap:5px; margin-bottom:-3px}
+.cabecera-lnl span{width:30px; flex:0 0 30px; text-align:center; font-size:11px; font-weight:700;
+  letter-spacing:.04em; color:var(--soft)}
 .par-cas{display:inline-flex; gap:5px}
 .par-cas.compacto .cas{width:26px; height:26px; flex:0 0 26px; font-size:13px}
 .indicadores{display:flex; flex-direction:column; gap:9px; margin-top:4px}
@@ -1726,6 +1729,7 @@ function vistaPorAlumno(ev) {
         <div class="criterio-linea">
           <div class="rotulo"><b>${esc(c.oa || "C" + (j + 1))}</b><span>${esc(c.texto || "Criterio " + (j + 1))}</span></div>
           ${esEscala(ev) ? medidor(ev, i, j) : `<div class="indicadores">
+            <div class="cabecera-lnl"><span>L</span><span>NL</span></div>
             ${c.indicadores.map((ind, q) => `<div class="indicador">${parCasillas(ev, i, j, q)}
               <span>${esc(ind.texto || "Indicador " + (q + 1))} <span class="pts-pill oscuro">${ind.pts} pts</span></span></div>`).join("")}
           </div>
