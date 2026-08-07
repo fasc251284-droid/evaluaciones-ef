@@ -83,6 +83,8 @@ button{cursor:pointer}
 .pasos{margin:0; padding-left:20px}
 .pasos li{margin-bottom:9px; line-height:1.45; font-size:14px}
 .pasos li:last-child{margin-bottom:0}
+.caja-oa-lista{flex:1; min-width:0; display:flex; flex-wrap:wrap; gap:5px; align-items:center;
+  padding:9px 10px; border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface)}
 .rotulo-seccion{display:block; font-size:11px; font-weight:700; letter-spacing:.06em;
   text-transform:uppercase; color:var(--soft); margin:16px 0 7px}
 .bloque-seccion{border-top:1px solid var(--line); margin-top:14px; padding-top:2px}
@@ -1419,7 +1421,9 @@ function panelAjustes(ev) {
         ${unidadesDelCurso(S.cursoId).map((u, k) => `<option value="${k}" ${ev.oa === `Unidad ${u.n}: ${u.titulo}` ? "selected" : ""}>Unidad ${u.n} · ${esc(u.titulo)}</option>`).join("")}
       </select></label>
     <div class="fila" style="gap:7px;margin:-4px 0 10px">
-      <input type="text" data-campo="oa" placeholder="o escribe la unidad a mano" value="${esc(ev.oa)}" style="flex:1;min-width:0">
+      <div class="caja-oa-lista">${codigosOA(ev).length
+        ? codigosOA(ev).map((x) => `<span class="oa-chip">${esc(x)}</span>`).join("")
+        : `<span class="sub">Sin objetivos todavía</span>`}</div>
       <button class="btn btn-mini" data-accion="unidad-picker">Ver detalle</button>
     </div>
     <span class="rotulo-seccion">Escala de notas</span>
@@ -1455,12 +1459,12 @@ function panelAjustes(ev) {
         </div>` : ""}
     </div>
 
-    <span class="rotulo-seccion">${esEscala(ev) ? "Criterios" : "Criterios e indicadores"}</span>
+    <span class="rotulo-seccion">${esEscala(ev) ? "Objetivos de aprendizaje" : "Objetivos de aprendizaje e indicadores"}</span>
     ${ev.criterios.map((c, j) => `
       <div class="bloque-criterio">
         <div class="fila" style="gap:6px;margin-bottom:6px">
           ${c.oa ? `<span class="oa-chip">${esc(c.oa)}</span><span class="sub">${esc(EJES[c.eje] || "")}</span>`
-                 : `<span class="idx mono">C${j + 1}</span><span class="sub">criterio propio</span>`}
+                 : `<span class="sub">Sin objetivo asociado</span>`}
           <button class="btn btn-mini btn-peligro" style="margin-left:auto" data-accion="borrar-criterio" data-j="${j}" ${ev.criterios.length <= 1 ? "disabled" : ""} title="Quitar criterio">×</button>
         </div>
         <textarea data-campo="criterio" data-j="${j}" rows="2" placeholder="Criterio, dimensión u objetivo de aprendizaje" style="width:100%;min-height:54px">${esc(c.texto)}</textarea>
@@ -1658,7 +1662,7 @@ function vistaPorCriterio(ev) {
   return `
   <div class="tarjeta">
     <div class="fila no-imprimir" style="gap:5px;margin-bottom:10px;overflow-x:auto">
-      ${ev.criterios.map((x, k) => `<button class="chip-crit" data-accion="criterio" data-j="${k}" aria-pressed="${k === j}">${esc(x.oa || "C" + (k + 1))}</button>`).join("")}
+      ${ev.criterios.map((x, k) => `<button class="chip-crit" data-accion="criterio" data-j="${k}" aria-pressed="${k === j}">${esc(x.oa || "Sin OA")}</button>`).join("")}
     </div>
     ${c.oa ? `<p class="sub" style="margin:0 0 4px">${esc(EJES[c.eje] || "")}</p>` : ""}
     <h2 style="font-size:15px;line-height:1.35">${esc(c.texto || "Criterio " + (j + 1))}</h2>
