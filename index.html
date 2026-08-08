@@ -178,6 +178,7 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .cas.no.si{background:var(--n1); border-color:var(--n1)}
 .cas.nivel-cas{font-family:var(--mono); font-size:13px; color:var(--soft)}
 .cas:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
+.descriptor-elegido{margin:5px 0 0; font-style:italic}
 .cabecera-lnl{display:flex; gap:5px; margin-bottom:-3px}
 .cabecera-lnl span{width:30px; flex:0 0 30px; text-align:center; font-size:11px; font-weight:700;
   letter-spacing:.04em; color:var(--soft)}
@@ -957,9 +958,9 @@ const idNuevo = () => "e" + Date.now().toString(36) + Math.random().toString(36)
 const EXIGENCIA = 60;
 const NOTA_MIN = 2, NOTA_APROB = 4, NOTA_MAX = 7;
 
-function calcularNota(puntaje, total) {
+function calcularNota(puntaje, total, exig) {
   if (!total || total <= 0) return null;
-  const corte = (total * EXIGENCIA) / 100;
+  const corte = (total * exigenciaValida(exig)) / 100;
   let n;
   if (corte <= 0) n = NOTA_MAX;
   else if (puntaje <= corte) n = NOTA_MIN + (NOTA_APROB - NOTA_MIN) * (puntaje / corte);
@@ -969,12 +970,14 @@ function calcularNota(puntaje, total) {
 }
 
 /* Puntaje mínimo que alcanza cada nota, para mostrar la escala completa */
-function tablaNotas(total) {
+function tablaNotas(total, exig) {
   const filas = [];
-  for (let p = 0; p <= total; p++) filas.push({ p, nota: calcularNota(p, total) });
+  for (let p = 0; p <= total; p++) filas.push({ p, nota: calcularNota(p, total, exig) });
   return filas;
 }
-const ptsAprobacion = (total) => Math.round((total * EXIGENCIA) / 100 * 10) / 10;
+const pesoDe = (ev) => { const n = Number(ev && ev.peso); return n >= 0 && n <= 10 ? n : 1; };
+const exigenciaValida = (e) => { const n = Number(e); return n >= 10 && n <= 100 ? n : EXIGENCIA; };
+const ptsAprobacion = (total, exig) => Math.round((total * exigenciaValida(exig)) / 100 * 10) / 10;
 
 /* ===== Modo escala de apreciación (opcional) ===== */
 const ESCALA_BASE = [
@@ -1029,7 +1032,7 @@ function resultado(ev, i) {
     });
     const tot = puntajeTotal(ev);
     return { puntaje, total: tot, marcados, logrados, sinMarca,
-      nota: marcados ? calcularNota(puntaje, tot) : null };
+      nota: marcados ? calcularNota(puntaje, tot, ev.exigencia) : null };
   }
   ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
     const v = marcaDe(ev, i, j, q);
@@ -1040,7 +1043,7 @@ function resultado(ev, i) {
   const total = puntajeTotal(ev);
   return {
     puntaje, total, marcados, logrados, sinMarca,
-    nota: marcados ? calcularNota(puntaje, total) : null
+    nota: marcados ? calcularNota(puntaje, total, ev.exigencia) : null
   };
 }
 
@@ -1072,16 +1075,19 @@ function normalizarCriterio(c, ptsDefecto) {
   const eje = String(base.eje || "");
   let indicadores = Array.isArray(base.indicadores) ? base.indicadores.map((x) => normalizarIndicador(x, ptsDefecto)) : [];
   if (!indicadores.length) indicadores = [{ texto: "", pts: ptsDefecto }];
-  return { texto, oa, eje, indicadores };
+  const descriptores = Array.isArray(base.descriptores) ? base.descriptores.slice(0, 8).map((x) => String(x == null ? "" : x)) : [];
+  return { texto, oa, eje, indicadores, descriptores };
 }
 
 function criterioDesdeOA(codigo, cursoId, nInd) {
   const oa = buscarOA(cursoId, codigo);
+  const n = nInd || 3;
+  const sug = (SUG_OA[codigo] || SUGERENCIAS[oa ? oa.eje : "hm"] || SUGERENCIAS.hm || []);
   return {
     texto: oa ? oa.texto : "",
     oa: oa ? oa.codigo : "",
     eje: oa ? oa.eje : "",
-    indicadores: Array.from({ length: nInd || 3 }, () => ({ texto: "", pts: PTS_DEFECTO }))
+    indicadores: Array.from({ length: n }, (_, q) => ({ texto: sug[q] || "", pts: PTS_DEFECTO }))
   };
 }
 
@@ -1097,6 +1103,7 @@ function nuevaEvaluacion(nAlumnos, oaCodigos, nombre, cursoId) {
     fecha: hoy(),
     oa: "",
     exigencia: EXIGENCIA,
+    peso: 1,
     ptsDefecto: PTS_DEFECTO,
     modo: "cotejo",
     escala: { niveles: ESCALA_BASE.map((n) => ({ ...n })) },
@@ -1129,7 +1136,8 @@ function normalizar(d) {
         nombre: e.nombre || "Lista de cotejo",
         fecha: e.fecha || hoy(),
         oa: e.oa || "",
-        exigencia: EXIGENCIA,
+        exigencia: exigenciaValida(e.exigencia),
+        peso: pesoDe(e),
         ptsDefecto,
         modo: e.modo === "escala" ? "escala" : "cotejo",
         escala: { niveles: (Array.isArray(e.escala && e.escala.niveles) && e.escala.niveles.length >= 2
@@ -1417,6 +1425,9 @@ function panelAjustes(ev) {
   <div class="bloque-seccion">
     <span class="rotulo-seccion" style="margin-top:10px">Datos de la lista</span>
     <label class="campo"><span>Nombre de la lista de cotejo</span><input type="text" data-campo="nombre" value="${esc(ev.nombre)}"></label>
+    <label class="campo"><span>Peso en el consolidado</span>
+      <input type="number" min="0" max="10" step="0.5" data-campo="peso" value="${pesoDe(ev)}">
+      <span class="sub" style="font-weight:400">1 es el peso normal. Con 2 esta lista vale el doble; con 0 no entra en el promedio.</span></label>
     ${esEscala(ev) ? "" : `<label class="campo"><span>Puntos por indicador</span><input type="number" min="1" max="20" step="1" data-campo="ptsDefecto" value="${ev.ptsDefecto}"></label>`}
     <label class="campo"><span>Unidad del programa</span>
       <select data-accion="elegir-unidad">
@@ -1432,12 +1443,17 @@ function panelAjustes(ev) {
     <span class="rotulo-seccion">Escala de notas</span>
     <div class="caja-escala">
       <div class="fila fila-sep">
-        <span class="sub">60% de exigencia</span>
+        <label class="fila" style="gap:6px;margin:0">
+          <span class="sub">Exigencia</span>
+          <input type="number" min="10" max="100" step="5" data-campo="exigencia" value="${exigenciaValida(ev.exigencia)}"
+            style="width:70px;text-align:center;padding:5px 6px;font-size:13px">
+          <span class="sub">%</span>
+        </label>
         <button class="btn btn-mini" data-accion="ver-escala">Ver escala completa</button>
       </div>
       <div class="fila" style="gap:7px;margin-top:8px">
         <span class="pastilla"><b>0</b> pts = 2,0</span>
-        <span class="pastilla"><b>${ptsAprobacion(total).toString().replace(".", ",")}</b> pts = 4,0</span>
+        <span class="pastilla"><b>${ptsAprobacion(total, ev.exigencia).toString().replace(".", ",")}</b> pts = 4,0</span>
         <span class="pastilla"><b>${total}</b> pts = 7,0</span>
       </div>
     </div>
@@ -1471,7 +1487,17 @@ function panelAjustes(ev) {
           <button class="btn btn-mini btn-peligro" style="margin-left:auto" data-accion="borrar-criterio" data-j="${j}" ${ev.criterios.length <= 1 ? "disabled" : ""} title="Quitar criterio">×</button>
         </div>
         <textarea data-campo="criterio" data-j="${j}" rows="2" placeholder="Objetivo de aprendizaje" style="width:100%;min-height:54px">${esc(c.texto)}</textarea>
-        ${esEscala(ev) ? "" : `<div style="padding-left:24px">
+        ${esEscala(ev) ? `<div style="padding-left:24px;margin-top:8px">
+          <span class="sub">Descriptores de este criterio</span>
+          ${ev.escala.niveles.map((n, k) => `
+            <div class="criterio-edit">
+              <span class="idx mono" style="padding-top:12px">${k + 1}</span>
+              <input type="text" data-campo="descriptor" data-j="${j}" data-k="${k}"
+                value="${esc((c.descriptores || [])[k] || "")}" placeholder="${esc(n.r)}" style="flex:1;min-width:0">
+              <span class="pts-pill" style="align-self:center">${n.p} pts</span>
+            </div>`).join("")}
+          <p class="sub" style="margin:6px 0 0">Si dejas uno en blanco se usa la descripción general de la escala.</p>
+        </div>` : `<div style="padding-left:24px">
           ${c.indicadores.map((ind, q) => `
             <div class="criterio-edit">
               <span class="idx mono" style="padding-top:12px">${j + 1}.${q + 1}</span>
@@ -1544,17 +1570,23 @@ function parCasillas(ev, i, j, q, compacto) {
   </span>`;
 }
 
+function descriptorDe(ev, c, k) {
+  const propio = c && Array.isArray(c.descriptores) ? (c.descriptores[k] || "").trim() : "";
+  return propio || (ev.escala.niveles[k] ? ev.escala.niveles[k].r : "");
+}
+
 function medidor(ev, i, j, compacto) {
   const N = nNiveles(ev), valor = (ev.datos[i] || [])[j] || 0;
+  const c = ev.criterios[j];
   return `<div class="medidor${compacto ? " compacto" : ""}" style="grid-template-columns:repeat(${N},1fr)">
     ${ev.escala.niveles.map((n, k) => {
       const k1 = k + 1, alto = 6 + Math.round((k / Math.max(1, N - 1)) * 12);
       return `<button class="nivel" style="--c:${colorNivel(k1, N)}" data-accion="poner-nivel"
         data-i="${i}" data-j="${j}" data-k="${k1}" aria-pressed="${valor === k1}"
-        title="${esc(n.r)} · ${n.p} pt"><span class="barra" style="height:${alto}px"></span>
+        title="${esc(descriptorDe(ev, c, k))} · ${n.p} pt"><span class="barra" style="height:${alto}px"></span>
         <span class="num">${k1}</span></button>`;
     }).join("")}
-  </div>`;
+  </div>${compacto || !valor ? "" : `<p class="sub descriptor-elegido">${esc(descriptorDe(ev, c, valor - 1))}</p>`}`;
 }
 
 function leyendaEscala(ev) {
@@ -1593,7 +1625,7 @@ function vistaPlanilla(ev) {
   marca logrado ese indicador a todo el curso presente, y lo limpia si ya estaban todos. El botón de asistencia
   cicla <b>P → A</b> (ausente) <b>→ J</b> (justificado). El botón <b>✎</b> agrega una observación. Con <b>+</b>
   agregas otro indicador al criterio, y el texto del encabezado se edita tocándolo.`}
-  Escala automática al 60%: <b>0</b> pts = 2,0 · <b>${ptsAprobacion(total).toString().replace(".", ",")}</b> pts = 4,0 · <b>${total}</b> pts = 7,0.</p>
+  Escala automática al ${exigenciaValida(ev.exigencia)}%: <b>0</b> pts = 2,0 · <b>${ptsAprobacion(total, ev.exigencia).toString().replace(".", ",")}</b> pts = 4,0 · <b>${total}</b> pts = 7,0.</p>
   <div class="envoltura-tabla planilla">
     <table>
       <thead>
@@ -1833,7 +1865,9 @@ function datosConsolidado() {
   const filas = S.datos.roster.map((nom, i) => {
     const notas = evs.map((ev) => (ev.estado[i] ? null : resultado(ev, i).nota));
     const val = notas.filter((x) => x !== null);
-    return { nom, notas, val, prom: val.length ? val.reduce((a, b) => a + b, 0) / val.length : null };
+    let sum = 0, pesos = 0;
+    notas.forEach((n, k) => { if (n === null) return; const w = pesoDe(evs[k]); sum += n * w; pesos += w; });
+    return { nom, notas, val, prom: pesos > 0 ? sum / pesos : null };
   });
   const proms = filas.map((f) => f.prom).filter((x) => x !== null);
   return {
@@ -1851,11 +1885,13 @@ function fichaDe(i) {
     return { ev, est, nota: r ? r.nota : null, obs: (ev.obs[i] || "").trim() };
   });
   const notas = items.map((x) => x.nota).filter((n) => n !== null);
+  let sum = 0, pesos = 0;
+  items.forEach((x) => { if (x.nota === null) return; const w = pesoDe(x.ev); sum += x.nota * w; pesos += w; });
   return {
     nombre: S.datos.roster[i] || "—",
     items,
     conObs: items.filter((x) => x.obs).length,
-    prom: notas.length ? notas.reduce((a, b) => a + b, 0) / notas.length : null
+    prom: pesos > 0 ? sum / pesos : null
   };
 }
 
@@ -2250,10 +2286,10 @@ document.addEventListener("click", async (evt) => {
     const total = puntajeTotal(ev);
     abrirModal(`
       <h3>Escala de notas</h3>
-      <p class="sub" style="margin:4px 0 10px">Se calcula sola con el puntaje total de la lista: 60% de exigencia,
-      nota mínima 2,0, aprobación 4,0 con ${ptsAprobacion(total).toString().replace(".", ",")} pts y 7,0 con ${total} pts.</p>
+      <p class="sub" style="margin:4px 0 10px">Se calcula sola con el puntaje total de la lista: ${exigenciaValida(ev.exigencia)}% de exigencia,
+      nota mínima 2,0, aprobación 4,0 con ${ptsAprobacion(total, ev.exigencia).toString().replace(".", ",")} pts y 7,0 con ${total} pts.</p>
       <div class="rejilla-escala">
-        ${tablaNotas(total).map((f) => `<span class="par-nota ${f.nota < 4 ? "roja" : ""}">
+        ${tablaNotas(total, ev.exigencia).map((f) => `<span class="par-nota ${f.nota < 4 ? "roja" : ""}">
           <b class="mono">${f.p}</b><i class="mono">${num1(f.nota)}</i></span>`).join("")}
       </div>
       <button class="btn btn-ancho" style="margin-top:12px" data-accion="cerrar-modal">Cerrar</button>`);
@@ -2457,6 +2493,14 @@ document.addEventListener("input", (evt) => {
   else if (campo === "nivel-p") ev.escala.niveles[+el.dataset.k].p = Math.max(0, +el.value || 0);
   else if (campo === "pts") ev.criterios[+el.dataset.j].indicadores[+el.dataset.q].pts = Math.max(0, +el.value || 0);
   else if (campo === "alumno") S.datos.roster[+el.dataset.i] = el.value;
+  else if (campo === "exigencia") { ev.exigencia = Math.min(100, Math.max(10, +el.value || EXIGENCIA)); marcarCambio(); pintar(); return; }
+  else if (campo === "peso") { ev.peso = Math.min(10, Math.max(0, +el.value || 0)); marcarCambio(); pintar(); return; }
+  else if (campo === "descriptor") {
+    const c = ev.criterios[+el.dataset.j];
+    c.descriptores = c.descriptores || [];
+    c.descriptores[+el.dataset.k] = el.value;
+    marcarCambio(); return;
+  }
   else return;
   marcarCambio();
 });
