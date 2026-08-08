@@ -332,8 +332,16 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .envoltura{padding:0; max-width:none}
   .hoja-impresion{display:block}
   .tarjeta{border:0; padding:0}
-  table{font-size:10px}
-  th,td{padding:3px 4px}
+  .hoja-impresion table{width:100%; table-layout:fixed; border-collapse:collapse}
+  .hoja-impresion th,.hoja-impresion td{padding:2px 3px; border:1px solid #b9cfdc;
+    overflow-wrap:anywhere; word-break:break-word; vertical-align:top; text-align:center}
+  .hoja-impresion th{background:#e3f1fa}
+  .hoja-impresion .izq{text-align:left}
+  .hoja-impresion thead{display:table-header-group}
+  .hoja-impresion tr{break-inside:avoid}
+
+  .leyenda-oa{font-size:8.5px; line-height:1.35; margin:0 0 6px}
+  .leyenda-oa li{margin-bottom:2px}
   .col-fija{position:static; box-shadow:none}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
@@ -1347,7 +1355,7 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v42</small></div>
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v44</small></div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
@@ -2593,11 +2601,54 @@ document.addEventListener("keydown", (evt) => {
 /* =========================================================
    Salidas: impresión, Excel, respaldo
    ========================================================= */
+/* El PDF se adapta: pocas columnas van en vertical y con letra grande;
+   muchas, en horizontal y más apretadas. */
+function prepararImpresion(nMarcas) {
+  const n = Math.max(0, nMarcas);
+  const orientacion = n <= 8 ? "portrait" : "landscape";
+  const fuente = n <= 6 ? 11 : n <= 12 ? 10 : n <= 20 ? 9 : n <= 30 ? 8 : 7;
+  const fijos = 18;                                   // N°, asistencia, puntaje y nota
+  let marcas = n ? Math.min(56, n * 3.4) : 0;
+  let resto = 100 - fijos - marcas;
+  let nom = Math.min(26, resto * 0.55), obs = Math.min(28, resto * 0.45);
+  marcas = 100 - fijos - nom - obs;                   // lo que sobre engorda las marcas
+  const anchoMarca = n ? marcas / n : 0;
+  const css = `
+    @page{size:A4 ${orientacion}; margin:9mm}
+    .hoja-impresion table{font-size:${fuente}px}
+    .hoja-impresion .c-n{width:3%}
+    .hoja-impresion .c-asis{width:4%}
+    .hoja-impresion .c-pts{width:6%}
+    .hoja-impresion .c-nota{width:5%}
+    .hoja-impresion .c-nom{width:${nom.toFixed(1)}%}
+    .hoja-impresion .c-obs{width:${obs.toFixed(1)}%}
+    .hoja-impresion .c-marca{width:${anchoMarca.toFixed(2)}%}
+    .leyenda-oa{font-size:${Math.max(7, fuente - 1.5).toFixed(1)}px}`;
+  let tag = $("#css-impresion");
+  if (!tag) {
+    tag = document.createElement("style");
+    tag.id = "css-impresion";
+    tag.media = "print";
+    document.head.appendChild(tag);
+  }
+  tag.textContent = css;
+}
+
+function claseCol(k, n) {
+  if (k === 0) return "c-n";
+  if (k === 1) return "c-nom izq";
+  if (k === 2) return "c-asis";
+  if (k === n - 1) return "c-obs izq";
+  if (k === n - 2) return "c-nota";
+  if (k === n - 3) return "c-pts";
+  return "c-marca";
+}
+
 function filasDeEvaluacion(ev) {
   const cols = columnasPlanilla(ev);
   const total = puntajeTotal(ev);
   const cab = ["N°", "Estudiante", "Asis.",
-    ...cols.map((c) => (esEscala(ev) ? (ev.criterios[c.j].oa || `C${c.j + 1}`) : `${c.j + 1}.${c.q + 1}`)),
+    ...cols.map((c) => `${c.j + 1}.${c.q + 1}`),
     "Puntaje", "Nota", "Observación"];
   const filas = S.datos.roster.map((n, i) => {
     const r = resultado(ev, i);
@@ -2621,15 +2672,16 @@ function filasDeEvaluacion(ev) {
 function imprimirConsolidado() {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const { evs, filas, promCurso } = datosConsolidado();
+  prepararImpresion(evs.length + 1);
   $("#impresion").innerHTML = `
     <h1 style="font-size:15px">Consolidado · ${esc(curso.nombre)}</h1>
     <p style="font-size:11px;margin:2px 0 6px">${evs.length} listas de cotejo · promedio del curso ${num1(promCurso)}</p>
-    <table><thead><tr><th>N°</th><th class="izq">Estudiante</th>
-      ${evs.map((ev, k) => `<th>${k + 1}</th>`).join("")}<th>Prom.</th></tr></thead>
-    <tbody>${filas.map((f, i) => `<tr><td>${i + 1}</td><td class="izq">${esc(f.nom)}</td>
-      ${f.notas.map((n) => `<td>${n === null ? "—" : num1(n)}</td>`).join("")}
-      <td>${num1(f.prom)}</td></tr>`).join("")}</tbody></table>
-    <p style="font-size:10px;margin:6px 0 0">${evs.map((ev, k) => `${k + 1}: ${esc(ev.nombre)} (${fechaLarga(ev.fecha)})`).join(" | ")}</p>`;
+    <table><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
+      ${evs.map((ev, k) => `<th class="c-nota">${k + 1}</th>`).join("")}<th class="c-nota">Prom.</th></tr></thead>
+    <tbody>${filas.map((f, i) => `<tr><td class="c-n">${i + 1}</td><td class="c-nom izq">${esc(f.nom || "—")}</td>
+      ${f.notas.map((n) => `<td class="c-nota">${n === null ? "—" : num1(n)}</td>`).join("")}
+      <td class="c-nota">${num1(f.prom)}</td></tr>`).join("")}</tbody></table>
+    <ol class="leyenda-oa" style="margin-top:6px">${evs.map((ev, k) => `<li><b>${k + 1}</b> ${esc(ev.nombre)} · ${fechaLarga(ev.fecha)}${pesoDe(ev) !== 1 ? ` · peso ${pesoDe(ev)}` : ""}</li>`).join("")}</ol>`;
   setTimeout(() => window.print(), 60);
 }
 
@@ -2639,26 +2691,30 @@ function imprimir() {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const { cab, filas, total } = filasDeEvaluacion(ev);
   const e = estadisticas(ev);
+  prepararImpresion(columnasPlanilla(ev).length * (esEscala(ev) ? 1 : 1));
   $("#impresion").innerHTML = `
     <h1 style="font-size:15px">${esc(ev.nombre)} · ${esc(curso.nombre)}</h1>
-    <p style="font-size:11px;margin:2px 0 4px">${fechaLarga(ev.fecha)}${ev.oa ? " · " + esc(ev.oa) : ""}${codigosOA(ev).length ? " · " + codigosOA(ev).join(" ") : ""} · ${esEscala(ev) ? "escala de apreciación" : "lista de cotejo"} · ${total} pts · escala 60% (2,0–7,0) · promedio ${num1(e.prom)}</p>
-    <p style="font-size:10px;margin:0 0 8px">${ev.criterios.map((c, j) => `<b>${esc(c.oa || "C" + (j + 1))} ${esc(c.texto || "—")}:</b> ${c.indicadores.map((ind, q) => `${j + 1}.${q + 1} ${esc(ind.texto)} (${ind.pts} pts)`).join("; ")}`).join(" | ")}</p>
-    <table><thead><tr>${cab.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead>
-    <tbody>${filas.map((f) => `<tr>${f.map((v, k) => `<td class="${k === 1 || k === f.length - 1 ? "izq" : ""}">${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+    <p style="font-size:11px;margin:2px 0 4px">${fechaLarga(ev.fecha)}${ev.oa ? " · " + esc(ev.oa) : ""}${codigosOA(ev).length ? " · " + codigosOA(ev).join(" ") : ""} · ${esEscala(ev) ? "escala de apreciación" : "lista de cotejo"} · ${total} pts · exigencia ${exigenciaValida(ev.exigencia)}% (2,0–7,0) · promedio ${num1(e.prom)}</p>
+    <ol class="leyenda-oa">${ev.criterios.map((c, j) => `<li><b>${esc(c.oa || "C" + (j + 1))}</b> ${esc(c.texto || "—")}<br>
+      ${c.indicadores.map((ind, q) => `<b>${j + 1}.${q + 1}</b> ${esc(ind.texto || "sin redactar")}${esEscala(ev) ? "" : ` (${ind.pts} pts)`}`).join(" · ")}</li>`).join("")}</ol>
+    <table><thead><tr>${cab.map((c, k) => `<th class="${claseCol(k, cab.length)}">${esc(c)}</th>`).join("")}</tr></thead>
+    <tbody>${filas.map((f) => `<tr>${f.map((v, k) => `<td class="${claseCol(k, f.length)}">${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
   setTimeout(() => window.print(), 60);
 }
 
 function imprimirFicha(i) {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const f = fichaDe(i);
+  prepararImpresion(0);
   $("#impresion").innerHTML = `
     <h1 style="font-size:15px">${esc(f.nombre)} · ${esc(curso.nombre)}</h1>
     <p style="font-size:11px;margin:2px 0 8px">Educación Física y Salud · ${f.items.length} listas · promedio ${num1(f.prom)}</p>
-    <table><thead><tr><th class="izq">Lista</th><th>Fecha</th><th>Nota</th><th class="izq">Observación</th></tr></thead>
+    <table><thead><tr><th class="izq" style="width:26%">Lista</th><th style="width:12%">Fecha</th>
+      <th class="c-nota">Nota</th><th class="izq">Observación</th></tr></thead>
     <tbody>${f.items.map((x) => `<tr>
       <td class="izq">${esc(x.ev.nombre)}</td>
       <td>${fechaLarga(x.ev.fecha)}</td>
-      <td>${x.est ? (x.est === 1 ? "A" : "J") : esc(num1(x.nota))}</td>
+      <td class="c-nota">${x.est ? (x.est === 1 ? "A" : "J") : esc(num1(x.nota))}</td>
       <td class="izq">${esc(x.obs)}</td></tr>`).join("")}</tbody></table>`;
   setTimeout(() => window.print(), 60);
 }
