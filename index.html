@@ -1648,7 +1648,7 @@ function vistaPlanilla(ev) {
   const cols = columnasPlanilla(ev);
   const total = puntajeTotal(ev);
   return `
-  <p class="ayuda no-imprimir">${esEscala(ev) ? `Cada criterio se marca con un nivel de la escala: <b>${leyendaEscala(ev)}</b>.
+  <p class="ayuda no-imprimir">${esEscala(ev) ? `Cada indicador se marca con un nivel de la escala: <b>${leyendaEscala(ev)}</b>.
   Toca la celda para avanzar de nivel y sigue tocando para volver a dejarla vacía.` : `Cada indicador tiene dos casillas: <b>L</b> logrado y <b>NL</b> no logrado.
   Toca para marcar y vuelve a tocar la misma casilla para dejarla sin marca. El botón <b>✓✓</b> del encabezado
   marca logrado ese indicador a todo el curso presente, y lo limpia si ya estaban todos. El botón de asistencia
@@ -1661,9 +1661,9 @@ function vistaPlanilla(ev) {
         <tr>
           <th class="izq col-fija" rowspan="3">ESTUDIANTE</th>
           <th rowspan="3">ASIS.</th>
-          ${ev.criterios.map((c, j) => `<th class="th-grupo" colspan="${esEscala(ev) ? 1 : c.indicadores.length * 2}">
+          ${ev.criterios.map((c, j) => `<th class="th-grupo" colspan="${c.indicadores.length * (esEscala(ev) ? 1 : 2)}">
             <span class="rot-crit">${esc(c.oa || "Sin OA")}</span> ${esc(recorte(c.texto || "Objetivo sin redactar", 90))}
-            ${esEscala(ev) ? "" : `<button class="btn-mas" data-accion="agregar-indicador" data-j="${j}" title="Agregar indicador">+</button>`}
+            <button class="btn-mas" data-accion="agregar-indicador" data-j="${j}" title="Agregar indicador">+</button>
           </th>`).join("")}
           <th rowspan="3">PTS</th><th rowspan="3">NOTA</th><th rowspan="3">OBS</th>
         </tr>
