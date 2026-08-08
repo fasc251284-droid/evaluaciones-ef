@@ -346,9 +346,10 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .leyenda-oa{line-height:1.4; margin:0 0 8px}
   .leyenda-oa .oa-titulo{margin:7px 0 1px; font-family:var(--mono)}
   .leyenda-oa .oa-texto{margin:0 0 3px; text-align:justify; hyphens:auto}
-  .leyenda-oa .rejilla-ind{display:grid; grid-template-columns:repeat(3, 1fr); gap:3px; margin:0 0 4px}
+  .leyenda-oa .rejilla-ind{display:grid; grid-template-columns:repeat(3, 1fr);
+    grid-auto-rows:1fr; gap:3px; margin:0 0 4px; align-items:stretch}
   .leyenda-oa .caja-ind{border:1px solid #b9cfdc; border-radius:3px; padding:2px 4px;
-    line-height:1.25; break-inside:avoid}
+    line-height:1.25; break-inside:avoid; height:100%; box-sizing:border-box}
   .leyenda-oa .caja-ind b{font-family:var(--mono)}
   .leyenda-oa .caja-ind i{font-style:normal; color:#5a7382; white-space:nowrap}
   .hoja-impresion h1{margin:0 0 2px}
@@ -1365,7 +1366,7 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v49</small></div>
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v50</small></div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
@@ -2623,20 +2624,28 @@ function planImpresion(nMarcas) {
   // así la leyenda no se come la hoja y cada recuadro crece hacia abajo.
   const cajas = n <= 6 ? 2 : n <= 12 ? 3 : n <= 20 ? 4 : 5;
   const fuenteLey = n <= 6 ? 9.5 : n <= 12 ? 8.5 : n <= 20 ? 7.5 : 7;
-  return { orientacion, fuente: n <= 14 ? 9 : 8, cajas: orientacion === "landscape" ? cajas + 1 : cajas, fuenteLey };
+  // Hasta 6 indicadores el rótulo entra escrito en la columna; de ahí en más, solo el número.
+  const rotulos = n > 0 && n <= 6 ? "texto" : "numero";
+  return { orientacion, fuente: n <= 14 ? 9 : 8, cajas: orientacion === "landscape" ? cajas + 1 : cajas,
+    fuenteLey, rotulos };
 }
 
 function prepararImpresion(nMarcas) {
-  const { orientacion, fuente, cajas, fuenteLey } = planImpresion(nMarcas);
+  const { orientacion, fuente, cajas, fuenteLey, rotulos } = planImpresion(nMarcas);
+  const texto = rotulos === "texto";
   const css = `
     @page{size:A4 ${orientacion}; margin:9mm}
     .hoja-impresion table{font-size:${fuente}px}
     .hoja-impresion .c-n{width:4%}
-    .hoja-impresion .c-nom{width:22%}
-    .hoja-impresion .c-asis{width:5%}
-    .hoja-impresion .c-pts{width:8%}
+    .hoja-impresion .c-nom{width:${texto ? 17 : 22}%}
+    .hoja-impresion .c-asis{width:4%}
+    .hoja-impresion .c-pts{width:7%}
     .hoja-impresion .c-nota{width:6%}
-    .hoja-impresion .c-obs{width:15%}
+    .hoja-impresion .c-obs{width:${texto ? 11 : 15}%}
+    .hoja-impresion th.c-marca{font-family:${texto ? "inherit" : "var(--mono)"};
+      white-space:${texto ? "normal" : "nowrap"}; font-size:${texto ? 7.5 : fuente}px;
+      line-height:1.2; vertical-align:bottom; text-align:center}
+    .hoja-impresion th.c-marca .num-col{display:block; font-family:var(--mono); margin-bottom:1px}
     .leyenda-oa{font-size:${fuenteLey}px}
     .leyenda-oa .rejilla-ind{grid-template-columns:repeat(${cajas}, 1fr)}
     .leyenda-oa .oa-titulo{margin-top:${fuenteLey < 8 ? 4 : 7}px}`;
@@ -2720,7 +2729,8 @@ function imprimir() {
     <table>
       <thead><tr>
         <th class="c-n">N°</th><th class="c-nom izq">Estudiante</th><th class="c-asis">Asis.</th>
-        ${cols.map((c) => `<th class="c-marca">${c.j + 1}.${c.q + 1}</th>`).join("")}
+        ${cols.map((c) => `<th class="c-marca"><span class="num-col">${c.j + 1}.${c.q + 1}</span>${
+          planImpresion(cols.length).rotulos === "texto" ? esc((c.ind && c.ind.texto.trim()) || "") : ""}</th>`).join("")}
         <th class="c-pts">Pts</th><th class="c-nota">Nota</th><th class="c-obs izq">Observación</th>
       </tr></thead>
       <tbody>${filas.map((f) => `<tr>${f.map((v, k) => `<td class="${claseCol(k, f.length)}">${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody>
