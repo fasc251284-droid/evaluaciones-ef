@@ -172,6 +172,9 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .cas.nivel-cas{font-family:var(--mono); font-size:13px; color:var(--soft)}
 .cas:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
 .descriptor-elegido{margin:5px 0 0; font-style:italic}
+.etiqueta-tipo{display:inline-block; vertical-align:middle; font-size:11px; font-weight:700;
+  background:var(--verde-claro); color:var(--verde-oscuro); border-radius:20px; padding:2px 9px; margin-left:4px}
+.rejilla-cursos{display:grid; grid-template-columns:repeat(2, 1fr); gap:7px}
 .det-desc{margin-top:8px}
 .det-desc summary{font-size:12.5px; color:var(--verde-oscuro); cursor:pointer; padding:3px 0; list-style:none}
 .det-desc summary::-webkit-details-marker{display:none}
@@ -337,6 +340,7 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .hoja-impresion thead{display:table-header-group}
   .hoja-impresion tr{break-inside:avoid}
 
+  .leyenda-escala{margin:0 0 4px; font-size:9px}
   .leyenda-oa{line-height:1.4; margin:0 0 8px}
   .leyenda-oa .oa-titulo{margin:7px 0 1px; font-family:var(--mono)}
   .leyenda-oa .oa-texto{margin:0 0 3px; text-align:justify; hyphens:auto}
@@ -979,7 +983,7 @@ const num1 = (n) => (n === null || n === undefined ? "—" : n.toFixed(1).replac
 const idNuevo = () => "e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
 /* ===== Escala de notas =====
-   Exigencia fija del 60%. Nota mínima 2,0 · aprobación 4,0 con el 60% del
+   Exigencia configurable por lista, 60% por omisión. Nota mínima 2,0 · aprobación 4,0 con el corte del
    puntaje · nota máxima 7,0 con el puntaje total. Los tramos son lineales. */
 const EXIGENCIA = 60;
 const NOTA_MIN = 2, NOTA_APROB = 4, NOTA_MAX = 7;
@@ -1001,6 +1005,10 @@ function tablaNotas(total, exig) {
   for (let p = 0; p <= total; p++) filas.push({ p, nota: calcularNota(p, total, exig) });
   return filas;
 }
+const TIPOS = { docente: "", auto: "Autoevaluación", coe: "Coevaluación" };
+const tipoDe = (ev) => (ev && TIPOS[ev.tipo] !== undefined ? ev.tipo : "docente");
+const rotuloTipo = (ev) => TIPOS[tipoDe(ev)];
+
 const pesoDe = (ev) => { const n = Number(ev && ev.peso); return n >= 0 && n <= 10 ? n : 1; };
 const exigenciaValida = (e) => { const n = Number(e); return n >= 10 && n <= 100 ? n : EXIGENCIA; };
 const ptsAprobacion = (total, exig) => Math.round((total * exigenciaValida(exig)) / 100 * 10) / 10;
@@ -1036,6 +1044,19 @@ const nivelDe = (ev, i, j, q) => {
   return v >= 1 && v <= 8 ? v : 0;
 };
 const filaNiveles = (c) => c.indicadores.map(() => 0);
+
+/* Guarda una lista en otro curso, ajustando las filas a su nómina. */
+async function copiarListaA(cursoId, lista) {
+  const datos = await almacen.leer(cursoId);
+  const n = datos.roster.length;
+  lista.marcas = Array.from({ length: n }, () => lista.criterios.map((c) => Array(c.indicadores.length).fill(0)));
+  lista.datos = Array.from({ length: n }, () => lista.criterios.map(filaNiveles));
+  lista.estado = Array(n).fill(0);
+  lista.obs = Array(n).fill("");
+  datos.evaluaciones.push(lista);
+  try { await almacen.escribir(cursoId, datos); }
+  catch (e) { if (e.message !== "sin-sesion") throw e; }   // sin sesión queda guardado solo aquí
+}
 
 /* Agrega un estudiante y su fila en todas las listas del curso. */
 function sumarEstudiante(nombre) {
@@ -1153,6 +1174,7 @@ function nuevaEvaluacion(nAlumnos, oaCodigos, nombre, cursoId) {
     nombre: nombre || auto,
     fecha: hoy(),
     oa: "",
+    tipo: "docente",
     exigencia: EXIGENCIA,
     peso: 1,
     ptsDefecto: PTS_DEFECTO,
@@ -1187,6 +1209,7 @@ function normalizar(d) {
         nombre: e.nombre || "Lista de cotejo",
         fecha: e.fecha || hoy(),
         oa: e.oa || "",
+        tipo: TIPOS[e.tipo] !== undefined ? e.tipo : "docente",
         exigencia: exigenciaValida(e.exigencia),
         peso: pesoDe(e),
         ptsDefecto,
@@ -1370,7 +1393,7 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v55</small></div>
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v57</small></div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
@@ -1448,7 +1471,7 @@ function cabeceraEvaluacion() {
     </div>
 
     <span class="rotulo-seccion">Lista abierta</span>
-    <h3 class="titulo-eval">${esc(ev.nombre || "Sin nombre")}</h3>
+    <h3 class="titulo-eval">${esc(ev.nombre || "Sin nombre")}${rotuloTipo(ev) ? ` <span class="etiqueta-tipo">${rotuloTipo(ev)}</span>` : ""}</h3>
     <p class="sub" style="margin:3px 0 0">${totalIndicadores(ev)} indicadores${esEscala(ev) ? ` · escala 1–${nNiveles(ev)}` : ""} · ${total} pts · nota de 2,0 a 7,0</p>
     ${codigosOA(ev).length ? `<div class="fila" style="gap:5px;margin-top:6px">${codigosOA(ev).map((x) => `<span class="oa-chip">${esc(x)}</span>`).join("")}</div>` : ""}
     <label class="campo" style="max-width:200px;margin:11px 0 0"><span>FECHA DE LA CLASE</span>
@@ -1479,6 +1502,11 @@ function panelAjustes(ev) {
   <div class="bloque-seccion">
     <span class="rotulo-seccion" style="margin-top:10px">Datos de la lista</span>
     <label class="campo"><span>Nombre de la lista de cotejo</span><input type="text" data-campo="nombre" value="${esc(ev.nombre)}"></label>
+    <label class="campo"><span>Quién evalúa</span>
+      <select data-accion="tipo-eval">
+        ${[["docente", "El profesor"], ["auto", "Autoevaluación"], ["coe", "Coevaluación entre pares"]]
+          .map(([v, t]) => `<option value="${v}" ${tipoDe(ev) === v ? "selected" : ""}>${t}</option>`).join("")}
+      </select></label>
     <label class="campo"><span>Peso en el consolidado</span>
       <input type="number" min="0" max="10" step="0.5" data-campo="peso" value="${pesoDe(ev)}">
       <span class="sub" style="font-weight:400">1 es el peso normal. Con 2 esta lista vale el doble; con 0 no entra en el promedio.</span></label>
@@ -1581,7 +1609,8 @@ function panelAjustes(ev) {
       </div>
     </div>
     <div class="fila fila-peligro">
-      <button class="btn btn-mini" data-accion="duplicar-eval">Duplicar lista</button>
+      <button class="btn btn-mini" data-accion="duplicar-eval">Duplicar aquí</button>
+      <button class="btn btn-mini" data-accion="copiar-a-curso">Copiar a otro curso</button>
     </div>
   </div>`;
 }
@@ -1590,7 +1619,7 @@ function pasosHTML() {
   const pasos = [
     ["Carga la nómina", "En la pestaña <b>Curso</b> pegas la lista de estudiantes, un nombre por línea. Se guarda para todas las listas de ese curso."],
     ["Arma los criterios", "En <b>Ajustes de la lista</b> eliges la unidad del programa y agregas los objetivos que vas a evaluar, uno por uno, desde el desplegable <i>Agregar un objetivo de aprendizaje</i>. La lista parte con un criterio en blanco."],
-    ["Marca en clases", "En <b>Planilla</b>, cada indicador tiene L (logrado) y NL (no logrado). La nota se calcula sola, al 60% de exigencia."]
+    ["Marca en clases", "En <b>Planilla</b>, cada indicador tiene L (logrado) y NL (no logrado). La nota se calcula sola con la exigencia que definas, 60% por omisión."]
   ];
   return `<ol class="pasos">${pasos.map(([t, d]) => `<li><b>${t}.</b> ${d}</li>`).join("")}</ol>`;
 }
@@ -1734,7 +1763,8 @@ function vistaPlanilla(ev) {
             }).join("")}
             <td class="mono">${est ? "—" : r.puntaje + "/" + total}</td>
             <td>${est ? "—" : `<span class="nota ${r.nota === null ? "" : r.nota < 4 ? "roja" : "azul"}">${num1(r.nota)}</span>`}</td>
-            <td><button class="btn-obs ${ev.obs[i] ? "con-texto" : ""}" data-accion="obs" data-i="${i}" title="Observación">✎</button></td>
+            <td><button class="btn-obs" data-accion="fila-completa" data-i="${i}" title="Marcar todo logrado a este estudiante">✓</button>
+              <button class="btn-obs ${ev.obs[i] ? "con-texto" : ""}" data-accion="obs" data-i="${i}" title="Observación">✎</button></td>
           </tr>`;
         }).join("")}
       </tbody>
@@ -1831,6 +1861,10 @@ function vistaPorAlumno(ev) {
     <div style="margin-top:12px">
       <button class="obs-boton" data-accion="obs" data-i="${i}">${ev.obs[i] ? "Ver observación" : "Agregar observación"}</button>
       ${ev.obs[i] ? `<p class="sub" style="margin:2px 0 0">${esc(ev.obs[i])}</p>` : ""}
+      <div class="fila" style="margin-top:8px">
+        <button class="btn btn-mini" data-accion="fila-completa" data-i="${i}">Marcar todo logrado</button>
+        <button class="btn btn-mini" data-accion="fila-limpia" data-i="${i}">Borrar sus marcas</button>
+      </div>
       <div style="margin-top:6px"><button class="obs-boton" data-accion="ficha" data-i="${i}">Ver todas sus observaciones del curso</button></div>
     </div>
   </div>`;
@@ -2039,6 +2073,9 @@ function vistaCurso() {
       <button class="btn btn-mini" data-accion="sumar-casilleros" data-n="1">+ 1 casillero</button>
       <button class="btn btn-mini" data-accion="sumar-casilleros" data-n="5">+ 5 casilleros</button>
     </div>` : ""}
+    ${S.datos.roster.length > 1 ? `<div class="fila" style="margin-top:8px">
+      <button class="btn btn-mini" data-accion="ordenar-nomina">Ordenar de la A a la Z</button>
+    </div>` : ""}
     <div class="fila fila-peligro">
       <button class="btn btn-mini" data-accion="pegar-nomina">Pegar lista completa</button>
       <button class="btn btn-mini" data-accion="copiar-nomina">Copiar desde otro curso</button>
@@ -2195,6 +2232,16 @@ document.addEventListener("click", async (evt) => {
     });
     return;
   }
+  if (a === "fila-completa" || a === "fila-limpia") {
+    const i = +btn.dataset.i, limpiar = a === "fila-limpia";
+    ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
+      if (esEscala(ev)) {
+        if (!Array.isArray(ev.datos[i][j])) ev.datos[i][j] = filaNiveles(c);
+        ev.datos[i][j][q] = limpiar ? 0 : nNiveles(ev);
+      } else ev.marcas[i][j][q] = limpiar ? 0 : 1;
+    }));
+    marcarCambio(); pintar(); return;
+  }
   if (a === "todos-marca") {
     const j = +btn.dataset.j, q = +btn.dataset.q;
     const presentes = S.datos.roster.map((_, i) => i).filter((i) => !ev.estado[i]);
@@ -2288,6 +2335,41 @@ document.addEventListener("click", async (evt) => {
     S.datos.evaluaciones.push(nueva);
     S.evalIdx = S.datos.evaluaciones.length - 1; S.criterioActivo = 0;
     cerrarModal(); marcarCambio(); pintar(); return;
+  }
+  if (a === "copiar-a-curso") {
+    abrirModal(`
+      <h3>Copiar a otro curso</h3>
+      <p class="sub" style="margin:4px 0 10px">Se copian los criterios, los indicadores y la escala.
+        Las marcas no viajan. Los códigos de OA se traducen al nivel de destino cuando existe el mismo número.</p>
+      <div class="rejilla-cursos">${CURSOS.filter((c) => c.id !== S.cursoId).map((c) => `
+        <button class="btn btn-ancho" data-accion="copiar-destino" data-c="${c.id}">${esc(c.nombre)}</button>`).join("")}</div>
+      <div class="fila" style="margin-top:10px"><button class="btn" data-accion="cerrar-modal">Cancelar</button></div>`);
+    return;
+  }
+  if (a === "copiar-destino") {
+    const destino = btn.dataset.c;
+    const nombreDestino = CURSOS.find((c) => c.id === destino).nombre;
+    const copia = JSON.parse(JSON.stringify(ev));
+    copia.id = idNuevo(); copia.fecha = hoy();
+    let traducidos = 0, sueltos = 0;
+    copia.criterios.forEach((c) => {
+      const eq = c.oa ? buscarOA(destino, c.oa.replace(/^EF\d\d/, CURRICULO[destino].sigla)) : null;
+      if (eq) { c.oa = eq.codigo; c.eje = eq.eje; c.texto = eq.texto; traducidos++; }
+      else if (c.oa) { c.oa = ""; sueltos++; }
+    });
+    copiarListaA(destino, copia).then(() => {
+      abrirModal(`
+        <h3>Lista copiada a ${esc(nombreDestino)}</h3>
+        <p class="sub" style="margin:6px 0 0">${traducidos} objetivo${traducidos === 1 ? "" : "s"} traducido${traducidos === 1 ? "" : "s"} al nivel de destino${
+          sueltos ? ` · ${sueltos} sin equivalente, quedaron como criterio propio` : ""}.
+          Las marcas no se copian.</p>
+        <div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="cerrar-modal">Entendido</button></div>`);
+    }).catch((e) => {
+      abrirModal(`<h3>No se pudo copiar</h3><p class="sub" style="margin:6px 0 0">${esc(e.message)}</p>
+        <div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
+    });
+    cerrarModal();
+    return;
   }
   if (a === "duplicar-eval") {
     const copia = JSON.parse(JSON.stringify(ev));
@@ -2446,6 +2528,24 @@ document.addEventListener("click", async (evt) => {
   }
 
   /* --- nómina --- */
+  if (a === "ordenar-nomina") {
+    confirmar("Se ordenará la nómina de la A a la Z. Las marcas, notas y observaciones viajan con cada estudiante.", () => {
+      const orden = S.datos.roster.map((n, i) => i).sort((a1, b1) => {
+        const x = (S.datos.roster[a1] || "").trim(), y = (S.datos.roster[b1] || "").trim();
+        if (!x) return 1;                       // los casilleros en blanco quedan al final
+        if (!y) return -1;
+        return x.localeCompare(y, "es", { sensitivity: "base" });
+      });
+      S.datos.roster = orden.map((k) => S.datos.roster[k]);
+      S.datos.evaluaciones.forEach((e) => {
+        ["marcas", "datos", "estado", "obs"].forEach((campo) => {
+          e[campo] = orden.map((k) => e[campo][k]);
+        });
+      });
+      S.alumnoActivo = 0; marcarCambio(); pintar();
+    });
+    return;
+  }
   if (a === "sumar-casilleros") {
     const n = +btn.dataset.n || 1;
     for (let k = 0; k < n; k++) sumarEstudiante("");
@@ -2572,6 +2672,9 @@ document.addEventListener("change", (evt) => {
       c.indicadores.forEach((ind, q) => { if (!ind.texto.trim()) ind.texto = nuevo.indicadores[q] ? nuevo.indicadores[q].texto : ""; });
       marcarCambio(); pintar(); return;
     }
+    else if (a === "tipo-eval") {
+      evalActual().tipo = el.value; marcarCambio(); pintar(); return;
+    }
     else if (a === "elegir-oa" && el.value) {
       const ev = evalActual();
       ev.criterios.push(criterioDesdeOA(el.value, S.cursoId, 3));
@@ -2690,7 +2793,8 @@ function imprimir() {
   prepararImpresion(columnasPlanilla(ev).length * (esEscala(ev) ? 1 : 1));
   $("#impresion").innerHTML = `
     <h1 style="font-size:15px">${esc(ev.nombre)} · ${esc(curso.nombre)}</h1>
-    <p style="font-size:11px;margin:2px 0 4px">${fechaLarga(ev.fecha)}${ev.oa ? " · " + esc(ev.oa) : ""}${codigosOA(ev).length ? " · " + codigosOA(ev).join(" · ") : ""} · ${esEscala(ev) ? "escala de apreciación" : "lista de cotejo"} · ${total} pts · exigencia ${exigenciaValida(ev.exigencia)}% (2,0–7,0) · promedio ${num1(e.prom)}</p>
+    <p style="font-size:11px;margin:2px 0 4px">${fechaLarga(ev.fecha)}${ev.oa ? " · " + esc(ev.oa) : ""}${codigosOA(ev).length ? " · " + codigosOA(ev).join(" · ") : ""} · ${esEscala(ev) ? "escala de apreciación" : "lista de cotejo"}${rotuloTipo(ev) ? " · " + rotuloTipo(ev) : ""} · ${total} pts · exigencia ${exigenciaValida(ev.exigencia)}% (2,0–7,0) · promedio ${num1(e.prom)}</p>
+    ${esEscala(ev) ? `<p class="leyenda-escala"><b>Escala:</b> ${leyendaEscala(ev)}</p>` : ""}
     <div class="leyenda-oa">${ev.criterios.map((c, j) => `
       <p class="oa-titulo"><b>${esc(c.oa || "Criterio " + (j + 1))}</b> · ${esc(EJES[c.eje] || "criterio propio")}</p>
       <p class="oa-texto">${esc(c.texto || "—")}</p>
@@ -2770,8 +2874,8 @@ async function exportarExcel() {
   S.datos.evaluaciones.forEach((ev, k) => {
     const { cab, filas, total } = filasDeEvaluacion(ev);
     const encabezado = [
-      [`${ev.nombre} · ${curso.nombre}`],
-      [`Fecha: ${fechaLarga(ev.fecha)}`, `Exigencia: 60% · 2,0 a 7,0`, `Puntaje total: ${total}`],
+      [`${ev.nombre} · ${curso.nombre}${rotuloTipo(ev) ? " · " + rotuloTipo(ev) : ""}`],
+      [`Fecha: ${fechaLarga(ev.fecha)}`, `Exigencia: ${exigenciaValida(ev.exigencia)}% · 2,0 a 7,0`, `Puntaje total: ${total}`],
       [esEscala(ev) ? `Escala: ${leyendaEscala(ev).replace(/<[^>]*>/g, "")}` : "L = logrado · NL = no logrado · vacío = sin marcar"],
       ...ev.criterios.map((c, j) => [c.oa || `C${j + 1}`, c.texto || "—",
         ...c.indicadores.map((ind, q) => `${j + 1}.${q + 1} ${ind.texto} (${ind.pts} pts)`)]),
