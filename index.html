@@ -35,7 +35,6 @@ h1,h2,h3{font-family:var(--display); font-weight:700; letter-spacing:-.015em; ma
 button,input,select,textarea{font:inherit; color:inherit}
 button{cursor:pointer}
 .mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
-.oculto{display:none !important}
 
 /* ---------- Estructura ---------- */
 .envoltura{max-width:900px; margin:0 auto; padding:0 14px 120px}
@@ -130,8 +129,6 @@ textarea{resize:vertical; min-height:76px}
 .nota{font-family:var(--mono); font-weight:600; font-size:14px; padding:2px 7px; border-radius:6px; background:var(--surface-2); border:1px solid var(--line)}
 .nota.roja{color:var(--n1); border-color:#EBC9C5; background:#FCF2F1}
 .nota.azul{color:var(--verde); border-color:#BEDFCE; background:var(--verde-claro)}
-.marca-est{border:1px solid var(--line); background:var(--surface); border-radius:7px; width:30px; height:30px; font-family:var(--mono); font-size:12px; font-weight:600; color:var(--soft)}
-.marca-est.activa{background:var(--ink); border-color:var(--ink); color:#fff}
 .ausente-aviso{font-size:12px; color:var(--soft); font-style:italic; padding:4px 0}
 .criterio-linea{margin:9px 0 0}
 .criterio-linea .rotulo{font-size:12.5px; color:var(--soft); margin-bottom:5px; display:flex; gap:6px}
@@ -146,10 +143,6 @@ th{background:var(--surface-2); font-size:11.5px; font-weight:600; color:var(--s
 td.izq,th.izq{text-align:left}
 .col-fija{position:sticky; left:0; background:var(--surface); z-index:2; box-shadow:1px 0 0 var(--line)}
 th.col-fija{background:var(--surface-2); z-index:3}
-.celda-n{font-family:var(--mono); font-weight:600}
-.celda-n[data-v="1"]{color:var(--n1)} .celda-n[data-v="2"]{color:var(--n2)}
-.celda-n[data-v="3"]{color:var(--n3)} .celda-n[data-v="4"]{color:var(--n4)}
-.celda-n[data-v="0"]{color:var(--line)}
 
 /* ---------- Resumen ---------- */
 .metricas{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
@@ -213,7 +206,6 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .lista-ind b{color:var(--ink); font-size:11.5px}
 .bloque-criterio{border:1px solid var(--line); border-radius:var(--r-s); padding:9px; margin-bottom:9px; background:var(--surface-2)}
 .bloque-criterio textarea,.bloque-criterio input{background:var(--surface)}
-.par-mapa{display:flex; align-items:center; gap:4px}
 /* ---------- Currículum ---------- */
 .oa-chip{
   display:inline-block; font-family:var(--mono); font-size:10.5px; font-weight:600;
@@ -242,7 +234,6 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .bloque-unidad{border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface); padding:10px; margin-bottom:10px}
 .titulo-unidad{font-weight:600; font-size:14px; margin:0; color:var(--verde-oscuro); line-height:1.3}
 .fuente{font-size:10.5px; color:var(--soft); margin:12px 0 0; line-height:1.4}
-.par-mapa select{padding:4px 6px; font-size:13px; width:auto}
 
 /* ---------- Cabecera de la evaluación ---------- */
 .titulo-curso{font-size:21px; color:var(--verde); letter-spacing:-.02em}
@@ -287,7 +278,6 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .planilla .th-ind input::placeholder{color:rgba(255,255,255,.6)}
 .planilla .th-ind input:focus{background:#fff; color:var(--ink); box-shadow:none; border-color:#f0a500}
 .btn-todos{margin-top:4px; border:1px solid rgba(255,255,255,.45); background:rgba(255,255,255,.12); color:#fff; border-radius:6px; padding:2px 9px; font-size:11px}
-.sub-blanco{font-size:10.5px; color:rgba(255,255,255,.8)}
 .th-lnl{font-size:10px; padding:3px 4px; background:#17587e !important; color:rgba(255,255,255,.9); font-weight:600}
 .planilla td{padding:4px 5px}
 .planilla tbody tr:nth-child(even) td{background:#f7fbfd}
@@ -320,7 +310,6 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .ingreso .logo i{width:9px; border-radius:2px 2px 0 0; display:block}
 .ingreso h1{font-size:23px; line-height:1.15; margin-bottom:6px}
 .aviso{background:#FCF2F1; border:1px solid #EBC9C5; color:var(--alerta); border-radius:var(--r-s); padding:9px 11px; font-size:13px; margin-bottom:10px}
-.aviso.info{background:var(--verde-claro); border-color:#BEDFCE; color:var(--verde-oscuro)}
 
 .vacio{text-align:center; padding:26px 14px; color:var(--soft); font-size:14px}
 .vacio strong{display:block; color:var(--ink); font-family:var(--display); font-size:16px; margin-bottom:4px}
@@ -1048,6 +1037,16 @@ const nivelDe = (ev, i, j, q) => {
 };
 const filaNiveles = (c) => c.indicadores.map(() => 0);
 
+/* Agrega un estudiante y su fila en todas las listas del curso. */
+function sumarEstudiante(nombre) {
+  S.datos.roster.push(nombre);
+  S.datos.evaluaciones.forEach((e) => {
+    e.marcas.push(e.criterios.map((c) => Array(c.indicadores.length).fill(0)));
+    e.datos.push(e.criterios.map(filaNiveles));
+    e.estado.push(0); e.obs.push("");
+  });
+}
+
 function puntajeTotal(ev) {
   if (esEscala(ev)) return totalIndicadores(ev) * maxNivel(ev);
   let t = 0;
@@ -1371,7 +1370,7 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v54</small></div>
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v55</small></div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
@@ -2317,12 +2316,6 @@ document.addEventListener("click", async (evt) => {
   }
 
   /* --- criterios e indicadores --- */
-  if (a === "agregar-criterio") {
-    ev.criterios.push({ texto: "", oa: "", eje: "", indicadores: [{ texto: "", pts: ev.ptsDefecto }] });
-    ev.marcas.forEach((f) => f.push([0]));
-    ev.datos.forEach((f) => f.push(filaNiveles(ev.criterios[ev.criterios.length - 1])));
-    marcarCambio(); pintar(); return;
-  }
   if (a === "borrar-criterio") {
     const j = +btn.dataset.j;
     if (ev.criterios.length <= 1) return;
@@ -2386,8 +2379,6 @@ document.addEventListener("click", async (evt) => {
                     return `<label class="oa-item"><input type="checkbox" class="u-check" data-u="${k}" value="${esc(cod)}" ${marcado ? "checked" : ""}>
                       <span><b class="mono">${esc(cod)}</b> ${esc(recorte(oa ? oa.texto : "", 130))}</span></label>`;
                   }).join("")}` : "").join("")}
-              ${u.pendiente ? `<p class="sub" style="margin:6px 0 8px"><b>Objetivos aún no cargados para esta unidad.</b>
-                Al usarla se registra el nombre; los objetivos los agregas desde <b>Agregar objetivo de aprendizaje</b>.</p>` : ""}
               <button class="btn btn-lleno btn-ancho" data-accion="usar-unidad" data-u="${k}">Usar la unidad ${u.n} con lo marcado</button>
             </div>`).join("")}
         </div>
@@ -2457,25 +2448,13 @@ document.addEventListener("click", async (evt) => {
   /* --- nómina --- */
   if (a === "sumar-casilleros") {
     const n = +btn.dataset.n || 1;
-    for (let k = 0; k < n; k++) {
-      S.datos.roster.push("");
-      S.datos.evaluaciones.forEach((e) => {
-        e.marcas.push(e.criterios.map((c) => Array(c.indicadores.length).fill(0)));
-        e.datos.push(e.criterios.map(filaNiveles));
-        e.estado.push(0); e.obs.push("");
-      });
-    }
+    for (let k = 0; k < n; k++) sumarEstudiante("");
     marcarCambio(); pintar(); return;
   }
   if (a === "agregar-alumno") {
     const campo = $("#nuevo-alumno"); const nom = campo.value.trim();
     if (!nom) return;
-    S.datos.roster.push(nom);
-    S.datos.evaluaciones.forEach((e) => {
-      e.marcas.push(e.criterios.map((c) => Array(c.indicadores.length).fill(0)));
-      e.datos.push(e.criterios.map(filaNiveles));
-      e.estado.push(0); e.obs.push("");
-    });
+    sumarEstudiante(nom);
     campo.value = ""; marcarCambio(); pintar(); return;
   }
   if (a === "borrar-alumno") {
@@ -2633,9 +2612,6 @@ function planImpresion(nMarcas) {
     fuenteLey };
 }
 
-/* La columna de la planilla lleva siempre el número; el texto vive en los recuadros. */
-function modoRotulo() { return "numero"; }
-
 function prepararImpresion(nMarcas) {
   const { orientacion, fuente, cajas, fuenteLey } = planImpresion(nMarcas);
   const css = `
@@ -2724,8 +2700,7 @@ function imprimir() {
     <table>
       <thead><tr>
         <th class="c-n">N°</th><th class="c-nom izq">Estudiante</th><th class="c-asis">As.</th>
-        ${cols.map((c) => `<th class="c-marca"><span class="num-col">${c.j + 1}.${c.q + 1}</span>${
-          modoRotulo(cols.length) === "texto" ? esc((c.ind && c.ind.texto.trim()) || "") : ""}</th>`).join("")}
+        ${cols.map((c) => `<th class="c-marca">${c.j + 1}.${c.q + 1}</th>`).join("")}
         <th class="c-pts">Pts</th><th class="c-nota">Nota</th><th class="c-obs izq">Obs.</th>
       </tr></thead>
       <tbody>${filas.map((f) => `<tr>${f.map((v, k) => `<td class="${claseCol(k, f.length)}">${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody>
