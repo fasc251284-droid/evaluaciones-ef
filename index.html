@@ -541,13 +541,19 @@ function oasDelCurso(cursoId) {
   return lista;
 }
 
-function opcionesOAsHTML(cursoId, ev) {
+function esTextoDeOA(texto, cursoId) {
+  const t = (texto || "").trim();
+  return !!t && oasDelCurso(cursoId).some((o) => o.texto.trim() === t);
+}
+
+function opcionesOAsHTML(cursoId, ev, actual) {
   const usados = new Set((ev && ev.criterios ? ev.criterios : []).map((c) => c.oa).filter(Boolean));
+  if (actual) usados.delete(actual);
   const grupos = {};
   oasDelCurso(cursoId).forEach((o) => { (grupos[o.ejeNombre] = grupos[o.ejeNombre] || []).push(o); });
   return Object.entries(grupos).map(([eje, lista]) => `
     <optgroup label="${esc(eje)}">
-      ${lista.map((o) => `<option value="${esc(o.codigo)}" ${usados.has(o.codigo) ? "disabled" : ""}>${esc(o.codigo)}${usados.has(o.codigo) ? " (ya está)" : ""} · ${esc(recorte(o.texto, 70))}</option>`).join("")}
+      ${lista.map((o) => `<option value="${esc(o.codigo)}" ${o.codigo === actual ? "selected" : ""} ${usados.has(o.codigo) ? "disabled" : ""}>${esc(o.codigo)}${usados.has(o.codigo) ? " (ya está)" : ""} · ${esc(recorte(o.texto, 70))}</option>`).join("")}
     </optgroup>`).join("");
 }
 
@@ -1502,10 +1508,13 @@ function panelAjustes(ev) {
     ${ev.criterios.map((c, j) => `
       <div class="bloque-criterio">
         <div class="fila" style="gap:6px;margin-bottom:6px">
-          ${c.oa ? `<span class="oa-chip">${esc(c.oa)}</span><span class="sub">${esc(EJES[c.eje] || "")}</span>`
-                 : `<span class="sub">Sin objetivo asociado</span>`}
-          <button class="btn btn-mini btn-peligro" style="margin-left:auto" data-accion="borrar-criterio" data-j="${j}" ${ev.criterios.length <= 1 ? "disabled" : ""} title="Quitar criterio">×</button>
+          <select data-accion="cambiar-oa" data-j="${j}" style="flex:1;min-width:0">
+            <option value="">Sin objetivo asociado</option>
+            ${opcionesOAsHTML(S.cursoId, ev, c.oa)}
+          </select>
+          <button class="btn btn-mini btn-peligro" data-accion="borrar-criterio" data-j="${j}" ${ev.criterios.length <= 1 ? "disabled" : ""} title="Quitar criterio">×</button>
         </div>
+        ${c.oa ? `<p class="sub" style="margin:0 0 5px">${esc(EJES[c.eje] || "")}</p>` : ""}
         <textarea data-campo="criterio" data-j="${j}" rows="2" placeholder="Objetivo de aprendizaje" style="width:100%;min-height:54px">${esc(c.texto)}</textarea>
         <div style="padding-left:24px">
           ${c.indicadores.map((ind, q) => `
@@ -2545,6 +2554,15 @@ document.addEventListener("change", (evt) => {
     else if (a === "elegir-unidad") {
       const u = unidadesDelCurso(S.cursoId)[+el.value];
       if (u) aplicarUnidad(evalActual(), u, []);
+    }
+    else if (a === "cambiar-oa") {
+      const ev = evalActual(), j = +el.dataset.j, c = ev.criterios[j];
+      if (!el.value) { c.oa = ""; c.eje = ""; marcarCambio(); pintar(); return; }
+      const nuevo = criterioDesdeOA(el.value, S.cursoId, c.indicadores.length);
+      c.oa = nuevo.oa; c.eje = nuevo.eje;
+      if (!c.texto.trim() || esTextoDeOA(c.texto, S.cursoId)) c.texto = nuevo.texto;
+      c.indicadores.forEach((ind, q) => { if (!ind.texto.trim()) ind.texto = nuevo.indicadores[q] ? nuevo.indicadores[q].texto : ""; });
+      marcarCambio(); pintar(); return;
     }
     else if (a === "elegir-oa" && el.value) {
       const ev = evalActual();
