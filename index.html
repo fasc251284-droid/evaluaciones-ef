@@ -1366,7 +1366,7 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v52</small></div>
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v53</small></div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
@@ -2654,12 +2654,8 @@ function anchosImpresion(nMarcas, orientacion, fuente) {
            nota: pct(pide.nota), nom: pct(nom), obs: pct(obs) } };
 }
 
-/* El rótulo va escrito solo si la columna alcanza los 14 mm; si no, solo el número. */
-function modoRotulo(nMarcas) {
-  if (!nMarcas) return "numero";
-  const p = planImpresion(nMarcas);
-  return anchosImpresion(nMarcas, p.orientacion, p.fuente).marca >= 14 ? "texto" : "numero";
-}
+/* La columna de la planilla lleva siempre el número; el texto vive en los recuadros. */
+function modoRotulo() { return "numero"; }
 
 function prepararImpresion(nMarcas) {
   const { orientacion, fuente, cajas, fuenteLey } = planImpresion(nMarcas);
