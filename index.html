@@ -332,13 +332,18 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .envoltura{padding:0; max-width:none}
   .hoja-impresion{display:block}
   .tarjeta{border:0; padding:0}
-  .hoja-impresion table{width:100%; table-layout:fixed; border-collapse:collapse}
+  .hoja-impresion table{width:100%; table-layout:auto; border-collapse:collapse}
   .hoja-impresion th,.hoja-impresion td{padding:2px 3px; border:1px solid #b9cfdc;
     white-space:normal; overflow-wrap:anywhere; word-break:break-word; overflow:hidden;
     vertical-align:top; text-align:center}
   .hoja-impresion th{background:#e3f1fa; text-transform:none; letter-spacing:0;
     font-weight:700; color:#14303d; vertical-align:bottom}
-  .hoja-impresion th.c-marca{font-family:var(--mono); font-weight:700; white-space:nowrap}
+  .hoja-impresion .c-n,.hoja-impresion .c-asis,.hoja-impresion .c-pts,
+  .hoja-impresion .c-nota,.hoja-impresion .c-marca{
+    width:1%; white-space:nowrap; overflow-wrap:normal; word-break:normal}
+  .hoja-impresion th.c-marca{font-family:var(--mono); font-weight:700}
+  .hoja-impresion .c-nom{width:22%; min-width:26mm}
+  .hoja-impresion .c-obs{width:100%}
   .hoja-impresion .izq{text-align:left}
   .hoja-impresion thead{display:table-header-group}
   .hoja-impresion tr{break-inside:avoid}
@@ -1366,7 +1371,7 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v53</small></div>
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v54</small></div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
@@ -2628,55 +2633,14 @@ function planImpresion(nMarcas) {
     fuenteLey };
 }
 
-/* Ancho mínimo, en mm, que necesita un texto para no partirse:
-   ancho de carácter ≈ 0,58 del tamaño de letra, más el relleno de la celda. */
-function mmTexto(txt, px) { return (String(txt).length * px * 0.58) / 3.78 + 2.2; }
-
-/* Reparte el ancho de la hoja midiendo lo que pide cada encabezado y su contenido,
-   en vez de asignar porcentajes a ojo. */
-function anchosImpresion(nMarcas, orientacion, fuente) {
-  const hoja = orientacion === "portrait" ? 191 : 278;   // A4 menos 9 mm de margen
-  const pide = {
-    n: Math.max(mmTexto("N°", fuente), mmTexto("25", fuente)),
-    asis: Math.max(mmTexto("Asis.", fuente), mmTexto("P", fuente)),
-    pts: Math.max(mmTexto("Pts", fuente), mmTexto("120/120", fuente)),
-    nota: Math.max(mmTexto("Nota", fuente), mmTexto("7,0", fuente)),
-    obs: mmTexto("Observación", fuente),
-    nom: mmTexto("Estudiante", fuente)
-  };
-  const nom = Math.max(pide.nom, 30);                    // que quepa un nombre completo
-  const obs = Math.max(pide.obs, 18);
-  const fijo = pide.n + pide.asis + pide.pts + pide.nota + nom + obs;
-  const marca = nMarcas ? (hoja - fijo) / nMarcas : 0;
-  const pct = (mm) => ((mm / hoja) * 100).toFixed(2) + "%";
-  return { hoja, marca, pide, nom, obs, fijo,
-    css: { n: pct(pide.n), asis: pct(pide.asis), pts: pct(pide.pts),
-           nota: pct(pide.nota), nom: pct(nom), obs: pct(obs) } };
-}
-
 /* La columna de la planilla lleva siempre el número; el texto vive en los recuadros. */
 function modoRotulo() { return "numero"; }
 
 function prepararImpresion(nMarcas) {
   const { orientacion, fuente, cajas, fuenteLey } = planImpresion(nMarcas);
-  const texto = modoRotulo(nMarcas) === "texto";
-  const A = anchosImpresion(nMarcas, orientacion, fuente, texto);
   const css = `
     @page{size:A4 ${orientacion}; margin:9mm}
     .hoja-impresion table{font-size:${fuente}px}
-    .hoja-impresion .c-n{width:${A.css.n}}
-    .hoja-impresion .c-nom{width:${A.css.nom}}
-    .hoja-impresion .c-asis{width:${A.css.asis}}
-    .hoja-impresion .c-pts{width:${A.css.pts}}
-    .hoja-impresion .c-nota{width:${A.css.nota}}
-    .hoja-impresion .c-obs{width:${A.css.obs}}
-    .hoja-impresion th.c-n,.hoja-impresion th.c-asis,.hoja-impresion th.c-pts,
-    .hoja-impresion th.c-nota,.hoja-impresion th.c-obs,.hoja-impresion th.c-nom{
-      white-space:nowrap; overflow-wrap:normal; word-break:normal}
-    .hoja-impresion th.c-marca{font-family:${texto ? "inherit" : "var(--mono)"};
-      white-space:${texto ? "normal" : "nowrap"}; font-size:${texto ? 7.5 : fuente}px;
-      line-height:1.2; vertical-align:bottom; text-align:center}
-    .hoja-impresion th.c-marca .num-col{display:block; font-family:var(--mono); margin-bottom:1px}
     .leyenda-oa{font-size:${fuenteLey}px}
     .leyenda-oa .rejilla-ind{grid-template-columns:repeat(${cajas}, 1fr)}
     .leyenda-oa .oa-titulo{margin-top:${fuenteLey < 8 ? 4 : 7}px}`;
@@ -2759,10 +2723,10 @@ function imprimir() {
           <i>${esEscala(ev) ? `1–${nNiveles(ev)}` : `${ind.pts} pts`}</i></div>`).join("")}</div>`).join("")}</div>
     <table>
       <thead><tr>
-        <th class="c-n">N°</th><th class="c-nom izq">Estudiante</th><th class="c-asis">Asis.</th>
+        <th class="c-n">N°</th><th class="c-nom izq">Estudiante</th><th class="c-asis">As.</th>
         ${cols.map((c) => `<th class="c-marca"><span class="num-col">${c.j + 1}.${c.q + 1}</span>${
           modoRotulo(cols.length) === "texto" ? esc((c.ind && c.ind.texto.trim()) || "") : ""}</th>`).join("")}
-        <th class="c-pts">Pts</th><th class="c-nota">Nota</th><th class="c-obs izq">Observación</th>
+        <th class="c-pts">Pts</th><th class="c-nota">Nota</th><th class="c-obs izq">Obs.</th>
       </tr></thead>
       <tbody>${filas.map((f) => `<tr>${f.map((v, k) => `<td class="${claseCol(k, f.length)}">${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody>
     </table>`;
@@ -2776,11 +2740,11 @@ function imprimirFicha(i) {
   $("#impresion").innerHTML = `
     <h1 style="font-size:15px">${esc(f.nombre)} · ${esc(curso.nombre)}</h1>
     <p style="font-size:11px;margin:2px 0 8px">Educación Física y Salud · ${f.items.length} listas · promedio ${num1(f.prom)}</p>
-    <table><thead><tr><th class="izq" style="width:26%">Lista</th><th style="width:12%">Fecha</th>
-      <th class="c-nota">Nota</th><th class="izq">Observación</th></tr></thead>
+    <table><thead><tr><th class="c-nom izq">Lista</th><th class="c-asis">Fecha</th>
+      <th class="c-nota">Nota</th><th class="c-obs izq">Obs.</th></tr></thead>
     <tbody>${f.items.map((x) => `<tr>
       <td class="izq">${esc(x.ev.nombre)}</td>
-      <td>${fechaLarga(x.ev.fecha)}</td>
+      <td class="c-asis">${fechaLarga(x.ev.fecha)}</td>
       <td class="c-nota">${x.est ? (x.est === 1 ? "A" : "J") : esc(num1(x.nota))}</td>
       <td class="izq">${esc(x.obs)}</td></tr>`).join("")}</tbody></table>`;
   setTimeout(() => window.print(), 60);
