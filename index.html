@@ -337,8 +337,10 @@ th.col-fija{background:var(--surface-2); z-index:3}
     overflow-wrap:anywhere; word-break:break-word; vertical-align:top; text-align:center}
   .hoja-impresion th{background:#e3f1fa; text-transform:none; letter-spacing:0;
     font-weight:700; color:#14303d; vertical-align:bottom}
-  .hoja-impresion .ind-vert{writing-mode:vertical-rl; transform:rotate(180deg);
-    display:inline-block; text-align:left; line-height:1.15; font-weight:600}
+  .hoja-impresion th.c-marca{vertical-align:bottom; line-height:1.2; font-weight:600}
+  .hoja-impresion .num-col{display:block; font-family:var(--mono); font-weight:700; margin-bottom:1px}
+  .hoja-impresion .bloque-tabla{margin-bottom:10px; break-inside:auto}
+  .hoja-impresion .rot-bloque{font-size:9px; margin:0 0 2px; font-weight:700}
   .hoja-impresion .izq{text-align:left}
   .hoja-impresion thead{display:table-header-group}
   .hoja-impresion tr{break-inside:avoid}
@@ -1364,7 +1366,7 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v46</small></div>
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v47</small></div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
@@ -2612,32 +2614,27 @@ document.addEventListener("keydown", (evt) => {
    ========================================================= */
 /* El PDF se adapta: pocas columnas van en vertical y con letra grande;
    muchas, en horizontal y más apretadas. */
-const fuenteMarca = (n) => (n <= 6 ? 9 : n <= 12 ? 8 : n <= 20 ? 7.5 : 7);
+
+/* La planilla se parte en bloques que siempre caben en el ancho de la hoja.
+   Las columnas de marca no llevan ancho: el reparto lo hace la tabla. */
+function planImpresion(nMarcas) {
+  const n = Math.max(0, nMarcas);
+  const orientacion = n <= 4 ? "portrait" : "landscape";
+  return { orientacion, porBloque: orientacion === "portrait" ? 4 : 6, fuente: 9 };
+}
 
 function prepararImpresion(nMarcas) {
-  const n = Math.max(0, nMarcas);
-  const orientacion = n <= 8 ? "portrait" : "landscape";
-  const fuente = n <= 6 ? 11 : n <= 12 ? 10 : n <= 20 ? 9 : n <= 30 ? 8 : 7;
-  const fijos = 21;                                   // N° 3 · asistencia 5 · pts 7 · nota 6
-  let marcas = n ? Math.min(56, n * 4.4) : 0;         // cada marca pide su espacio primero
-  let resto = 100 - fijos - marcas;
-  let nom = Math.min(22, resto * 0.55), obs = Math.min(24, resto * 0.45);
-  marcas = 100 - fijos - nom - obs;                   // lo que sobre engorda las marcas
-  const anchoMarca = n ? marcas / n : 0;
-  const altoCab = n ? Math.min(48, Math.max(22, 34 - (fuenteMarca(n) - 7) * 2)) : 0;
+  const { orientacion, fuente } = planImpresion(nMarcas);
   const css = `
     @page{size:A4 ${orientacion}; margin:9mm}
     .hoja-impresion table{font-size:${fuente}px}
-    .hoja-impresion .c-n{width:3%}
+    .hoja-impresion .c-n{width:4%}
+    .hoja-impresion .c-nom{width:22%}
     .hoja-impresion .c-asis{width:5%}
-    .hoja-impresion .c-pts{width:7%}
+    .hoja-impresion .c-pts{width:8%}
     .hoja-impresion .c-nota{width:6%}
-    .hoja-impresion th.c-marca{height:${altoCab}mm}
-    .hoja-impresion .ind-vert{max-height:${altoCab - 3}mm; font-size:${fuenteMarca(n)}px}
-    .hoja-impresion .c-nom{width:${nom.toFixed(1)}%}
-    .hoja-impresion .c-obs{width:${obs.toFixed(1)}%}
-    .hoja-impresion .c-marca{width:${anchoMarca.toFixed(2)}%}
-    .leyenda-oa{font-size:${Math.max(8, Math.min(10, fuente - 0.5)).toFixed(1)}px}`;
+    .hoja-impresion .c-obs{width:15%}
+    .leyenda-oa{font-size:9px}`;
   let tag = $("#css-impresion");
   if (!tag) {
     tag = document.createElement("style");
@@ -2646,6 +2643,35 @@ function prepararImpresion(nMarcas) {
     document.head.appendChild(tag);
   }
   tag.textContent = css;
+}
+
+/* Divide las columnas de indicadores en tandas y arma una tabla por tanda.
+   La última lleva puntaje, nota y observación. */
+function bloquesPlanilla(ev, cols, filas, total) {
+  const { porBloque } = planImpresion(cols.length);
+  const tandas = [];
+  for (let k = 0; k < cols.length; k += porBloque) tandas.push({ desde: k, cols: cols.slice(k, k + porBloque) });
+  if (!tandas.length) tandas.push({ desde: 0, cols: [] });
+  return tandas.map((t, ti) => {
+    const ultima = ti === tandas.length - 1;
+    const rotulo = tandas.length > 1
+      ? `<p class="rot-bloque">Indicadores ${t.desde + 1} a ${t.desde + t.cols.length} de ${cols.length}</p>` : "";
+    const cab = `<tr>
+      <th class="c-n">N°</th><th class="c-nom izq">Estudiante</th><th class="c-asis">Asis.</th>
+      ${t.cols.map((c) => `<th class="c-marca"><span class="num-col">${c.j + 1}.${c.q + 1}</span>${esc((c.ind && c.ind.texto.trim()) || "sin redactar")}</th>`).join("")}
+      ${ultima ? `<th class="c-pts">Pts</th><th class="c-nota">Nota</th><th class="c-obs izq">Observación</th>` : ""}
+    </tr>`;
+    const cuerpo = filas.map((f) => {
+      const marcas = f.slice(3, f.length - 3).slice(t.desde, t.desde + t.cols.length);
+      return `<tr>
+        <td class="c-n">${esc(f[0])}</td><td class="c-nom izq">${esc(f[1])}</td><td class="c-asis">${esc(f[2])}</td>
+        ${marcas.map((v) => `<td class="c-marca">${esc(v)}</td>`).join("")}
+        ${ultima ? `<td class="c-pts">${esc(f[f.length - 3])}</td><td class="c-nota">${esc(f[f.length - 2])}</td>
+          <td class="c-obs izq">${esc(f[f.length - 1])}</td>` : ""}
+      </tr>`;
+    }).join("");
+    return `<div class="bloque-tabla">${rotulo}<table><thead>${cab}</thead><tbody>${cuerpo}</tbody></table></div>`;
+  }).join("");
 }
 
 function claseCol(k, n) {
@@ -2717,14 +2743,7 @@ function imprimir() {
         <td class="izq">${esc(ind.texto || "sin redactar")}</td>
         <td class="pts-ind">${esEscala(ev) ? `1–${nNiveles(ev)}` : `${ind.pts} pts`}</td>
       </tr>`).join("")}</tbody></table>`).join("")}</div>
-    <table>
-      <thead><tr>
-        <th class="c-n">N°</th><th class="c-nom izq">Estudiante</th><th class="c-asis">Asis.</th>
-        ${cols.map((c) => `<th class="c-marca"><span class="ind-vert">${esc((c.ind && c.ind.texto.trim()) || `${c.j + 1}.${c.q + 1}`)}</span></th>`).join("")}
-        <th class="c-pts">Pts</th><th class="c-nota">Nota</th><th class="c-obs izq">Observación</th>
-      </tr></thead>
-      <tbody>${filas.map((f) => `<tr>${f.map((v, k) => `<td class="${claseCol(k, f.length)}">${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody>
-    </table>`;
+    ${bloquesPlanilla(ev, cols, filas, total)}`;
   setTimeout(() => window.print(), 60);
 }
 
