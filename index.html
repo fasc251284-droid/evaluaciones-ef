@@ -179,6 +179,8 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .cas.nivel-cas{font-family:var(--mono); font-size:13px; color:var(--soft)}
 .cas:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
 .descriptor-elegido{margin:5px 0 0; font-style:italic}
+.ind-escala{display:flex; flex-direction:column; gap:5px; margin-bottom:11px; font-size:13.5px; line-height:1.3}
+.ind-escala > span{font-weight:500}
 .cabecera-lnl{display:flex; gap:5px; margin-bottom:-3px}
 .cabecera-lnl span{width:30px; flex:0 0 30px; text-align:center; font-size:11px; font-weight:700;
   letter-spacing:.04em; color:var(--soft)}
@@ -559,7 +561,7 @@ function aplicarUnidad(ev, u, cods) {
     if (ev.criterios.some((c) => c.oa === cod)) return;
     ev.criterios.push(criterioDesdeOA(cod, S.cursoId, 3));
     ev.marcas.forEach((f) => f.push([0, 0, 0]));
-    ev.datos.forEach((f) => f.push(0));
+    ev.datos.forEach((f) => f.push(filaNiveles(ev.criterios[ev.criterios.length - 1])));
   });
   S.criterioActivo = 0; marcarCambio(); pintar();
 }
@@ -1004,8 +1006,15 @@ function colorNivel(k, total) {
 }
 
 /* ===== Cálculo de la lista de cotejo ===== */
+const nivelDe = (ev, i, j, q) => {
+  const f = (ev.datos[i] || [])[j];
+  const v = Array.isArray(f) ? Number(f[q]) : (q === 0 ? Number(f) : 0);
+  return v >= 1 && v <= 8 ? v : 0;
+};
+const filaNiveles = (c) => c.indicadores.map(() => 0);
+
 function puntajeTotal(ev) {
-  if (esEscala(ev)) return ev.criterios.length * maxNivel(ev);
+  if (esEscala(ev)) return totalIndicadores(ev) * maxNivel(ev);
   let t = 0;
   ev.criterios.forEach((c) => c.indicadores.forEach((ind) => { t += Number(ind.pts) || 0; }));
   return t;
@@ -1025,11 +1034,11 @@ function marcaDe(ev, i, j, q) {
 function resultado(ev, i) {
   let puntaje = 0, marcados = 0, logrados = 0, sinMarca = 0;
   if (esEscala(ev)) {
-    ev.criterios.forEach((c, j) => {
-      const v = (ev.datos[i] || [])[j] || 0;
+    ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
+      const v = nivelDe(ev, i, j, q);
       if (v) { puntaje += puntosNivel(ev, v); marcados++; if (v === nNiveles(ev)) logrados++; }
       else sinMarca++;
-    });
+    }));
     const tot = puntajeTotal(ev);
     return { puntaje, total: tot, marcados, logrados, sinMarca,
       nota: marcados ? calcularNota(puntaje, tot, ev.exigencia) : null };
@@ -1051,6 +1060,14 @@ function resultado(ev, i) {
 function logroCriterio(ev, i, j) {
   const c = ev.criterios[j];
   let logrados = 0, marcados = 0, puntaje = 0, total = 0;
+  if (esEscala(ev)) {
+    c.indicadores.forEach((ind, q) => {
+      total += maxNivel(ev);
+      const v = nivelDe(ev, i, j, q);
+      if (v) { marcados++; puntaje += puntosNivel(ev, v); if (v === nNiveles(ev)) logrados++; }
+    });
+    return { logrados, marcados, puntaje, total, n: c.indicadores.length };
+  }
   c.indicadores.forEach((ind, q) => {
     const v = marcaDe(ev, i, j, q);
     total += Number(ind.pts) || 0;
@@ -1109,7 +1126,7 @@ function nuevaEvaluacion(nAlumnos, oaCodigos, nombre, cursoId) {
     escala: { niveles: ESCALA_BASE.map((n) => ({ ...n })) },
     criterios,
     marcas: Array.from({ length: nAlumnos }, () => criterios.map((c) => Array(c.indicadores.length).fill(0))),
-    datos: Array.from({ length: nAlumnos }, () => criterios.map(() => 0)),
+    datos: Array.from({ length: nAlumnos }, () => criterios.map(filaNiveles)),
     estado: Array(nAlumnos).fill(0),
     obs: Array(nAlumnos).fill("")
   };
@@ -1153,8 +1170,11 @@ function normalizar(d) {
             }))),
         datos: Array.from({ length: n }, (_, i) =>
           criterios.map((c, j) => {
-            const v = e.datos && e.datos[i] ? Number(e.datos[i][j]) : 0;
-            return v >= 1 && v <= 8 ? v : 0;
+            const bruto = e.datos && e.datos[i] ? e.datos[i][j] : null;
+            const limpio = (x) => { const v = Number(x); return v >= 1 && v <= 8 ? v : 0; };
+            if (Array.isArray(bruto)) return c.indicadores.map((_, q) => limpio(bruto[q]));
+            const v = limpio(bruto);
+            return c.indicadores.map((_, q) => (q === 0 ? v : 0));
           })),
         estado: Array.from({ length: n }, (_, i) => {
           const v = e.estado ? Number(e.estado[i]) : 0;
@@ -1395,7 +1415,7 @@ function cabeceraEvaluacion() {
 
     <span class="rotulo-seccion">Lista abierta</span>
     <h3 class="titulo-eval">${esc(ev.nombre || "Sin nombre")}</h3>
-    <p class="sub" style="margin:3px 0 0">${esEscala(ev) ? `escala 1–${nNiveles(ev)} · ${ev.criterios.length} criterios` : `${totalIndicadores(ev)} indicadores`} · ${total} pts · nota de 2,0 a 7,0</p>
+    <p class="sub" style="margin:3px 0 0">${totalIndicadores(ev)} indicadores${esEscala(ev) ? ` · escala 1–${nNiveles(ev)}` : ""} · ${total} pts · nota de 2,0 a 7,0</p>
     ${codigosOA(ev).length ? `<div class="fila" style="gap:5px;margin-top:6px">${codigosOA(ev).map((x) => `<span class="oa-chip">${esc(x)}</span>`).join("")}</div>` : ""}
     <label class="campo" style="max-width:200px;margin:11px 0 0"><span>FECHA DE LA CLASE</span>
       <input type="date" data-campo="fecha" value="${esc(ev.fecha)}"></label>
@@ -1478,7 +1498,7 @@ function panelAjustes(ev) {
         </div>` : ""}
     </div>
 
-    <span class="rotulo-seccion">${esEscala(ev) ? "Objetivos de aprendizaje" : "Objetivos de aprendizaje e indicadores"}</span>
+    <span class="rotulo-seccion">Objetivos de aprendizaje e indicadores</span>
     ${ev.criterios.map((c, j) => `
       <div class="bloque-criterio">
         <div class="fila" style="gap:6px;margin-bottom:6px">
@@ -1487,7 +1507,21 @@ function panelAjustes(ev) {
           <button class="btn btn-mini btn-peligro" style="margin-left:auto" data-accion="borrar-criterio" data-j="${j}" ${ev.criterios.length <= 1 ? "disabled" : ""} title="Quitar criterio">×</button>
         </div>
         <textarea data-campo="criterio" data-j="${j}" rows="2" placeholder="Objetivo de aprendizaje" style="width:100%;min-height:54px">${esc(c.texto)}</textarea>
-        ${esEscala(ev) ? `<div style="padding-left:24px;margin-top:8px">
+        <div style="padding-left:24px">
+          ${c.indicadores.map((ind, q) => `
+            <div class="criterio-edit">
+              <span class="idx mono" style="padding-top:12px">${j + 1}.${q + 1}</span>
+              <input type="text" data-campo="indicador" data-j="${j}" data-q="${q}" value="${esc(ind.texto)}" placeholder="Indicador observable" style="flex:1;min-width:0">
+              ${esEscala(ev) ? "" : `<input type="number" min="0" max="20" step="1" data-campo="pts" data-j="${j}" data-q="${q}" value="${ind.pts}" title="Puntos" style="flex:0 0 62px;width:62px;text-align:center">`}
+              <button class="btn btn-mini btn-peligro" data-accion="borrar-indicador" data-j="${j}" data-q="${q}" ${c.indicadores.length <= 1 ? "disabled" : ""} title="Quitar indicador">×</button>
+            </div>`).join("")}
+          <div class="fila" style="margin-top:4px">
+            <button class="btn btn-mini" data-accion="agregar-indicador" data-j="${j}">Agregar indicador</button>
+            <button class="btn btn-mini" data-accion="sugerir" data-j="${j}">Sugeridos</button>
+            <span class="sub">${c.indicadores.length} indicadores${esEscala(ev) ? ` · hasta ${c.indicadores.length * maxNivel(ev)} pts` : ` · ${c.indicadores.reduce((a, x) => a + (Number(x.pts) || 0), 0)} pts`}</span>
+          </div>
+        </div>
+        ${esEscala(ev) ? `<div style="padding-left:24px;margin-top:10px">
           <span class="sub">Descriptores de este criterio</span>
           ${ev.escala.niveles.map((n, k) => `
             <div class="criterio-edit">
@@ -1497,20 +1531,7 @@ function panelAjustes(ev) {
               <span class="pts-pill" style="align-self:center">${n.p} pts</span>
             </div>`).join("")}
           <p class="sub" style="margin:6px 0 0">Si dejas uno en blanco se usa la descripción general de la escala.</p>
-        </div>` : `<div style="padding-left:24px">
-          ${c.indicadores.map((ind, q) => `
-            <div class="criterio-edit">
-              <span class="idx mono" style="padding-top:12px">${j + 1}.${q + 1}</span>
-              <input type="text" data-campo="indicador" data-j="${j}" data-q="${q}" value="${esc(ind.texto)}" placeholder="Indicador observable" style="flex:1;min-width:0">
-              <input type="number" min="0" max="20" step="1" data-campo="pts" data-j="${j}" data-q="${q}" value="${ind.pts}" title="Puntos" style="flex:0 0 62px;width:62px;text-align:center">
-              <button class="btn btn-mini btn-peligro" data-accion="borrar-indicador" data-j="${j}" data-q="${q}" ${c.indicadores.length <= 1 ? "disabled" : ""} title="Quitar indicador">×</button>
-            </div>`).join("")}
-          <div class="fila" style="margin-top:4px">
-            <button class="btn btn-mini" data-accion="agregar-indicador" data-j="${j}">Agregar indicador</button>
-            <button class="btn btn-mini" data-accion="sugerir" data-j="${j}">Sugeridos</button>
-            <span class="sub">${c.indicadores.length} indicadores · ${c.indicadores.reduce((a, x) => a + (Number(x.pts) || 0), 0)} pts</span>
-          </div>
-        </div>`}
+        </div>` : ""}
       </div>`).join("")}
     <div style="margin-top:12px">
       <label class="campo" style="margin-bottom:6px"><span>Agregar un objetivo de aprendizaje</span>
@@ -1575,14 +1596,14 @@ function descriptorDe(ev, c, k) {
   return propio || (ev.escala.niveles[k] ? ev.escala.niveles[k].r : "");
 }
 
-function medidor(ev, i, j, compacto) {
-  const N = nNiveles(ev), valor = (ev.datos[i] || [])[j] || 0;
+function medidor(ev, i, j, q, compacto) {
+  const N = nNiveles(ev), valor = nivelDe(ev, i, j, q);
   const c = ev.criterios[j];
   return `<div class="medidor${compacto ? " compacto" : ""}" style="grid-template-columns:repeat(${N},1fr)">
     ${ev.escala.niveles.map((n, k) => {
       const k1 = k + 1, alto = 6 + Math.round((k / Math.max(1, N - 1)) * 12);
       return `<button class="nivel" style="--c:${colorNivel(k1, N)}" data-accion="poner-nivel"
-        data-i="${i}" data-j="${j}" data-k="${k1}" aria-pressed="${valor === k1}"
+        data-i="${i}" data-j="${j}" data-q="${q}" data-k="${k1}" aria-pressed="${valor === k1}"
         title="${esc(descriptorDe(ev, c, k))} · ${n.p} pt"><span class="barra" style="height:${alto}px"></span>
         <span class="num">${k1}</span></button>`;
     }).join("")}
@@ -1609,7 +1630,6 @@ function insigniaCriterio(ev, i, j) {
 
 /* --- Planilla --- */
 function columnasPlanilla(ev) {
-  if (esEscala(ev)) return ev.criterios.map((c, j) => ({ j, q: -1, ind: null }));
   const cols = [];
   ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => cols.push({ j, q, ind })));
   return cols;
@@ -1639,12 +1659,11 @@ function vistaPlanilla(ev) {
           <th rowspan="3">PTS</th><th rowspan="3">NOTA</th><th rowspan="3">OBS</th>
         </tr>
         <tr>
-          ${esEscala(ev)
-            ? ev.criterios.map(() => `<th class="th-ind"><span class="sub-blanco">escala 1–${nNiveles(ev)}</span></th>`).join("")
-            : ev.criterios.map((c, j) => c.indicadores.map((ind, q) => `<th colspan="2" class="th-ind">
+          ${ev.criterios.map((c, j) => c.indicadores.map((ind, q) => `<th ${esEscala(ev) ? "" : `colspan="2"`} class="th-ind">
               <input type="text" data-campo="indicador" data-j="${j}" data-q="${q}" value="${esc(ind.texto)}" placeholder="Indicador ${q + 1}">
-              <span class="pts-pill">${ind.pts} pts</span>
-              <button class="btn-todos" data-accion="todos-marca" data-j="${j}" data-q="${q}" title="Marcar logrado a todo el curso">✓✓</button>
+              ${esEscala(ev) ? `<span class="pts-pill">1–${nNiveles(ev)}</span>`
+                : `<span class="pts-pill">${ind.pts} pts</span>
+              <button class="btn-todos" data-accion="todos-marca" data-j="${j}" data-q="${q}" title="Marcar logrado a todo el curso">✓✓</button>`}
             </th>`).join("")).join("")}
         </tr>
         <tr>
@@ -1661,11 +1680,11 @@ function vistaPlanilla(ev) {
             ${cols.map((col) => {
               if (esEscala(ev)) {
                 if (est) return `<td class="raya">—</td>`;
-                const v = (ev.datos[i] || [])[col.j] || 0;
+                const v = nivelDe(ev, i, col.j, col.q);
                 return `<td class="celda-tap"><button class="cas nivel-cas"
                   style="${v ? `background:${colorNivel(v, nNiveles(ev))};color:#fff;border-color:transparent` : ""}"
-                  data-accion="ciclo-nivel" data-i="${i}" data-j="${col.j}"
-                  title="${v ? esc(ev.escala.niveles[v - 1].r) : "Sin marca"}">${v || ""}</button></td>`;
+                  data-accion="ciclo-nivel" data-i="${i}" data-j="${col.j}" data-q="${col.q}"
+                  title="${v ? esc(descriptorDe(ev, ev.criterios[col.j], v - 1)) : "Sin marca"}">${v || ""}</button></td>`;
               }
               if (est) return `<td class="raya">—</td><td class="raya">—</td>`;
               const v = marcaDe(ev, i, col.j, col.q);
@@ -1722,7 +1741,8 @@ function vistaPorCriterio(ev) {
           ${botonAsistencia(ev, i)}
         </div>
         ${est ? `<p class="ausente-aviso">${est === 1 ? "Ausente" : "Ausente justificado"} · no se promedia</p>`
-          : esEscala(ev) ? medidor(ev, i, j)
+          : esEscala(ev) ? ev.criterios[j].indicadores.map((ind, q) => `<div class="ind-escala">
+              <span>${esc(ind.texto || "Indicador " + (q + 1))}</span>${medidor(ev, i, j, q, true)}</div>`).join("")
           : `<div class="fila" style="gap:9px;align-items:flex-end">
               ${c.indicadores.map((ind, q) => `<div class="indicador-mini"><b class="mono">${q + 1}</b>${parCasillas(ev, i, j, q, true)}</div>`).join("")}
               <span style="margin-left:auto">${insigniaCriterio(ev, i, j)}</span>
@@ -1749,7 +1769,7 @@ function vistaPorAlumno(ev) {
     <div class="fila fila-sep" style="border-bottom:1px solid var(--line);padding-bottom:10px">
       <div>
         <h2 style="font-size:16px">${esc(S.datos.roster[i] || "—")}</h2>
-        <p class="sub" style="margin:2px 0 0">${esEscala(ev) ? `${r.marcados} de ${ev.criterios.length} criterios evaluados` : `${r.logrados} de ${totalIndicadores(ev)} indicadores logrados`} · ${r.puntaje} de ${r.total} pts${r.sinMarca ? ` · ${r.sinMarca} sin marcar` : ""}</p>
+        <p class="sub" style="margin:2px 0 0">${esEscala(ev) ? `${r.marcados} de ${totalIndicadores(ev)} indicadores evaluados` : `${r.logrados} de ${totalIndicadores(ev)} indicadores logrados`} · ${r.puntaje} de ${r.total} pts${r.sinMarca ? ` · ${r.sinMarca} sin marcar` : ""}</p>
       </div>
       <div class="fila">
         <span class="nota ${r.nota === null ? "" : r.nota < 4 ? "roja" : "azul"}" style="font-size:17px">${num1(r.nota)}</span>
@@ -1760,7 +1780,11 @@ function vistaPorAlumno(ev) {
       : ev.criterios.map((c, j) => `
         <div class="criterio-linea">
           <div class="rotulo"><b>${esc(c.oa || "C" + (j + 1))}</b><span>${esc(c.texto || "Criterio " + (j + 1))}</span></div>
-          ${esEscala(ev) ? medidor(ev, i, j) : `<div class="indicadores">
+          ${esEscala(ev) ? `<div class="indicadores">
+            ${c.indicadores.map((ind, q) => `<div class="ind-escala">
+              <span>${esc(ind.texto || "Indicador " + (q + 1))}</span>${medidor(ev, i, j, q)}</div>`).join("")}
+          </div>
+          <div class="fila" style="margin-top:7px">${insigniaCriterio(ev, i, j)}</div>` : `<div class="indicadores">
             <div class="cabecera-lnl"><span>L</span><span>NL</span></div>
             ${c.indicadores.map((ind, q) => `<div class="indicador">${parCasillas(ev, i, j, q)}
               <span>${esc(ind.texto || "Indicador " + (q + 1))} <span class="pts-pill oscuro">${ind.pts} pts</span></span></div>`).join("")}
@@ -1796,8 +1820,10 @@ function vistaResumen() {
       let suma = 0, cont = 0;
       for (let i = 0; i < n; i++) {
         if (ev.estado[i]) continue;
-        const v = (ev.datos[i] || [])[j] || 0;
-        if (v) { suma += puntosNivel(ev, v); cont++; }
+        c.indicadores.forEach((ind, q) => {
+          const v = nivelDe(ev, i, j, q);
+          if (v) { suma += puntosNivel(ev, v); cont++; }
+        });
       }
       logros.push({ rot: c.oa || `C${j + 1}`, texto: c.texto || `Criterio ${j + 1}`,
         pct: cont ? Math.round((suma / (cont * maxNivel(ev))) * 100) : null });
@@ -2094,12 +2120,16 @@ document.addEventListener("click", async (evt) => {
   }
   if (a === "ciclo-nivel") {
     const i = +btn.dataset.i, j = +btn.dataset.j;
-    ev.datos[i][j] = ((ev.datos[i][j] || 0) + 1) % (nNiveles(ev) + 1);
+    const q0 = +btn.dataset.q || 0;
+    if (!Array.isArray(ev.datos[i][j])) ev.datos[i][j] = filaNiveles(ev.criterios[j]);
+    ev.datos[i][j][q0] = ((ev.datos[i][j][q0] || 0) + 1) % (nNiveles(ev) + 1);
     marcarCambio(); pintar(); return;
   }
   if (a === "poner-nivel") {
     const i = +btn.dataset.i, j = +btn.dataset.j, k = +btn.dataset.k;
-    ev.datos[i][j] = ev.datos[i][j] === k ? 0 : k;
+    const q1 = +btn.dataset.q || 0;
+    if (!Array.isArray(ev.datos[i][j])) ev.datos[i][j] = filaNiveles(ev.criterios[j]);
+    ev.datos[i][j][q1] = ev.datos[i][j][q1] === k ? 0 : k;
     marcarCambio(); pintar(); return;
   }
   if (a === "todos-nivel") {
@@ -2123,7 +2153,7 @@ document.addEventListener("click", async (evt) => {
     confirmar("Se quitará ese nivel y las marcas más altas bajarán al nivel máximo disponible.", () => {
       ev.escala.niveles.splice(k, 1);
       const N = nNiveles(ev);
-      ev.datos.forEach((f) => f.forEach((v, j) => { if (v > N) f[j] = N; }));
+      ev.datos.forEach((f) => f.forEach((fila) => { if (Array.isArray(fila)) fila.forEach((v, q) => { if (v > N) fila[q] = N; }); }));
       marcarCambio(); pintar();
     });
     return;
@@ -2148,7 +2178,7 @@ document.addEventListener("click", async (evt) => {
   if (a === "limpiar-marcas") {
     confirmar("Se borrarán todas las marcas de esta lista. La nómina y los indicadores se conservan.", () => {
       ev.marcas = ev.marcas.map((f) => f.map((g) => g.map(() => 0)));
-      ev.datos = ev.datos.map((f) => f.map(() => 0));
+      ev.datos = ev.datos.map(() => ev.criterios.map(filaNiveles));
       ev.estado = ev.estado.map(() => 0);
       marcarCambio(); pintar();
     });
@@ -2226,7 +2256,7 @@ document.addEventListener("click", async (evt) => {
     const copia = JSON.parse(JSON.stringify(ev));
     copia.id = idNuevo(); copia.nombre = ev.nombre + " (copia)"; copia.fecha = hoy();
     copia.marcas = copia.marcas.map((f) => f.map((g) => g.map(() => 0)));
-    copia.datos = copia.datos.map((f) => f.map(() => 0));
+    copia.datos = copia.datos.map(() => copia.criterios.map(filaNiveles));
     copia.estado = copia.estado.map(() => 0);
     copia.obs = copia.obs.map(() => "");
     S.datos.evaluaciones.push(copia);
@@ -2252,7 +2282,7 @@ document.addEventListener("click", async (evt) => {
   if (a === "agregar-criterio") {
     ev.criterios.push({ texto: "", oa: "", eje: "", indicadores: [{ texto: "", pts: ev.ptsDefecto }] });
     ev.marcas.forEach((f) => f.push([0]));
-    ev.datos.forEach((f) => f.push(0));
+    ev.datos.forEach((f) => f.push(filaNiveles(ev.criterios[ev.criterios.length - 1])));
     marcarCambio(); pintar(); return;
   }
   if (a === "borrar-criterio") {
@@ -2270,6 +2300,7 @@ document.addEventListener("click", async (evt) => {
     const j = +btn.dataset.j;
     ev.criterios[j].indicadores.push({ texto: "", pts: ev.ptsDefecto });
     ev.marcas.forEach((f) => f[j].push(0));
+    ev.datos.forEach((f) => { if (Array.isArray(f[j])) f[j].push(0); });
     marcarCambio(); pintar(); return;
   }
   if (a === "borrar-indicador") {
@@ -2278,6 +2309,7 @@ document.addEventListener("click", async (evt) => {
     confirmar("Se quitará ese indicador y sus marcas en todo el curso.", () => {
       ev.criterios[j].indicadores.splice(q, 1);
       ev.marcas.forEach((f) => f[j].splice(q, 1));
+      ev.datos.forEach((f) => { if (Array.isArray(f[j])) f[j].splice(q, 1); });
       marcarCambio(); pintar();
     });
     return;
@@ -2346,7 +2378,7 @@ document.addEventListener("click", async (evt) => {
   if (a === "agregar-oa") {
     ev.criterios.push(criterioDesdeOA(btn.dataset.codigo, S.cursoId, 3));
     ev.marcas.forEach((f) => f.push([0, 0, 0]));
-    ev.datos.forEach((f) => f.push(0));
+    ev.datos.forEach((f) => f.push(filaNiveles(ev.criterios[ev.criterios.length - 1])));
     cerrarModal(); marcarCambio(); pintar(); return;
   }
   if (a === "sugerir") {
@@ -2391,7 +2423,7 @@ document.addEventListener("click", async (evt) => {
       S.datos.roster.push("");
       S.datos.evaluaciones.forEach((e) => {
         e.marcas.push(e.criterios.map((c) => Array(c.indicadores.length).fill(0)));
-        e.datos.push(e.criterios.map(() => 0));
+        e.datos.push(e.criterios.map(filaNiveles));
         e.estado.push(0); e.obs.push("");
       });
     }
@@ -2403,7 +2435,7 @@ document.addEventListener("click", async (evt) => {
     S.datos.roster.push(nom);
     S.datos.evaluaciones.forEach((e) => {
       e.marcas.push(e.criterios.map((c) => Array(c.indicadores.length).fill(0)));
-      e.datos.push(e.criterios.map(() => 0));
+      e.datos.push(e.criterios.map(filaNiveles));
       e.estado.push(0); e.obs.push("");
     });
     campo.value = ""; marcarCambio(); pintar(); return;
@@ -2440,7 +2472,7 @@ document.addEventListener("click", async (evt) => {
       S.datos.roster = lista;
       S.datos.evaluaciones.forEach((e) => {
         e.marcas = lista.map(() => e.criterios.map((c) => Array(c.indicadores.length).fill(0)));
-        e.datos = lista.map(() => e.criterios.map(() => 0));
+        e.datos = lista.map(() => e.criterios.map(filaNiveles));
         e.estado = lista.map(() => 0); e.obs = lista.map(() => "");
       });
       S.alumnoActivo = 0; marcarCambio(); pintar();
@@ -2464,7 +2496,7 @@ document.addEventListener("click", async (evt) => {
     S.datos.roster = lista;
     S.datos.evaluaciones.forEach((e) => {
       e.marcas = lista.map(() => e.criterios.map((c) => Array(c.indicadores.length).fill(0)));
-      e.datos = lista.map(() => e.criterios.map(() => 0));
+      e.datos = lista.map(() => e.criterios.map(filaNiveles));
       e.estado = lista.map(() => 0); e.obs = lista.map(() => "");
     });
     S.alumnoActivo = 0; cerrarModal(); marcarCambio(); pintar(); return;
@@ -2518,7 +2550,7 @@ document.addEventListener("change", (evt) => {
       const ev = evalActual();
       ev.criterios.push(criterioDesdeOA(el.value, S.cursoId, 3));
       ev.marcas.forEach((f) => f.push([0, 0, 0]));
-      ev.datos.forEach((f) => f.push(0));
+      ev.datos.forEach((f) => f.push(filaNiveles(ev.criterios[ev.criterios.length - 1])));
       marcarCambio(); pintar();
     }
     return;
@@ -2551,7 +2583,7 @@ function filasDeEvaluacion(ev) {
       i + 1, n || "", est === 1 ? "A" : est === 2 ? "J" : "P",
       ...cols.map((c) => {
         if (est) return "";
-        if (esEscala(ev)) return (ev.datos[i] || [])[c.j] || "";
+        if (esEscala(ev)) return nivelDe(ev, i, c.j, c.q) || "";
         const v = marcaDe(ev, i, c.j, c.q);
         return v === 1 ? "L" : v === 2 ? "NL" : "";
       }),
