@@ -1366,7 +1366,7 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v50</small></div>
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v51</small></div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
@@ -2637,11 +2637,13 @@ function prepararImpresion(nMarcas) {
     @page{size:A4 ${orientacion}; margin:9mm}
     .hoja-impresion table{font-size:${fuente}px}
     .hoja-impresion .c-n{width:4%}
-    .hoja-impresion .c-nom{width:${texto ? 17 : 22}%}
-    .hoja-impresion .c-asis{width:4%}
+    .hoja-impresion .c-nom{width:${texto ? 16 : 20}%}
+    .hoja-impresion .c-asis{width:6%}
     .hoja-impresion .c-pts{width:7%}
-    .hoja-impresion .c-nota{width:6%}
-    .hoja-impresion .c-obs{width:${texto ? 11 : 15}%}
+    .hoja-impresion .c-nota{width:7%}
+    .hoja-impresion .c-obs{width:${texto ? 10 : 14}%}
+    .hoja-impresion .c-asis,.hoja-impresion .c-pts,.hoja-impresion .c-nota{
+      white-space:nowrap; overflow-wrap:normal; word-break:normal}
     .hoja-impresion th.c-marca{font-family:${texto ? "inherit" : "var(--mono)"};
       white-space:${texto ? "normal" : "nowrap"}; font-size:${texto ? 7.5 : fuente}px;
       line-height:1.2; vertical-align:bottom; text-align:center}
