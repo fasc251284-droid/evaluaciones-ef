@@ -328,7 +328,7 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .hoja-impresion{display:none}
 @media print{
   body{background:#fff}
-  .barra-sup,.cursos,.pestanas,.no-imprimir{display:none !important}
+  .barra-sup,.cursos,.pestanas,.no-imprimir,.solo-pantalla{display:none !important}
   .envoltura{padding:0; max-width:none}
   .hoja-impresion{display:block}
   .tarjeta{border:0; padding:0}
@@ -340,8 +340,14 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .hoja-impresion thead{display:table-header-group}
   .hoja-impresion tr{break-inside:avoid}
 
-  .leyenda-oa{font-size:8.5px; line-height:1.35; margin:0 0 6px}
-  .leyenda-oa li{margin-bottom:2px}
+  .leyenda-oa{line-height:1.4; margin:0 0 8px}
+  .leyenda-oa .oa-titulo{margin:7px 0 1px; font-family:var(--mono)}
+  .leyenda-oa .oa-texto{margin:0 0 3px; text-align:justify; hyphens:auto}
+  .leyenda-oa .tabla-ind{width:auto; min-width:62%; margin:0 0 2px 14px; border-collapse:collapse}
+  .leyenda-oa .tabla-ind td{border:0; padding:1px 6px 1px 0; vertical-align:top}
+  .leyenda-oa .num-ind{width:34px; font-family:var(--mono); text-align:right; white-space:nowrap}
+  .leyenda-oa .pts-ind{width:46px; text-align:right; white-space:nowrap; font-family:var(--mono)}
+  .hoja-impresion h1{margin:0 0 2px}
   .col-fija{position:static; box-shadow:none}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
@@ -1355,7 +1361,7 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v44</small></div>
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v45</small></div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
@@ -1373,8 +1379,8 @@ function vistaApp() {
       <button class="pestana" data-accion="pestana" data-v="consolidado" aria-pressed="${S.pestana === "consolidado"}">Consolidado</button>
       <button class="pestana" data-accion="pestana" data-v="curso" aria-pressed="${S.pestana === "curso"}">Curso</button>
     </div>
-    ${S.pestana === "evaluar" ? vistaEvaluar() : S.pestana === "resumen" ? vistaResumen()
-      : S.pestana === "consolidado" ? vistaConsolidado() : vistaCurso()}
+    <div class="solo-pantalla">${S.pestana === "evaluar" ? vistaEvaluar() : S.pestana === "resumen" ? vistaResumen()
+      : S.pestana === "consolidado" ? vistaConsolidado() : vistaCurso()}</div>
     `}
     <div class="hoja-impresion" id="impresion"></div>
   </div>`;
@@ -2608,9 +2614,9 @@ function prepararImpresion(nMarcas) {
   const orientacion = n <= 8 ? "portrait" : "landscape";
   const fuente = n <= 6 ? 11 : n <= 12 ? 10 : n <= 20 ? 9 : n <= 30 ? 8 : 7;
   const fijos = 18;                                   // N°, asistencia, puntaje y nota
-  let marcas = n ? Math.min(56, n * 3.4) : 0;
+  let marcas = n ? Math.min(58, n * 4.4) : 0;         // cada marca pide su espacio primero
   let resto = 100 - fijos - marcas;
-  let nom = Math.min(26, resto * 0.55), obs = Math.min(28, resto * 0.45);
+  let nom = Math.min(22, resto * 0.55), obs = Math.min(24, resto * 0.45);
   marcas = 100 - fijos - nom - obs;                   // lo que sobre engorda las marcas
   const anchoMarca = n ? marcas / n : 0;
   const css = `
@@ -2623,7 +2629,7 @@ function prepararImpresion(nMarcas) {
     .hoja-impresion .c-nom{width:${nom.toFixed(1)}%}
     .hoja-impresion .c-obs{width:${obs.toFixed(1)}%}
     .hoja-impresion .c-marca{width:${anchoMarca.toFixed(2)}%}
-    .leyenda-oa{font-size:${Math.max(7, fuente - 1.5).toFixed(1)}px}`;
+    .leyenda-oa{font-size:${Math.max(8, Math.min(10, fuente - 0.5)).toFixed(1)}px}`;
   let tag = $("#css-impresion");
   if (!tag) {
     tag = document.createElement("style");
@@ -2695,8 +2701,14 @@ function imprimir() {
   $("#impresion").innerHTML = `
     <h1 style="font-size:15px">${esc(ev.nombre)} · ${esc(curso.nombre)}</h1>
     <p style="font-size:11px;margin:2px 0 4px">${fechaLarga(ev.fecha)}${ev.oa ? " · " + esc(ev.oa) : ""}${codigosOA(ev).length ? " · " + codigosOA(ev).join(" ") : ""} · ${esEscala(ev) ? "escala de apreciación" : "lista de cotejo"} · ${total} pts · exigencia ${exigenciaValida(ev.exigencia)}% (2,0–7,0) · promedio ${num1(e.prom)}</p>
-    <ol class="leyenda-oa">${ev.criterios.map((c, j) => `<li><b>${esc(c.oa || "C" + (j + 1))}</b> ${esc(c.texto || "—")}<br>
-      ${c.indicadores.map((ind, q) => `<b>${j + 1}.${q + 1}</b> ${esc(ind.texto || "sin redactar")}${esEscala(ev) ? "" : ` (${ind.pts} pts)`}`).join(" · ")}</li>`).join("")}</ol>
+    <div class="leyenda-oa">${ev.criterios.map((c, j) => `
+      <p class="oa-titulo"><b>${esc(c.oa || "Criterio " + (j + 1))}</b> · ${esc(EJES[c.eje] || "criterio propio")}</p>
+      <p class="oa-texto">${esc(c.texto || "—")}</p>
+      <table class="tabla-ind"><tbody>${c.indicadores.map((ind, q) => `<tr>
+        <td class="num-ind">${j + 1}.${q + 1}</td>
+        <td class="izq">${esc(ind.texto || "sin redactar")}</td>
+        <td class="pts-ind">${esEscala(ev) ? `1–${nNiveles(ev)}` : `${ind.pts} pts`}</td>
+      </tr>`).join("")}</tbody></table>`).join("")}</div>
     <table><thead><tr>${cab.map((c, k) => `<th class="${claseCol(k, cab.length)}">${esc(c)}</th>`).join("")}</tr></thead>
     <tbody>${filas.map((f) => `<tr>${f.map((v, k) => `<td class="${claseCol(k, f.length)}">${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
   setTimeout(() => window.print(), 60);
