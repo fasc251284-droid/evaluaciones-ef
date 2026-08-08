@@ -338,10 +338,7 @@ th.col-fija{background:var(--surface-2); z-index:3}
     vertical-align:top; text-align:center}
   .hoja-impresion th{background:#e3f1fa; text-transform:none; letter-spacing:0;
     font-weight:700; color:#14303d; vertical-align:bottom}
-  .hoja-impresion th.c-marca{vertical-align:bottom; line-height:1.2; font-weight:600}
-  .hoja-impresion .num-col{display:block; font-family:var(--mono); font-weight:700; margin-bottom:1px}
-  .hoja-impresion .bloque-tabla{margin-bottom:10px; break-inside:auto}
-  .hoja-impresion .rot-bloque{font-size:9px; margin:0 0 2px; font-weight:700}
+  .hoja-impresion th.c-marca{font-family:var(--mono); font-weight:700; white-space:nowrap}
   .hoja-impresion .izq{text-align:left}
   .hoja-impresion thead{display:table-header-group}
   .hoja-impresion tr{break-inside:avoid}
@@ -349,10 +346,11 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .leyenda-oa{line-height:1.4; margin:0 0 8px}
   .leyenda-oa .oa-titulo{margin:7px 0 1px; font-family:var(--mono)}
   .leyenda-oa .oa-texto{margin:0 0 3px; text-align:justify; hyphens:auto}
-  .leyenda-oa .tabla-ind{width:auto; min-width:62%; margin:0 0 2px 14px; border-collapse:collapse}
-  .leyenda-oa .tabla-ind td{border:0; padding:1px 6px 1px 0; vertical-align:top}
-  .leyenda-oa .num-ind{width:34px; font-family:var(--mono); text-align:right; white-space:nowrap}
-  .leyenda-oa .pts-ind{width:46px; text-align:right; white-space:nowrap; font-family:var(--mono)}
+  .leyenda-oa .rejilla-ind{display:grid; grid-template-columns:repeat(3, 1fr); gap:3px; margin:0 0 4px}
+  .leyenda-oa .caja-ind{border:1px solid #b9cfdc; border-radius:3px; padding:2px 4px;
+    line-height:1.25; break-inside:avoid}
+  .leyenda-oa .caja-ind b{font-family:var(--mono)}
+  .leyenda-oa .caja-ind i{font-style:normal; color:#5a7382; white-space:nowrap}
   .hoja-impresion h1{margin:0 0 2px}
   .col-fija{position:static; box-shadow:none}
 }
@@ -2620,12 +2618,16 @@ document.addEventListener("keydown", (evt) => {
    Las columnas de marca no llevan ancho: el reparto lo hace la tabla. */
 function planImpresion(nMarcas) {
   const n = Math.max(0, nMarcas);
-  const orientacion = n <= 4 ? "portrait" : "landscape";
-  return { orientacion, porBloque: orientacion === "portrait" ? 4 : 6, fuente: 9 };
+  const orientacion = n <= 8 ? "portrait" : "landscape";
+  // Mientras más indicadores, más recuadros por fila y letra más chica:
+  // así la leyenda no se come la hoja y cada recuadro crece hacia abajo.
+  const cajas = n <= 6 ? 2 : n <= 12 ? 3 : n <= 20 ? 4 : 5;
+  const fuenteLey = n <= 6 ? 9.5 : n <= 12 ? 8.5 : n <= 20 ? 7.5 : 7;
+  return { orientacion, fuente: n <= 14 ? 9 : 8, cajas: orientacion === "landscape" ? cajas + 1 : cajas, fuenteLey };
 }
 
 function prepararImpresion(nMarcas) {
-  const { orientacion, fuente } = planImpresion(nMarcas);
+  const { orientacion, fuente, cajas, fuenteLey } = planImpresion(nMarcas);
   const css = `
     @page{size:A4 ${orientacion}; margin:9mm}
     .hoja-impresion table{font-size:${fuente}px}
@@ -2635,7 +2637,9 @@ function prepararImpresion(nMarcas) {
     .hoja-impresion .c-pts{width:8%}
     .hoja-impresion .c-nota{width:6%}
     .hoja-impresion .c-obs{width:15%}
-    .leyenda-oa{font-size:9px}`;
+    .leyenda-oa{font-size:${fuenteLey}px}
+    .leyenda-oa .rejilla-ind{grid-template-columns:repeat(${cajas}, 1fr)}
+    .leyenda-oa .oa-titulo{margin-top:${fuenteLey < 8 ? 4 : 7}px}`;
   let tag = $("#css-impresion");
   if (!tag) {
     tag = document.createElement("style");
@@ -2644,37 +2648,6 @@ function prepararImpresion(nMarcas) {
     document.head.appendChild(tag);
   }
   tag.textContent = css;
-}
-
-/* Divide las columnas de indicadores en tandas y arma una tabla por tanda.
-   La última lleva puntaje, nota y observación. */
-function bloquesPlanilla(ev, cols, filas, total) {
-  const { porBloque } = planImpresion(cols.length);
-  const nBloques = Math.max(1, Math.ceil(cols.length / porBloque));
-  const porTanda = Math.ceil(cols.length / nBloques);   // reparto parejo: 8 en dos tandas de 4
-  const tandas = [];
-  for (let k = 0; k < cols.length; k += porTanda) tandas.push({ desde: k, cols: cols.slice(k, k + porTanda) });
-  if (!tandas.length) tandas.push({ desde: 0, cols: [] });
-  return tandas.map((t, ti) => {
-    const ultima = ti === tandas.length - 1;
-    const rotulo = tandas.length > 1
-      ? `<p class="rot-bloque">Indicadores ${t.desde + 1} a ${t.desde + t.cols.length} de ${cols.length}</p>` : "";
-    const cab = `<tr>
-      <th class="c-n">N°</th><th class="c-nom izq">Estudiante</th><th class="c-asis">Asis.</th>
-      ${t.cols.map((c) => `<th class="c-marca"><span class="num-col">${c.j + 1}.${c.q + 1}</span>${esc((c.ind && c.ind.texto.trim()) || "sin redactar")}</th>`).join("")}
-      ${ultima ? `<th class="c-pts">Pts</th><th class="c-nota">Nota</th><th class="c-obs izq">Observación</th>` : ""}
-    </tr>`;
-    const cuerpo = filas.map((f) => {
-      const marcas = f.slice(3, f.length - 3).slice(t.desde, t.desde + t.cols.length);
-      return `<tr>
-        <td class="c-n">${esc(f[0])}</td><td class="c-nom izq">${esc(f[1])}</td><td class="c-asis">${esc(f[2])}</td>
-        ${marcas.map((v) => `<td class="c-marca">${esc(v)}</td>`).join("")}
-        ${ultima ? `<td class="c-pts">${esc(f[f.length - 3])}</td><td class="c-nota">${esc(f[f.length - 2])}</td>
-          <td class="c-obs izq">${esc(f[f.length - 1])}</td>` : ""}
-      </tr>`;
-    }).join("");
-    return `<div class="bloque-tabla">${rotulo}<table><thead>${cab}</thead><tbody>${cuerpo}</tbody></table></div>`;
-  }).join("");
 }
 
 function claseCol(k, n) {
@@ -2741,12 +2714,17 @@ function imprimir() {
     <div class="leyenda-oa">${ev.criterios.map((c, j) => `
       <p class="oa-titulo"><b>${esc(c.oa || "Criterio " + (j + 1))}</b> · ${esc(EJES[c.eje] || "criterio propio")}</p>
       <p class="oa-texto">${esc(c.texto || "—")}</p>
-      <table class="tabla-ind"><tbody>${c.indicadores.map((ind, q) => `<tr>
-        <td class="num-ind">${j + 1}.${q + 1}</td>
-        <td class="izq">${esc(ind.texto || "sin redactar")}</td>
-        <td class="pts-ind">${esEscala(ev) ? `1–${nNiveles(ev)}` : `${ind.pts} pts`}</td>
-      </tr>`).join("")}</tbody></table>`).join("")}</div>
-    ${bloquesPlanilla(ev, cols, filas, total)}`;
+      <div class="rejilla-ind">${c.indicadores.map((ind, q) => `
+        <div class="caja-ind"><b>${j + 1}.${q + 1}</b> ${esc(ind.texto || "sin redactar")}
+          <i>${esEscala(ev) ? `1–${nNiveles(ev)}` : `${ind.pts} pts`}</i></div>`).join("")}</div>`).join("")}</div>
+    <table>
+      <thead><tr>
+        <th class="c-n">N°</th><th class="c-nom izq">Estudiante</th><th class="c-asis">Asis.</th>
+        ${cols.map((c) => `<th class="c-marca">${c.j + 1}.${c.q + 1}</th>`).join("")}
+        <th class="c-pts">Pts</th><th class="c-nota">Nota</th><th class="c-obs izq">Observación</th>
+      </tr></thead>
+      <tbody>${filas.map((f) => `<tr>${f.map((v, k) => `<td class="${claseCol(k, f.length)}">${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody>
+    </table>`;
   setTimeout(() => window.print(), 60);
 }
 
