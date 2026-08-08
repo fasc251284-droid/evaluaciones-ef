@@ -1366,7 +1366,7 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v51</small></div>
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v52</small></div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
@@ -2624,25 +2624,58 @@ function planImpresion(nMarcas) {
   // así la leyenda no se come la hoja y cada recuadro crece hacia abajo.
   const cajas = n <= 6 ? 2 : n <= 12 ? 3 : n <= 20 ? 4 : 5;
   const fuenteLey = n <= 6 ? 9.5 : n <= 12 ? 8.5 : n <= 20 ? 7.5 : 7;
-  // Hasta 6 indicadores el rótulo entra escrito en la columna; de ahí en más, solo el número.
-  const rotulos = n > 0 && n <= 6 ? "texto" : "numero";
   return { orientacion, fuente: n <= 14 ? 9 : 8, cajas: orientacion === "landscape" ? cajas + 1 : cajas,
-    fuenteLey, rotulos };
+    fuenteLey };
+}
+
+/* Ancho mínimo, en mm, que necesita un texto para no partirse:
+   ancho de carácter ≈ 0,58 del tamaño de letra, más el relleno de la celda. */
+function mmTexto(txt, px) { return (String(txt).length * px * 0.58) / 3.78 + 2.2; }
+
+/* Reparte el ancho de la hoja midiendo lo que pide cada encabezado y su contenido,
+   en vez de asignar porcentajes a ojo. */
+function anchosImpresion(nMarcas, orientacion, fuente) {
+  const hoja = orientacion === "portrait" ? 191 : 278;   // A4 menos 9 mm de margen
+  const pide = {
+    n: Math.max(mmTexto("N°", fuente), mmTexto("25", fuente)),
+    asis: Math.max(mmTexto("Asis.", fuente), mmTexto("P", fuente)),
+    pts: Math.max(mmTexto("Pts", fuente), mmTexto("120/120", fuente)),
+    nota: Math.max(mmTexto("Nota", fuente), mmTexto("7,0", fuente)),
+    obs: mmTexto("Observación", fuente),
+    nom: mmTexto("Estudiante", fuente)
+  };
+  const nom = Math.max(pide.nom, 30);                    // que quepa un nombre completo
+  const obs = Math.max(pide.obs, 18);
+  const fijo = pide.n + pide.asis + pide.pts + pide.nota + nom + obs;
+  const marca = nMarcas ? (hoja - fijo) / nMarcas : 0;
+  const pct = (mm) => ((mm / hoja) * 100).toFixed(2) + "%";
+  return { hoja, marca, pide, nom, obs, fijo,
+    css: { n: pct(pide.n), asis: pct(pide.asis), pts: pct(pide.pts),
+           nota: pct(pide.nota), nom: pct(nom), obs: pct(obs) } };
+}
+
+/* El rótulo va escrito solo si la columna alcanza los 14 mm; si no, solo el número. */
+function modoRotulo(nMarcas) {
+  if (!nMarcas) return "numero";
+  const p = planImpresion(nMarcas);
+  return anchosImpresion(nMarcas, p.orientacion, p.fuente).marca >= 14 ? "texto" : "numero";
 }
 
 function prepararImpresion(nMarcas) {
-  const { orientacion, fuente, cajas, fuenteLey, rotulos } = planImpresion(nMarcas);
-  const texto = rotulos === "texto";
+  const { orientacion, fuente, cajas, fuenteLey } = planImpresion(nMarcas);
+  const texto = modoRotulo(nMarcas) === "texto";
+  const A = anchosImpresion(nMarcas, orientacion, fuente, texto);
   const css = `
     @page{size:A4 ${orientacion}; margin:9mm}
     .hoja-impresion table{font-size:${fuente}px}
-    .hoja-impresion .c-n{width:4%}
-    .hoja-impresion .c-nom{width:${texto ? 16 : 20}%}
-    .hoja-impresion .c-asis{width:6%}
-    .hoja-impresion .c-pts{width:7%}
-    .hoja-impresion .c-nota{width:7%}
-    .hoja-impresion .c-obs{width:${texto ? 10 : 14}%}
-    .hoja-impresion .c-asis,.hoja-impresion .c-pts,.hoja-impresion .c-nota{
+    .hoja-impresion .c-n{width:${A.css.n}}
+    .hoja-impresion .c-nom{width:${A.css.nom}}
+    .hoja-impresion .c-asis{width:${A.css.asis}}
+    .hoja-impresion .c-pts{width:${A.css.pts}}
+    .hoja-impresion .c-nota{width:${A.css.nota}}
+    .hoja-impresion .c-obs{width:${A.css.obs}}
+    .hoja-impresion th.c-n,.hoja-impresion th.c-asis,.hoja-impresion th.c-pts,
+    .hoja-impresion th.c-nota,.hoja-impresion th.c-obs,.hoja-impresion th.c-nom{
       white-space:nowrap; overflow-wrap:normal; word-break:normal}
     .hoja-impresion th.c-marca{font-family:${texto ? "inherit" : "var(--mono)"};
       white-space:${texto ? "normal" : "nowrap"}; font-size:${texto ? 7.5 : fuente}px;
@@ -2732,7 +2765,7 @@ function imprimir() {
       <thead><tr>
         <th class="c-n">N°</th><th class="c-nom izq">Estudiante</th><th class="c-asis">Asis.</th>
         ${cols.map((c) => `<th class="c-marca"><span class="num-col">${c.j + 1}.${c.q + 1}</span>${
-          planImpresion(cols.length).rotulos === "texto" ? esc((c.ind && c.ind.texto.trim()) || "") : ""}</th>`).join("")}
+          modoRotulo(cols.length) === "texto" ? esc((c.ind && c.ind.texto.trim()) || "") : ""}</th>`).join("")}
         <th class="c-pts">Pts</th><th class="c-nota">Nota</th><th class="c-obs izq">Observación</th>
       </tr></thead>
       <tbody>${filas.map((f) => `<tr>${f.map((v, k) => `<td class="${claseCol(k, f.length)}">${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody>
