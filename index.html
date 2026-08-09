@@ -14,12 +14,16 @@
 <meta name="theme-color" content="#2b8fc7">
 <style>
 :root{
-  --bg:#f5f9fb; --surface:#fff; --surface-2:#eef5f9;
-  --ink:#14303d; --soft:#5a7382; --line:#d7e3ea;
-  --verde:#2b8fc7; --verde-oscuro:#1f6d99; --verde-claro:#e3f1fa;
-  --n1:#c0392b; --n2:#e0a50f; --n3:#7fa83f; --n4:#2e9e6b;
-  --alerta:#c0392b;
+  /* Azul y dorado: la identidad. Verde y rojo: solo el estado de una marca. */
+  --bg:#f4f8fa; --surface:#fff; --surface-2:#edf4f8;
+  --ink:#102b38; --soft:#5b7383; --line:#d5e2ea;
+  --verde:#1f7fb0; --verde-oscuro:#175f85; --verde-claro:#e4f0f8;
+  --oro:#e0980f;
+  --logro:#1e8a5f; --falta:#b8392e;
+  --n1:#b8392e; --n2:#d99a10; --n3:#6f9e46; --n4:#1e8a5f;
+  --alerta:#b8392e;
   --r:12px; --r-s:8px;
+  --curva:cubic-bezier(.22,.61,.36,1);
   --display:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
@@ -35,13 +39,15 @@ h1,h2,h3{font-family:var(--display); font-weight:700; letter-spacing:-.015em; ma
 button,input,select,textarea{font:inherit; color:inherit}
 button{cursor:pointer}
 .mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+table,.nota,.pastilla,input[type=number]{font-variant-numeric:tabular-nums}
+button,select,a{-webkit-tap-highlight-color:transparent}
 
 /* ---------- Estructura ---------- */
 .envoltura{max-width:900px; margin:0 auto; padding:0 14px 120px}
 .barra-sup{
   position:sticky; top:0; z-index:30; color:#fff;
-  background:linear-gradient(180deg,#3aa0d6,#1f6d99);
-  border-bottom:4px solid #f0a500;
+  background:var(--verde-oscuro);
+  border-bottom:3px solid var(--oro);
   padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
 }
 .barra-sup .interior{max-width:900px; margin:0 auto; display:flex; align-items:center; gap:10px}
@@ -59,6 +65,7 @@ button{cursor:pointer}
 .curso{
   padding:8px 4px; border-radius:var(--r-s); border:1px solid var(--line);
   background:var(--surface); color:var(--verde); text-align:center; line-height:1.1;
+  transition:background .2s var(--curva), color .2s var(--curva), border-color .2s var(--curva);
 }
 .curso b{display:block; font-size:17px; font-weight:700}
 .curso small{display:block; font-size:8.5px; letter-spacing:.09em; color:var(--soft); margin-top:2px}
@@ -69,12 +76,13 @@ button{cursor:pointer}
 .chip-crit[aria-pressed="true"]{background:var(--verde); border-color:var(--verde); color:#fff}
 
 /* ---------- Pestañas ---------- */
-.pestanas{display:flex; gap:2px; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-s); padding:3px; margin:10px 0 14px}
-.pestana{flex:1; border:0; background:transparent; border-radius:7px; padding:8px 4px; font-size:13.5px; font-weight:500; color:var(--soft)}
+.pestanas{display:flex; gap:2px; background:var(--surface-2); border:0; border-radius:10px; padding:3px; margin:10px 0 14px}
+.pestana{flex:1; border:0; background:transparent; border-radius:8px; padding:9px 4px; font-size:13.5px; font-weight:500; color:var(--soft);
+  transition:background .2s var(--curva), color .2s var(--curva)}
 .pestana[aria-pressed="true"]{background:var(--verde-claro); color:var(--verde-oscuro); font-weight:600}
 
 /* ---------- Tarjetas ---------- */
-.tarjeta{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:14px; margin-bottom:12px}
+.tarjeta{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:16px; margin-bottom:14px}
 .tarjeta > h2{font-size:16px; margin-bottom:2px}
 .sub{color:var(--soft); font-size:12.5px}
 .fila{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
@@ -99,7 +107,9 @@ textarea{resize:vertical; min-height:76px}
 .btn{
   border:1px solid var(--line); background:var(--surface); border-radius:var(--r-s);
   padding:9px 13px; font-size:14px; font-weight:500;
+  transition:background .16s var(--curva), border-color .16s var(--curva), transform .1s var(--curva);
 }
+.btn:active{transform:scale(.97)}
 .btn:active{transform:translateY(1px)}
 .btn-lleno{background:var(--verde); border-color:var(--verde); color:#fff; font-weight:600}
 .btn-peligro{color:var(--alerta); border-color:#E7C4C0}
@@ -110,9 +120,11 @@ textarea{resize:vertical; min-height:76px}
 .medidor{display:grid; grid-template-columns:repeat(4,1fr); gap:4px}
 .nivel{
   position:relative; border:1px solid var(--line); background:var(--surface-2); border-radius:8px;
-  padding:7px 0 5px; display:flex; flex-direction:column; align-items:center; gap:4px; min-height:46px;
-  transition:background .12s, border-color .12s;
+  padding:9px 0 7px; display:flex; flex-direction:column; align-items:center; gap:5px; min-height:54px;
+  transition:background .12s, border-color .12s; -webkit-tap-highlight-color:transparent; touch-action:manipulation;
 }
+.nivel:active{transform:scale(.97)}
+.nivel .barra{transition:background .2s var(--curva), height .2s var(--curva)}
 .nivel .barra{width:14px; border-radius:2px 2px 0 0; background:var(--line)}
 .nivel .num{font-family:var(--mono); font-size:12px; font-weight:600; color:var(--soft); line-height:1}
 .nivel[aria-pressed="true"]{background:var(--c,var(--verde)); border-color:transparent}
@@ -163,12 +175,17 @@ th.col-fija{background:var(--surface-2); z-index:3}
 
 /* ---------- Casillas de verificación ---------- */
 .cas{
-  width:30px; height:30px; flex:0 0 30px; border-radius:7px; border:1.5px solid #b9cfdc;
-  background:var(--surface); font-size:15px; font-weight:700; color:#fff;
+  width:44px; height:44px; flex:0 0 44px; border-radius:9px; border:1.5px solid #b9cfdc;
+  background:var(--surface); font-size:19px; font-weight:700; color:#fff;
   display:inline-flex; align-items:center; justify-content:center; line-height:1;
+  -webkit-tap-highlight-color:transparent; touch-action:manipulation;
 }
-.cas.si{background:var(--verde); border-color:var(--verde); box-shadow:0 1px 2px rgba(20,48,61,.18)}
-.cas.no.si{background:var(--n1); border-color:var(--n1)}
+.cas{transition:background .18s var(--curva), border-color .18s var(--curva), transform .12s var(--curva)}
+.cas:active{transform:scale(.92)}
+.cas.si{animation:marcar .22s var(--curva)}
+@keyframes marcar{0%{transform:scale(.86)} 60%{transform:scale(1.06)} 100%{transform:scale(1)}}
+.cas.si{background:var(--logro); border-color:var(--logro); box-shadow:0 1px 3px rgba(16,43,56,.2)}
+.cas.no.si{background:var(--falta); border-color:var(--falta)}
 .cas.nivel-cas{font-family:var(--mono); font-size:13px; color:var(--soft)}
 .cas:focus-visible{outline:2px solid var(--ink); outline-offset:2px}
 .descriptor-elegido{margin:5px 0 0; font-style:italic}
@@ -183,10 +200,10 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .ind-escala{display:flex; flex-direction:column; gap:5px; margin-bottom:11px; font-size:13.5px; line-height:1.3}
 .ind-escala > span{font-weight:500}
 .cabecera-lnl{display:flex; gap:5px; margin-bottom:-3px}
-.cabecera-lnl span{width:30px; flex:0 0 30px; text-align:center; font-size:11px; font-weight:700;
+.cabecera-lnl span{width:44px; flex:0 0 44px; text-align:center; font-size:12px; font-weight:700;
   letter-spacing:.04em; color:var(--soft)}
-.par-cas{display:inline-flex; gap:5px}
-.par-cas.compacto .cas{width:26px; height:26px; flex:0 0 26px; font-size:13px}
+.par-cas{display:inline-flex; gap:8px}
+.par-cas.compacto .cas{width:38px; height:38px; flex:0 0 38px; font-size:17px}
 .indicadores{display:flex; flex-direction:column; gap:9px; margin-top:4px}
 .indicador{display:flex; gap:10px; align-items:center; font-size:13.5px; line-height:1.3}
 .indicador-mini{display:flex; flex-direction:column; align-items:center; gap:3px}
@@ -286,7 +303,7 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .planilla tbody tr:nth-child(even) td{background:#f7fbfd}
 .planilla tbody tr:nth-child(even) td.col-fija{background:#f7fbfd}
 .planilla td.izq{min-width:170px}
-.celda-tap{width:38px}
+.celda-tap{width:52px; padding:3px 2px}
 .raya{color:var(--line)}
 .fila-ausente td{background:#eef2f4 !important; color:var(--soft)}
 .asis{
@@ -299,8 +316,12 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .btn-obs.con-texto{border-style:solid; background:var(--verde-claro); color:var(--verde-oscuro)}
 
 /* ---------- Modal ---------- */
-.velo{position:fixed; inset:0; background:rgba(15,33,27,.45); display:flex; align-items:flex-end; justify-content:center; z-index:60; padding:0}
-.modal{background:var(--surface); width:100%; max-width:520px; border-radius:18px 18px 0 0; padding:18px 16px calc(18px + env(safe-area-inset-bottom)); max-height:88vh; overflow:auto}
+.velo{position:fixed; inset:0; background:rgba(16,43,56,.42); display:flex; align-items:flex-end; justify-content:center; z-index:60; padding:0;
+  animation:aparecer .18s var(--curva)}
+@keyframes aparecer{from{opacity:0} to{opacity:1}}
+.modal{background:var(--surface); width:100%; max-width:520px; border-radius:18px 18px 0 0; padding:18px 16px calc(18px + env(safe-area-inset-bottom)); max-height:88vh; overflow:auto;
+  animation:subir .26s var(--curva)}
+@keyframes subir{from{transform:translateY(18px)} to{transform:translateY(0)}}
 .modal h3{font-size:17px; margin-bottom:4px}
 @media(min-width:640px){
   .velo{align-items:center; padding:20px}
@@ -1362,11 +1383,33 @@ async function cargarCurso(id) {
 /* =========================================================
    Vistas
    ========================================================= */
+/* Zonas que el profesor deja desplazadas y no deben volver al inicio al repintar. */
+const ZONAS_SCROLL = ".envoltura-tabla,.tiras,.tira-crit";
+
+function guardarScroll() {
+  return {
+    y: window.scrollY,
+    zonas: [...document.querySelectorAll(ZONAS_SCROLL)].map((e) => [e.scrollLeft, e.scrollTop])
+  };
+}
+
+function devolverScroll(memoria) {
+  const zonas = [...document.querySelectorAll(ZONAS_SCROLL)];
+  memoria.zonas.forEach(([izq, arriba], i) => {
+    if (!zonas[i]) return;
+    zonas[i].scrollLeft = izq;
+    zonas[i].scrollTop = arriba;
+  });
+  if (Math.abs(window.scrollY - memoria.y) > 1) window.scrollTo(0, memoria.y);
+}
+
 function pintar() {
   const raiz = $("#raiz");
   if (S.verificando) { raiz.innerHTML = `<div class="vacio" style="padding-top:60px">Verificando sesión…</div>`; return; }
   if (!S.sesion && !S.sinCuenta) { raiz.innerHTML = vistaIngreso(); return; }
+  const memoria = guardarScroll();
   raiz.innerHTML = vistaApp();
+  devolverScroll(memoria);
   pintarEstado();
 }
 
@@ -1396,7 +1439,7 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v60</small></div>
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v63</small></div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
@@ -1786,7 +1829,7 @@ function vistaPorCriterio(ev) {
   const c = ev.criterios[j];
   return `
   <div class="tarjeta">
-    <div class="fila no-imprimir" style="gap:5px;margin-bottom:10px;overflow-x:auto">
+    <div class="fila no-imprimir tira-crit" style="gap:5px;margin-bottom:10px;overflow-x:auto">
       ${ev.criterios.map((x, k) => `<button class="chip-crit" data-accion="criterio" data-j="${k}" aria-pressed="${k === j}">${esc(x.oa || "Sin OA")}</button>`).join("")}
     </div>
     ${c.oa ? `<p class="sub" style="margin:0 0 4px">${esc(EJES[c.eje] || "")}</p>` : ""}
