@@ -1396,7 +1396,7 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v59</small></div>
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v60</small></div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
@@ -1490,6 +1490,7 @@ function cabeceraEvaluacion() {
     <div class="fila" style="margin-top:11px">
       <button class="btn btn-mini" data-accion="ajustes">${S.ajustes ? "Cerrar ajustes" : "Ajustes de la lista"}</button>
       <button class="btn btn-mini" data-accion="imprimir">Exportar esta lista (PDF)</button>
+      <button class="btn btn-mini" data-accion="imprimir-blanco">Hoja en blanco (PDF)</button>
       <button class="btn btn-mini" data-accion="limpiar-marcas">Limpiar marcas</button>
     </div>
     <div class="fila fila-peligro">
@@ -2099,10 +2100,12 @@ function vistaCurso() {
 
   <div class="tarjeta">
     <h2 style="font-size:15px">Respaldo</h2>
-    <p class="sub" style="margin:2px 0 12px">Descarga una copia de todo el curso o recupera una guardada antes.</p>
+    <p class="sub" style="margin:2px 0 12px">Descarga una copia y recupérala cuando la necesites.
+      El respaldo completo trae los ocho cursos en un solo archivo.</p>
     <div class="fila">
-      <button class="btn btn-mini" data-accion="respaldo">Descargar respaldo</button>
-      <button class="btn btn-mini" data-accion="restaurar">Restaurar respaldo</button>
+      <button class="btn btn-mini btn-lleno" data-accion="respaldo-todo">Respaldo completo</button>
+      <button class="btn btn-mini" data-accion="respaldo">Solo este curso</button>
+      <button class="btn btn-mini" data-accion="restaurar">Restaurar</button>
     </div>
   </div>`;
 }
@@ -2624,8 +2627,10 @@ document.addEventListener("click", async (evt) => {
 
   /* --- salidas --- */
   if (a === "imprimir") { imprimir(); return; }
+  if (a === "imprimir-blanco") { imprimir(true); return; }
   if (a === "excel") { await exportarExcel(); return; }
   if (a === "respaldo") { descargarRespaldo(); return; }
+  if (a === "respaldo-todo") { descargarRespaldoTotal(); return; }
   if (a === "restaurar") { pedirRestaurar(); return; }
 });
 
@@ -2787,7 +2792,7 @@ function imprimirConsolidado() {
   setTimeout(() => window.print(), 60);
 }
 
-function imprimir() {
+function imprimir(enBlanco) {
   if (S.pestana === "consolidado") return imprimirConsolidado();
   const ev = evalActual();
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
@@ -2796,7 +2801,7 @@ function imprimir() {
   prepararImpresion(columnasPlanilla(ev).length * (esEscala(ev) ? 1 : 1));
   $("#impresion").innerHTML = `
     <h1 style="font-size:15px">${esc(ev.nombre)} · ${esc(curso.nombre)}</h1>
-    <p style="font-size:11px;margin:2px 0 4px">${fechaLarga(ev.fecha)}${ev.oa ? " · " + esc(ev.oa) : ""}${codigosOA(ev).length ? " · " + codigosOA(ev).join(" · ") : ""} · ${esEscala(ev) ? "escala de apreciación" : "lista de cotejo"}${rotuloTipo(ev) ? " · " + rotuloTipo(ev) : ""} · ${total} pts · exigencia ${exigenciaValida(ev.exigencia)}% (2,0–7,0) · promedio ${num1(e.prom)}</p>
+    <p style="font-size:11px;margin:2px 0 4px">${fechaLarga(ev.fecha)}${ev.oa ? " · " + esc(ev.oa) : ""}${codigosOA(ev).length ? " · " + codigosOA(ev).join(" · ") : ""} · ${esEscala(ev) ? "escala de apreciación" : "lista de cotejo"}${rotuloTipo(ev) ? " · " + rotuloTipo(ev) : ""} · ${total} pts · exigencia ${exigenciaValida(ev.exigencia)}% (2,0–7,0)${enBlanco ? " · hoja para marcar a mano" : ` · promedio ${num1(e.prom)}`}</p>
     ${esEscala(ev) ? `<p class="leyenda-escala"><b>Escala:</b> ${leyendaEscala(ev)}</p>` : ""}
     <div class="leyenda-oa">${ev.criterios.map((c, j) => `
       <p class="oa-titulo"><b>${esc(c.oa || "Criterio " + (j + 1))}</b> · ${esc(EJES[c.eje] || "criterio propio")}</p>
@@ -2810,7 +2815,11 @@ function imprimir() {
         ${cols.map((c) => `<th class="c-marca">${c.j + 1}.${c.q + 1}</th>`).join("")}
         <th class="c-pts">Pts</th><th class="c-nota">Nota</th><th class="c-obs izq">Obs.</th>
       </tr></thead>
-      <tbody>${filas.map((f) => `<tr>${f.map((v, k) => `<td class="${claseCol(k, f.length)}">${esc(v)}</td>`).join("")}</tr>`).join("")}</tbody>
+      <tbody>${filas.map((f) => `<tr>${f.map((v, k) => {
+        const clase = claseCol(k, f.length);
+        const vaciar = enBlanco && k !== 0 && k !== 1;        // se conservan número y nombre
+        return `<td class="${clase}">${vaciar ? "" : esc(v)}</td>`;
+      }).join("")}</tr>`).join("")}</tbody>
     </table>`;
   setTimeout(() => window.print(), 60);
 }
@@ -2900,6 +2909,22 @@ function descargarRespaldo() {
     "application/json");
 }
 
+/* Junta los ocho cursos en un archivo. El curso abierto se toma de memoria,
+   para no perder cambios que aún no se hayan sincronizado. */
+async function descargarRespaldoTotal() {
+  const paquete = { version: 2, fecha: new Date().toISOString(), cursos: {} };
+  const fallos = [];
+  for (const c of CURSOS) {
+    if (c.id === S.cursoId) { paquete.cursos[c.id] = S.datos; continue; }
+    try { paquete.cursos[c.id] = await almacen.leer(c.id); }
+    catch (e) { fallos.push(c.nombre); }
+  }
+  descargar(`respaldo-completo-${hoy()}.json`, JSON.stringify(paquete, null, 2), "application/json");
+  if (fallos.length) abrirModal(`<h3>Respaldo descargado</h3>
+    <p class="sub" style="margin:6px 0 0">No se pudo leer: ${esc(fallos.join(", "))}. El resto quedó guardado.</p>
+    <div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
+}
+
 function pedirRestaurar() {
   const inp = document.createElement("input");
   inp.type = "file"; inp.accept = "application/json,.json";
@@ -2909,6 +2934,18 @@ function pedirRestaurar() {
     lector.onload = () => {
       try {
         const j = JSON.parse(lector.result);
+        if (j && j.cursos) {                       // respaldo completo
+          const cuales = CURSOS.filter((c) => j.cursos[c.id]);
+          confirmar(`Se reemplazarán los datos de ${cuales.length} cursos: ${cuales.map((c) => c.label).join(", ")}.`, async () => {
+            for (const c of cuales) {
+              const d = normalizar(j.cursos[c.id]);
+              if (c.id === S.cursoId) { S.datos = d; S.evalIdx = 0; marcarCambio(); }
+              else { try { await almacen.escribir(c.id, d); } catch (e) { if (e.message !== "sin-sesion") throw e; } }
+            }
+            pintar();
+          });
+          return;
+        }
         const d = j.datos ? j.datos : j;
         confirmar("Se reemplazarán los datos de este curso con los del archivo.", () => {
           S.datos = normalizar(d); S.evalIdx = 0; marcarCambio(); pintar();
