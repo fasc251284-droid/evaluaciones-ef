@@ -335,6 +335,8 @@ th.col-fija{background:var(--surface-2); z-index:3}
     width:1%; white-space:nowrap; overflow-wrap:normal; word-break:normal}
   .hoja-impresion th.c-marca{font-family:var(--mono); font-weight:700}
   .hoja-impresion .c-nom{width:22%; min-width:26mm}
+  .hoja-impresion .tabla-consolidado{width:auto; min-width:60%}
+  .hoja-impresion .tabla-consolidado .c-nom{width:auto; min-width:52mm; max-width:70mm}
   .hoja-impresion .c-obs{width:100%}
   .hoja-impresion .izq{text-align:left}
   .hoja-impresion thead{display:table-header-group}
@@ -1393,7 +1395,7 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v57</small></div>
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v58</small></div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
@@ -2775,7 +2777,7 @@ function imprimirConsolidado() {
   $("#impresion").innerHTML = `
     <h1 style="font-size:15px">Consolidado · ${esc(curso.nombre)}</h1>
     <p style="font-size:11px;margin:2px 0 6px">${evs.length} listas de cotejo · promedio del curso ${num1(promCurso)}</p>
-    <table><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
+    <table class="tabla-consolidado"><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
       ${evs.map((ev, k) => `<th class="c-nota">${k + 1}</th>`).join("")}<th class="c-nota">Prom.</th></tr></thead>
     <tbody>${filas.map((f, i) => `<tr><td class="c-n">${i + 1}</td><td class="c-nom izq">${esc(f.nom || "—")}</td>
       ${f.notas.map((n) => `<td class="c-nota">${n === null ? "—" : num1(n)}</td>`).join("")}
