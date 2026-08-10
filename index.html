@@ -264,6 +264,30 @@ th.col-fija{background:var(--surface-2); z-index:3}
 }
 .pastilla b{color:var(--verde); font-weight:700}
 .pastillas{margin-top:11px; gap:7px}
+
+/* Cifras de la lista: lo que se mira de reojo antes de entrar a marcar. */
+.panel-cifras{display:grid; grid-template-columns:repeat(4, 1fr); gap:1px; margin-top:13px;
+  background:var(--line); border:1px solid var(--line); border-radius:var(--r-s); overflow:hidden}
+.cifra{background:var(--surface); padding:9px 6px; text-align:center}
+.cifra b{display:block; font-size:20px; line-height:1.1; color:var(--verde-oscuro);
+  font-variant-numeric:tabular-nums; transition:color .2s var(--curva)}
+.cifra b.baja{color:var(--falta)}
+.cifra b.pend{color:var(--oro)}
+.cifra span{display:block; font-size:10.5px; color:var(--soft); margin-top:3px; letter-spacing:.02em}
+
+.tira-oa{display:flex; flex-wrap:wrap; gap:5px; margin-top:8px}
+
+.barra-acciones{display:flex; align-items:flex-end; gap:10px; margin-top:13px}
+.campo-fecha{flex:0 0 148px}
+.campo-fecha span{display:block; font-size:11px; font-weight:700; letter-spacing:.05em;
+  text-transform:uppercase; color:var(--soft); margin-bottom:4px}
+.campo-fecha input{width:100%; text-align:center}
+.barra-acciones .btn{flex:1; padding:11px 12px}
+
+.acciones-menores{margin-top:10px; gap:6px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none;
+  padding-bottom:2px; border-top:1px solid var(--line); padding-top:11px}
+.acciones-menores::-webkit-scrollbar{display:none}
+.acciones-menores .btn{flex:0 0 auto}
 .titulo-eval{font-size:16px; color:var(--verde-oscuro)}
 .tiras{display:flex; gap:7px; overflow-x:auto; margin-top:12px; padding:9px; border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface-2); scrollbar-width:none}
 .tiras::-webkit-scrollbar{display:none}
@@ -1439,7 +1463,7 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v63</small></div>
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v64</small></div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
@@ -1486,7 +1510,7 @@ function estadisticas(ev) {
 }
 
 function codigosOA(ev) {
-  return [...new Set(ev.criterios.map((c) => c.oa).filter(Boolean))];
+  return [...new Set(ev.criterios.map((c) => c.oa).filter(Boolean))].sort();
 }
 
 function cabeceraEvaluacion() {
@@ -1519,25 +1543,27 @@ function cabeceraEvaluacion() {
     <span class="rotulo-seccion">Lista abierta</span>
     <h3 class="titulo-eval">${esc(ev.nombre || "Sin nombre")}${rotuloTipo(ev) ? ` <span class="etiqueta-tipo">${rotuloTipo(ev)}</span>` : ""}</h3>
     <p class="sub" style="margin:3px 0 0">${totalIndicadores(ev)} indicadores${esEscala(ev) ? ` · escala 1–${nNiveles(ev)}` : ""} · ${total} pts · nota de 2,0 a 7,0</p>
-    ${codigosOA(ev).length ? `<div class="fila" style="gap:5px;margin-top:6px">${codigosOA(ev).map((x) => `<span class="oa-chip">${esc(x)}</span>`).join("")}</div>` : ""}
-    <label class="campo" style="max-width:200px;margin:11px 0 0"><span>FECHA DE LA CLASE</span>
-      <input type="date" data-campo="fecha" value="${esc(ev.fecha)}"></label>
+    ${codigosOA(ev).length ? `<div class="tira-oa">${codigosOA(ev).map((x) => `<span class="oa-chip">${esc(x)}</span>`).join("")}</div>` : ""}
 
-    <div class="fila pastillas">
-      <span class="pastilla"><b>${e.puntaje}</b>/${e.maximo} pts${e.logro === null ? "" : ` · <b>${e.logro}%</b> logro`}</span>
-      <span class="pastilla">Prom. <b>${num1(e.prom)}</b></span>
-      <span class="pastilla"><b>${e.sinEvaluar}</b> sin completar</span>
-      <span class="pastilla"><b>${e.ausentes}</b> ausentes</span>
+    <div class="panel-cifras">
+      <div class="cifra"><b class="${e.prom !== null && e.prom < 4 ? "baja" : ""}">${num1(e.prom)}</b><span>promedio</span></div>
+      <div class="cifra"><b>${e.logro === null ? "—" : e.logro + "%"}</b><span>logro</span></div>
+      <div class="cifra"><b class="${e.sinEvaluar ? "pend" : ""}">${e.sinEvaluar}</b><span>sin completar</span></div>
+      <div class="cifra"><b>${e.ausentes}</b><span>ausentes</span></div>
+    </div>
+    <p class="sub" style="margin:7px 0 0">${e.puntaje} de ${e.maximo} puntos marcados</p>
+
+    <div class="barra-acciones">
+      <label class="campo-fecha"><span>Fecha de la clase</span>
+        <input type="date" data-campo="fecha" value="${esc(ev.fecha)}"></label>
+      <button class="btn btn-lleno" data-accion="ajustes">${S.ajustes ? "Cerrar ajustes" : "Ajustes de la lista"}</button>
     </div>
 
-    <div class="fila" style="margin-top:11px">
-      <button class="btn btn-mini" data-accion="ajustes">${S.ajustes ? "Cerrar ajustes" : "Ajustes de la lista"}</button>
-      <button class="btn btn-mini" data-accion="imprimir">Exportar esta lista (PDF)</button>
-      <button class="btn btn-mini" data-accion="imprimir-blanco">Hoja en blanco (PDF)</button>
+    <div class="fila acciones-menores">
+      <button class="btn btn-mini" data-accion="imprimir">PDF con marcas</button>
+      <button class="btn btn-mini" data-accion="imprimir-blanco">PDF en blanco</button>
       <button class="btn btn-mini" data-accion="limpiar-marcas">Limpiar marcas</button>
-    </div>
-    <div class="fila fila-peligro">
-      <button class="btn btn-mini btn-peligro" data-accion="borrar-eval">Eliminar lista</button>
+      <button class="btn btn-mini btn-peligro" data-accion="borrar-eval">Eliminar</button>
     </div>
     ${S.ajustes ? panelAjustes(ev) : ""}
   </div>`;
