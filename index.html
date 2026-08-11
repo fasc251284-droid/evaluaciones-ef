@@ -24,7 +24,9 @@
   --alerta:#b8392e;
   --r:12px; --r-s:8px;
   --curva:cubic-bezier(.22,.61,.36,1);
-  --display:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  /* Avenir Next viene en iOS y Segoe UI Semibold en Windows: carácter sin descargar nada,
+     que es lo que importa en una app que debe abrir sin conexión. */
+  --display:"Avenir Next","Segoe UI Semibold","Seravek",system-ui,-apple-system,sans-serif;
   --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
 }
@@ -49,7 +51,12 @@ button,select,a{-webkit-tap-highlight-color:transparent}
   background:var(--verde-oscuro);
   border-bottom:3px solid var(--oro);
   padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
+  transition:padding .22s var(--curva);
 }
+.barra-sup.compacta{padding:calc(env(safe-area-inset-top) + 5px) 14px 5px}
+.barra-sup .marca{transition:font-size .22s var(--curva)}
+.barra-sup.compacta .marca{font-size:13px}
+.barra-sup.compacta .marca small{display:none}
 .barra-sup .interior{max-width:900px; margin:0 auto; display:flex; align-items:center; gap:10px}
 .marca{font-family:var(--display); font-size:15px; font-weight:700; letter-spacing:-.01em; line-height:1.15}
 .marca small{display:block; font-family:var(--body); font-weight:400; font-size:11px; opacity:.75; letter-spacing:.04em; text-transform:uppercase}
@@ -59,6 +66,28 @@ button,select,a{-webkit-tap-highlight-color:transparent}
 .punto.error{background:#F2A099}
 @keyframes latido{50%{opacity:.35}}
 .btn-salir{background:rgba(255,255,255,.14); border:0; color:#fff; border-radius:8px; padding:5px 9px; font-size:12px}
+
+/* Oscuro: para la sala con poca luz. Los estados conservan su significado. */
+:root[data-tema="oscuro"]{
+  --bg:#0e1a21; --surface:#16262f; --surface-2:#1d3038;
+  --ink:#e6eff3; --soft:#9fb3bd; --line:#2b414c;
+  --verde:#4aa8d8; --verde-oscuro:#123344; --verde-claro:#1b3a4a;
+  --logro:#2fa878; --falta:#e0685c; --oro:#eab53d;
+  --n1:#e0685c; --n2:#eab53d; --n3:#8fbf5f; --n4:#2fa878;
+}
+:root[data-tema="oscuro"] .planilla thead th{background:#123344; color:#e6eff3}
+:root[data-tema="oscuro"] .cas{border-color:#3d5a68}
+
+/* Sol: para la cancha al mediodía. Más contraste y bordes más gruesos. */
+:root[data-tema="sol"]{
+  --bg:#ffffff; --surface:#ffffff; --surface-2:#eef3f6;
+  --ink:#000000; --soft:#3a4a54; --line:#7f96a3;
+  --verde:#0f5f8a; --verde-oscuro:#0b445f; --verde-claro:#dceaf3;
+  --logro:#126b45; --falta:#8e2118; --oro:#a86c00;
+}
+:root[data-tema="sol"] .cas{border-width:2.5px}
+:root[data-tema="sol"] .tarjeta,:root[data-tema="sol"] .envoltura-tabla{border-width:1.5px}
+:root[data-tema="sol"] .sub,:root[data-tema="sol"] .cifra span{color:var(--soft)}
 
 /* ---------- Cursos ---------- */
 .cursos{display:grid; grid-template-columns:repeat(4,1fr); gap:7px; padding:12px 0 4px}
@@ -288,7 +317,9 @@ th.col-fija{background:var(--surface-2); z-index:3}
   padding-bottom:2px; border-top:1px solid var(--line); padding-top:11px}
 .acciones-menores::-webkit-scrollbar{display:none}
 .acciones-menores .btn{flex:0 0 auto}
-.titulo-eval{font-size:16px; color:var(--verde-oscuro)}
+.titulo-eval{font-family:var(--display); font-size:17px; letter-spacing:-.01em; color:var(--verde-oscuro)}
+.cifra b{font-family:var(--display)}
+h1,h2,h3{font-family:var(--display); letter-spacing:-.01em}
 .tiras{display:flex; gap:7px; overflow-x:auto; margin-top:12px; padding:9px; border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface-2); scrollbar-width:none}
 .tiras::-webkit-scrollbar{display:none}
 .tira{
@@ -364,6 +395,7 @@ th.col-fija{background:var(--surface-2); z-index:3}
 
 .hoja-impresion{display:none}
 @media print{
+  :root{--bg:#fff; --surface:#fff; --surface-2:#edf4f8; --ink:#102b38; --soft:#5b7383; --line:#d5e2ea}
   body{background:#fff}
   .barra-sup,.cursos,.pestanas,.no-imprimir,.solo-pantalla{display:none !important}
   .envoltura{padding:0; max-width:none}
@@ -1427,6 +1459,50 @@ function devolverScroll(memoria) {
   if (Math.abs(window.scrollY - memoria.y) > 1) window.scrollTo(0, memoria.y);
 }
 
+/* ---- Aspecto ---- */
+const CLAVE_TEMA = PREFIJO + "tema";
+const temaGuardado = () => localStorage.getItem(CLAVE_TEMA) || "auto";
+
+function aplicarTema() {
+  const elegido = temaGuardado();
+  const oscuroSistema = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const resuelto = elegido === "auto" ? (oscuroSistema ? "oscuro" : "claro") : elegido;
+  document.documentElement.dataset.tema = resuelto;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = resuelto === "oscuro" ? "#123344" : resuelto === "sol" ? "#0b445f" : "#175f85";
+}
+
+/* ---- Cabecera que se encoge ---- */
+function vigilarCabecera() {
+  const barra = document.querySelector(".barra-sup");
+  if (!barra) return;
+  const ajustar = () => barra.classList.toggle("compacta", window.scrollY > 40);
+  window.addEventListener("scroll", ajustar, { passive: true });
+  ajustar();
+}
+
+/* ---- Deslizar entre estudiantes ---- */
+function vigilarDeslizamiento() {
+  let x0 = 0, y0 = 0, activo = false;
+  document.addEventListener("touchstart", (evt) => {
+    const zona = evt.target.closest && evt.target.closest(".zona-desliz");
+    activo = !!zona && !evt.target.closest("input,textarea,select,button");
+    if (!activo) return;
+    x0 = evt.touches[0].clientX; y0 = evt.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener("touchend", (evt) => {
+    if (!activo) return;
+    activo = false;
+    const t = evt.changedTouches[0];
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    if (Math.abs(dx) < 70 || Math.abs(dy) > 45) return;      // gesto claro y horizontal
+    const ultimo = S.datos.roster.length - 1;
+    const nuevo = S.alumnoActivo + (dx < 0 ? 1 : -1);
+    if (nuevo < 0 || nuevo > ultimo) return;
+    S.alumnoActivo = nuevo; pintar();
+  }, { passive: true });
+}
+
 function pintar() {
   const raiz = $("#raiz");
   if (S.verificando) { raiz.innerHTML = `<div class="vacio" style="padding-top:60px">Verificando sesión…</div>`; return; }
@@ -1434,6 +1510,7 @@ function pintar() {
   const memoria = guardarScroll();
   raiz.innerHTML = vistaApp();
   devolverScroll(memoria);
+  vigilarCabecera();
   pintarEstado();
 }
 
@@ -1463,7 +1540,7 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v64</small></div>
+      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v65</small></div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
@@ -1898,7 +1975,7 @@ function vistaPorAlumno(ev) {
   const r = resultado(ev, i);
   const est = ev.estado[i] || 0;
   return `
-  <div class="tarjeta">
+  <div class="tarjeta zona-desliz">
     <div class="fila fila-sep no-imprimir" style="margin-bottom:10px">
       <button class="btn btn-mini" data-accion="alumno-mover" data-d="-1" ${i === 0 ? "disabled" : ""}>‹ Anterior</button>
       <select data-accion="elegir-alumno" style="flex:1;min-width:140px">
@@ -2169,6 +2246,11 @@ function vistaCurso() {
 
   <div class="tarjeta">
     <h2 style="font-size:15px">Respaldo</h2>
+    <label class="campo" style="max-width:230px"><span>Aspecto</span>
+      <select data-accion="tema">
+        ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
+          .map(([v, t]) => `<option value="${v}" ${temaGuardado() === v ? "selected" : ""}>${t}</option>`).join("")}
+      </select></label>
     <p class="sub" style="margin:2px 0 12px">Descarga una copia y recupérala cuando la necesites.
       El respaldo completo trae los ocho cursos en un solo archivo.</p>
     <div class="fila">
@@ -2749,6 +2831,9 @@ document.addEventListener("change", (evt) => {
       c.indicadores.forEach((ind, q) => { if (!ind.texto.trim()) ind.texto = nuevo.indicadores[q] ? nuevo.indicadores[q].texto : ""; });
       marcarCambio(); pintar(); return;
     }
+    else if (a === "tema") {
+      localStorage.setItem(CLAVE_TEMA, el.value); aplicarTema(); pintar(); return;
+    }
     else if (a === "tipo-eval") {
       evalActual().tipo = el.value; marcarCambio(); pintar(); return;
     }
@@ -3030,6 +3115,12 @@ function pedirRestaurar() {
    Arranque
    ========================================================= */
 (async function iniciar() {
+  aplicarTema();
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)")
+      .addEventListener("change", () => { if (temaGuardado() === "auto") { aplicarTema(); pintar(); } });
+  }
+  vigilarDeslizamiento();
   pintar();
   await sbListo;
   const u = await usuarioActual();
