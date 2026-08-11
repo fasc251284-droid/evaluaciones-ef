@@ -45,7 +45,7 @@ table,.nota,.pastilla,input[type=number]{font-variant-numeric:tabular-nums}
 button,select,a{-webkit-tap-highlight-color:transparent}
 
 /* ---------- Estructura ---------- */
-.envoltura{max-width:900px; margin:0 auto; padding:0 14px 120px}
+.envoltura{max-width:900px; margin:0 auto; padding:14px 14px calc(96px + env(safe-area-inset-bottom))}
 .barra-sup{
   position:sticky; top:0; z-index:30; color:#fff;
   background:var(--verde-oscuro);
@@ -54,9 +54,7 @@ button,select,a{-webkit-tap-highlight-color:transparent}
   transition:padding .22s var(--curva);
 }
 .barra-sup.compacta{padding:calc(env(safe-area-inset-top) + 5px) 14px 5px}
-.barra-sup .marca{transition:font-size .22s var(--curva)}
-.barra-sup.compacta .marca{font-size:13px}
-.barra-sup.compacta .marca small{display:none}
+
 .barra-sup .interior{max-width:900px; margin:0 auto; display:flex; align-items:center; gap:10px}
 .marca{font-family:var(--display); font-size:15px; font-weight:700; letter-spacing:-.01em; line-height:1.15}
 .marca small{display:block; font-family:var(--body); font-weight:400; font-size:11px; opacity:.75; letter-spacing:.04em; text-transform:uppercase}
@@ -88,6 +86,67 @@ button,select,a{-webkit-tap-highlight-color:transparent}
 :root[data-tema="sol"] .cas{border-width:2.5px}
 :root[data-tema="sol"] .tarjeta,:root[data-tema="sol"] .envoltura-tabla{border-width:1.5px}
 :root[data-tema="sol"] .sub,:root[data-tema="sol"] .cifra span{color:var(--soft)}
+
+/* Navegación inferior: al alcance del pulgar. */
+.barra-inf{
+  position:fixed; left:0; right:0; bottom:0; z-index:40;
+  display:grid; grid-template-columns:repeat(4,1fr);
+  background:var(--surface); border-top:1px solid var(--line);
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+}
+.barra-inf .ir{
+  border:0; background:transparent; color:var(--soft);
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:5px 2px; font-size:10.5px; font-weight:600; min-height:52px;
+  transition:color .18s var(--curva);
+}
+.barra-inf .ir svg{width:23px; height:23px; fill:none; stroke:currentColor; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round; transition:transform .2s var(--curva)}
+.barra-inf .ir[aria-pressed="true"]{color:var(--verde)}
+.barra-inf .ir[aria-pressed="true"] svg{transform:translateY(-1px) scale(1.08)}
+.barra-inf .ir:active svg{transform:scale(.92)}
+
+/* El curso: una píldora en la cabecera que despliega su menú justo debajo. */
+.zona-curso{position:relative}
+.pildora-curso{
+  display:inline-flex; align-items:baseline; gap:5px;
+  background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.26); color:#fff;
+  border-radius:999px; padding:6px 12px 6px 14px; min-height:38px;
+  transition:background .18s var(--curva), transform .12s var(--curva), padding .22s var(--curva);
+}
+.pildora-curso:active{transform:scale(.96); background:rgba(255,255,255,.24)}
+.pildora-curso b{font-family:var(--display); font-size:19px; font-weight:700; letter-spacing:-.02em}
+.pildora-curso span{font-size:11px; opacity:.8; letter-spacing:.06em; text-transform:uppercase}
+.pildora-curso svg{width:15px; height:15px; align-self:center; fill:none; stroke:currentColor;
+  stroke-width:2.5; stroke-linecap:round; opacity:.85; transition:transform .2s var(--curva)}
+.pildora-curso[aria-expanded="true"] svg{transform:rotate(180deg)}
+.barra-sup.compacta .pildora-curso{padding:3px 10px 3px 12px; min-height:32px}
+.barra-sup.compacta .pildora-curso b{font-size:16px}
+
+.tapa-menu{position:fixed; inset:0; z-index:65}
+.menu-curso{
+  position:absolute; top:calc(100% + 9px); left:0; z-index:70; min-width:206px;
+  background:var(--surface); border:1px solid var(--line); border-radius:18px;
+  padding:7px; box-shadow:0 16px 38px rgba(16,43,56,.24);
+  animation:caer .2s var(--curva);
+}
+@keyframes caer{from{opacity:0; transform:translateY(-8px) scale(.98)} to{opacity:1; transform:translateY(0) scale(1)}}
+.menu-curso::before{
+  content:""; position:absolute; top:-6px; left:22px; width:11px; height:11px;
+  background:var(--surface); border-left:1px solid var(--line); border-top:1px solid var(--line);
+  transform:rotate(45deg); border-radius:2px 0 0 0;
+}
+.opcion-curso{
+  display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;
+  border:0; background:transparent; color:var(--ink); text-align:left;
+  padding:10px 11px; border-radius:9px; font-size:14.5px; min-height:44px;
+  transition:background .14s var(--curva);
+}
+.opcion-curso:active{background:var(--surface-2)}
+.opcion-curso[aria-pressed="true"]{background:var(--verde-claro); color:var(--verde-oscuro); font-weight:700;
+  box-shadow:inset 3px 0 0 var(--oro)}
+.opcion-curso svg{width:17px; height:17px; flex:0 0 17px; fill:none; stroke:currentColor;
+  stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round}
 
 /* ---------- Cursos ---------- */
 .cursos{display:grid; grid-template-columns:repeat(4,1fr); gap:7px; padding:12px 0 4px}
@@ -397,7 +456,7 @@ h1,h2,h3{font-family:var(--display); letter-spacing:-.01em}
 @media print{
   :root{--bg:#fff; --surface:#fff; --surface-2:#edf4f8; --ink:#102b38; --soft:#5b7383; --line:#d5e2ea}
   body{background:#fff}
-  .barra-sup,.cursos,.pestanas,.no-imprimir,.solo-pantalla{display:none !important}
+  .barra-sup,.cursos,.pestanas,.barra-inf,.no-imprimir,.solo-pantalla{display:none !important}
   .envoltura{padding:0; max-width:none}
   .hoja-impresion{display:block}
   .tarjeta{border:0; padding:0}
@@ -1540,29 +1599,40 @@ function vistaApp() {
   return `
   <header class="barra-sup no-imprimir">
     <div class="interior">
-      <div class="marca">EVALUACIONES · EF Y SALUD<small>Listas de cotejo · 1° a 8° básico · v65</small></div>
+      <div class="zona-curso">
+        <button class="pildora-curso" data-accion="menu-curso" aria-expanded="${!!S.menuCurso}">
+          <b>${esc(curso.label)}</b><span>básico</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        ${S.menuCurso ? `
+        <div class="tapa-menu" data-accion="cerrar-menu"></div>
+        <div class="menu-curso">
+          ${CURSOS.map((c) => `<button class="opcion-curso" data-accion="curso" data-id="${c.id}"
+            aria-pressed="${c.id === S.cursoId}"><span>${esc(c.nombre)}</span>
+            ${c.id === S.cursoId ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>` : ""}
+          </button>`).join("")}
+        </div>` : ""}
+      </div>
       <div class="estado" id="estado"></div>
       ${S.sesion ? `<button class="btn-salir" data-accion="salir">Salir</button>` : ""}
     </div>
   </header>
   <div class="envoltura">
-    <nav class="cursos no-imprimir">
-      ${CURSOS.map((c) => `<button class="curso" data-accion="curso" data-id="${c.id}" aria-pressed="${c.id === S.cursoId}">
-        <b>${c.label}</b><small>BÁSICO</small></button>`).join("")}
-    </nav>
     ${S.cargando ? `<div class="tarjeta"><div class="vacio">Cargando ${esc(curso.nombre)}…</div></div>` : `
     ${S.errorCarga ? `<div class="aviso">No se pudieron traer los datos guardados. ${esc(S.errorCarga)}</div>` : ""}
-    <div class="pestanas no-imprimir">
-      <button class="pestana" data-accion="pestana" data-v="evaluar" aria-pressed="${S.pestana === "evaluar"}">Evaluar</button>
-      <button class="pestana" data-accion="pestana" data-v="resumen" aria-pressed="${S.pestana === "resumen"}">Resumen</button>
-      <button class="pestana" data-accion="pestana" data-v="consolidado" aria-pressed="${S.pestana === "consolidado"}">Consolidado</button>
-      <button class="pestana" data-accion="pestana" data-v="curso" aria-pressed="${S.pestana === "curso"}">Curso</button>
-    </div>
     <div class="solo-pantalla">${S.pestana === "evaluar" ? vistaEvaluar() : S.pestana === "resumen" ? vistaResumen()
       : S.pestana === "consolidado" ? vistaConsolidado() : vistaCurso()}</div>
     `}
     <div class="hoja-impresion" id="impresion"></div>
-  </div>`;
+  </div>
+  <nav class="barra-inf no-imprimir">
+    ${[["evaluar", "Evaluar", "M4 12h4l3-8 4 16 3-8h4"],
+       ["resumen", "Resumen", "M5 19V9M12 19V4M19 19v-7"],
+       ["consolidado", "Consolidado", "M4 6h16M4 12h16M4 18h10"],
+       ["curso", "Nómina", "M4 19c0-3 3-5 6-5s6 2 6 5M10 6a3 3 0 100 6 3 3 0 000-6M17 14c2 0 3 1.5 3 4"]]
+      .map(([v, t, d]) => `<button class="ir" data-accion="pestana" data-v="${v}" aria-pressed="${S.pestana === v}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg><span>${t}</span></button>`).join("")}
+  </nav>`;
 }
 
 /* --- Cabecera de la evaluación --- */
@@ -2246,6 +2316,7 @@ function vistaCurso() {
 
   <div class="tarjeta">
     <h2 style="font-size:15px">Respaldo</h2>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v70</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -2330,7 +2401,9 @@ document.addEventListener("click", async (evt) => {
   }
 
   /* --- navegación --- */
-  if (a === "curso") { await cargarCurso(btn.dataset.id); return; }
+  if (a === "curso") { S.menuCurso = false; await cargarCurso(btn.dataset.id); return; }
+  if (a === "menu-curso") { S.menuCurso = !S.menuCurso; pintar(); return; }
+  if (a === "cerrar-menu") { S.menuCurso = false; pintar(); return; }
   if (a === "pestana") { S.pestana = btn.dataset.v; pintar(); return; }
   if (a === "modo") { S.modo = btn.dataset.v; pintar(); return; }
   if (a === "criterio") { S.criterioActivo = +btn.dataset.j; pintar(); return; }
