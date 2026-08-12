@@ -300,6 +300,15 @@ th.col-fija{background:var(--surface-2); z-index:3}
   background:var(--verde-claro); border-radius:999px; padding:2px 8px}
 .det-tarea[open] summary{background:var(--surface-2); border-bottom:1px solid var(--line)}
 .det-tarea .caja-oas{border:0; border-radius:0; max-height:none}
+.oa-item.puesta{background:var(--verde-claro); color:var(--verde-oscuro); font-weight:600}
+.aviso-dua{border:1px solid var(--line); border-left:3px solid var(--oro); border-radius:var(--r-s);
+  background:var(--surface-2); padding:9px 11px; margin-top:10px; font-size:13px}
+.aviso-dua b{display:block; font-size:11px; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--soft); margin-bottom:4px}
+.aviso-dua ul{margin:0; padding-left:17px}
+.aviso-dua li{margin-bottom:2px; line-height:1.35}
+.marca-dua{display:inline-block; font-size:9.5px; font-weight:700; letter-spacing:.04em;
+  background:var(--oro); color:#fff; border-radius:4px; padding:1px 5px; margin-left:5px; vertical-align:middle}
 
 .det-desc{margin-top:8px}
 .det-desc summary{font-size:12.5px; color:var(--verde-oscuro); cursor:pointer; padding:3px 0; list-style:none}
@@ -372,7 +381,6 @@ th.col-fija{background:var(--surface-2); z-index:3}
   white-space:nowrap;
 }
 .pastilla b{color:var(--verde); font-weight:700}
-.pastillas{margin-top:11px; gap:7px}
 
 /* Cifras de la lista: lo que se mira de reojo antes de entrar a marcar. */
 .panel-cifras{display:grid; grid-template-columns:repeat(4, 1fr); gap:1px; margin-top:13px;
@@ -501,6 +509,8 @@ h1,h2,h3{font-family:var(--display); letter-spacing:-.01em}
   .hoja-impresion tr{break-inside:avoid}
 
   .leyenda-escala{margin:0 0 4px; font-size:9px}
+  .nota-dua{font-size:8px; line-height:1.4; margin:0 0 6px; padding:4px 7px;
+    border-left:2px solid #a86c00; background:#f7f3ea}
   .titulo-hoja{font-size:15px; margin:0 0 5px}
   .hoja-impresion table.ficha-hoja{width:100%; table-layout:auto; margin:0 0 9px; font-size:9px}
   .ficha-hoja th{width:1%; white-space:nowrap; text-align:left; vertical-align:middle;
@@ -678,6 +688,73 @@ const PAUTA_OBS = [
   "Aspecto que debe seguir practicando",
   "Apoyo o adaptación utilizada",
   "Próximo desafío de aprendizaje"
+];
+
+/* =========================================================
+   Adecuaciones curriculares · Decreto 83/2015 y DUA.
+   Dos categorías: las de acceso, que no cambian el objetivo, y las
+   que sí modifican los objetivos de aprendizaje.
+   ========================================================= */
+const ADECUACIONES = [
+  ["acceso", "Presentación de la información", [
+    "Demuestra el ejercicio antes de la ejecución",
+    "Entrega la instrucción en pasos cortos y de a uno",
+    "Acompaña la instrucción verbal con apoyo visual o gestual",
+    "Ubica al estudiante cerca del docente al dar la instrucción",
+    "Marca el espacio con conos, colores o líneas de referencia",
+    "Verifica la comprensión pidiendo que repita la instrucción",
+    "Usa señales sonoras además de las visuales"]],
+
+  ["acceso", "Formas de respuesta", [
+    "Permite mostrar el logro de forma oral, gestual o práctica",
+    "Acepta la ejecución con apoyo de un compañero tutor",
+    "Permite el uso de material adaptado: balón blando, más liviano o de mayor tamaño",
+    "Reduce la altura del implemento: valla, red o cesto",
+    "Acorta la distancia de lanzamiento o de recorrido",
+    "Permite ejecutar desde una posición estable o con apoyo",
+    "Acepta la respuesta con el segmento corporal que el estudiante controla mejor"]],
+
+  ["acceso", "Entorno y organización", [
+    "Ubica al estudiante en un sector con menos estímulos",
+    "Reduce el número de participantes en el grupo de trabajo",
+    "Mantiene la misma rutina de inicio en cada clase",
+    "Anticipa los cambios de actividad antes de que ocurran",
+    "Asigna un compañero de apoyo durante la tarea",
+    "Delimita un espacio más pequeño y libre de obstáculos"]],
+
+  ["acceso", "Tiempo y ritmo", [
+    "Otorga más tiempo para ejecutar la tarea",
+    "Permite pausas durante la actividad",
+    "Divide la tarea en dos o más sesiones",
+    "Reduce la cantidad de repeticiones exigidas",
+    "Permite iniciar la ejecución cuando el estudiante se siente preparado"]],
+
+  ["objetivos", "Graduación del nivel de complejidad", [
+    "Ejecuta la habilidad en situación estática antes que en movimiento",
+    "Trabaja el gesto por partes antes de la ejecución completa",
+    "Evalúa la habilidad sin oposición del rival",
+    "Reduce la exigencia de precisión del objetivo",
+    "Solicita menos elementos encadenados en la secuencia"]],
+
+  ["objetivos", "Priorización de objetivos y contenidos", [
+    "Prioriza los indicadores esenciales del objetivo",
+    "Evalúa solo los aprendizajes basales de la unidad",
+    "Centra la evaluación en la participación y la seguridad",
+    "Reduce el número de indicadores a evaluar en esta lista"]],
+
+  ["objetivos", "Temporalización", [
+    "Extiende el plazo para lograr el objetivo a otra unidad",
+    "Evalúa el objetivo en más de una clase",
+    "Retoma el objetivo trabajado en el nivel anterior"]],
+
+  ["objetivos", "Enriquecimiento del currículum", [
+    "Agrega un desafío adicional de mayor complejidad",
+    "Solicita que asuma un rol de apoyo o arbitraje",
+    "Propone que enseñe el gesto a un compañero"]],
+
+  ["objetivos", "Eliminación de aprendizajes", [
+    "Excluye el aprendizaje contraindicado por informe médico",
+    "Reemplaza el objetivo por otro equivalente y seguro para el estudiante"]]
 ];
 
 const TAREAS = [
@@ -1617,9 +1694,36 @@ async function copiarListaA(cursoId, lista) {
   catch (e) { if (e.message !== "sin-sesion") throw e; }   // sin sesión queda guardado solo aquí
 }
 
+/* Adecuaciones del curso: valen para todas sus listas. */
+function adeCurso(i) {
+  S.datos.adecuaciones = S.datos.adecuaciones || [];
+  if (!Array.isArray(S.datos.adecuaciones[i])) S.datos.adecuaciones[i] = [];
+  return S.datos.adecuaciones[i];
+}
+
+const MODOS_ADE = ["curso", "propias", "ninguna"];
+const adeModo = (ev) => (ev && MODOS_ADE.includes(ev.adeModo) ? ev.adeModo : "curso");
+
+/* Adecuaciones que rigen en una lista concreta. */
+function adeDeLista(ev, i) {
+  const modo = adeModo(ev);
+  if (modo === "ninguna") return [];
+  if (modo === "curso") return adeCurso(i);
+  ev.ade = ev.ade || [];
+  if (!Array.isArray(ev.ade[i])) ev.ade[i] = [];
+  return ev.ade[i];
+}
+
+/* En la nómina se editan siempre las del curso; en el resto, las que rigen. */
+function adeDe(i) {
+  const ev = S.pestana === "curso" ? null : evalActual();
+  return ev ? adeDeLista(ev, i) : adeCurso(i);
+}
+
 /* Agrega un estudiante y su fila en todas las listas del curso. */
 function sumarEstudiante(nombre) {
   S.datos.roster.push(nombre);
+  (S.datos.adecuaciones = S.datos.adecuaciones || []).push([]);
   S.datos.evaluaciones.forEach((e) => {
     e.marcas.push(e.criterios.map((c) => Array(c.indicadores.length).fill(0)));
     e.datos.push(e.criterios.map(filaNiveles));
@@ -1734,6 +1838,8 @@ function nuevaEvaluacion(nAlumnos, oaCodigos, nombre, cursoId) {
     fecha: hoy(),
     oa: "",
     tipo: "docente",
+    adeModo: "curso",
+    ade: null,
     exigencia: EXIGENCIA,
     peso: 1,
     ptsDefecto: PTS_DEFECTO,
@@ -1748,7 +1854,7 @@ function nuevaEvaluacion(nAlumnos, oaCodigos, nombre, cursoId) {
 }
 
 function cursoVacio(cursoId) {
-  return { roster: [], evaluaciones: [nuevaEvaluacion(0, [], "", cursoId)] };
+  return { roster: [], adecuaciones: [], evaluaciones: [nuevaEvaluacion(0, [], "", cursoId)] };
 }
 
 function normalizar(d) {
@@ -1759,6 +1865,10 @@ function normalizar(d) {
   const n = roster.length;
   return {
     roster,
+    adecuaciones: Array.from({ length: n }, (_, i) => {
+      const a = Array.isArray(base.adecuaciones) ? base.adecuaciones[i] : null;
+      return Array.isArray(a) ? a.map((x) => String(x || "")).filter(Boolean) : [];
+    }),
     evaluaciones: evs.map((e) => {
       const ptsDefecto = Number(e.ptsDefecto) > 0 ? Number(e.ptsDefecto) : PTS_DEFECTO;
       const crudos = Array.isArray(e.criterios) && e.criterios.length ? e.criterios : [""];
@@ -1769,6 +1879,9 @@ function normalizar(d) {
         fecha: e.fecha || hoy(),
         oa: e.oa || "",
         tipo: TIPOS[e.tipo] !== undefined ? e.tipo : "docente",
+        adeModo: MODOS_ADE.includes(e.adeModo) ? e.adeModo : "curso",
+        ade: Array.isArray(e.ade) ? Array.from({ length: n }, (_, i) =>
+          Array.isArray(e.ade[i]) ? e.ade[i].map((x) => String(x || "")).filter(Boolean) : []) : null,
         exigencia: exigenciaValida(e.exigencia),
         peso: pesoDe(e),
         ptsDefecto,
@@ -2130,7 +2243,9 @@ function cabeceraEvaluacion() {
       <button class="btn btn-mini" data-accion="imprimir">PDF con marcas</button>
       <button class="btn btn-mini" data-accion="imprimir-blanco">PDF en blanco</button>
       <button class="btn btn-mini" data-accion="limpiar-marcas">Limpiar marcas</button>
-      <button class="btn btn-mini btn-peligro" data-accion="borrar-eval">Eliminar</button>
+    </div>
+    <div class="fila fila-peligro">
+      <button class="btn btn-mini btn-peligro" data-accion="borrar-eval">Eliminar esta lista</button>
     </div>
     ${S.ajustes ? panelAjustes(ev) : ""}
   </div>`;
@@ -2142,6 +2257,13 @@ function panelAjustes(ev) {
   <div class="bloque-seccion">
     <span class="rotulo-seccion" style="margin-top:10px">Datos de la lista</span>
     <label class="campo"><span>Nombre de la lista de cotejo</span><input type="text" data-campo="nombre" value="${esc(ev.nombre)}"></label>
+    <label class="campo"><span>Adecuaciones en esta lista</span>
+      <select data-accion="ade-lista">
+        <option value="curso" ${adeModo(ev) === "curso" ? "selected" : ""}>Las mismas del curso</option>
+        <option value="propias" ${adeModo(ev) === "propias" ? "selected" : ""}>Propias de esta lista</option>
+        <option value="ninguna" ${adeModo(ev) === "ninguna" ? "selected" : ""}>Sin adecuaciones</option>
+      </select>
+      <span class="sub" style="font-weight:400">Úsalo cuando una unidad requiera un apoyo distinto al habitual.</span></label>
     <label class="campo"><span>Quién evalúa</span>
       <select data-accion="tipo-eval">
         ${[["docente", "El profesor"], ["auto", "Autoevaluación"], ["coe", "Coevaluación entre pares"]]
@@ -2233,7 +2355,6 @@ function panelAjustes(ev) {
             </div>`).join("")}
           <div class="fila" style="margin-top:4px">
             <button class="btn btn-mini" data-accion="agregar-indicador" data-j="${j}">Agregar indicador</button>
-            <button class="btn btn-mini" data-accion="sugerir" data-j="${j}">Sugeridos</button>
             <span class="sub">${c.indicadores.length} indicadores${esEscala(ev) ? ` · hasta ${c.indicadores.length * maxNivel(ev)} pts` : ` · ${c.indicadores.reduce((a, x) => a + (Number(x.pts) || 0), 0)} pts`}</span>
           </div>
         </div>
@@ -2512,6 +2633,8 @@ function vistaPorAlumno(ev) {
     <div style="margin-top:12px">
       <button class="obs-boton" data-accion="obs" data-i="${i}">${ev.obs[i] ? "Ver observación" : "Agregar observación"}</button>
       ${ev.obs[i] ? `<p class="sub" style="margin:2px 0 0">${esc(ev.obs[i])}</p>` : ""}
+      ${adeDe(i).length ? `<div class="aviso-dua"><b>Adecuaciones aplicadas</b>
+        <ul>${adeDe(i).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : ""}
       <div class="fila" style="margin-top:8px">
         <button class="btn btn-mini" data-accion="fila-completa" data-i="${i}">Marcar todo logrado</button>
         <button class="btn btn-mini" data-accion="fila-limpia" data-i="${i}">Borrar sus marcas</button>
@@ -2683,7 +2806,7 @@ function vistaConsolidado() {
       <tbody>
         ${filas.map((f, i) => `<tr>
           <td class="izq col-fija"><span class="n-orden">${String(i + 1).padStart(2, "0")}</span>
-            <button class="obs-boton" data-accion="ficha" data-i="${i}" title="Ver sus observaciones">${esc(f.nom || "—")}</button></td>
+            <button class="obs-boton" data-accion="ficha" data-i="${i}" title="Ver sus observaciones">${esc(f.nom || "—")}</button>${adeDe(i).length ? `<span class="marca-dua" title="Con adecuaciones curriculares">DUA</span>` : ""}</td>
           ${f.notas.map((n) => `<td class="mono" style="color:${n === null ? "var(--line)" : n < 4 ? "var(--n1)" : "var(--ink)"}">${n === null ? "—" : num1(n)}</td>`).join("")}
           <td><span class="nota ${f.prom === null ? "" : f.prom < 4 ? "roja" : "azul"}">${num1(f.prom)}</span></td>
         </tr>`).join("")}
@@ -2710,10 +2833,15 @@ function vistaCurso() {
       <button class="btn btn-mini btn-lleno" data-accion="agregar-alumno">Agregar</button>
     </div>
     ${S.datos.roster.length ? S.datos.roster.map((n, i) => `
-      <div class="alumno-cab" style="padding:5px 0;border-top:1px solid var(--line)">
-        <span class="n-orden">${String(i + 1).padStart(2, "0")}</span>
-        <input type="text" data-campo="alumno" data-i="${i}" value="${esc(n)}" placeholder="Nombre y apellido" style="flex:1;padding:6px 8px;font-size:14px">
-        <button class="btn btn-mini btn-peligro" data-accion="borrar-alumno" data-i="${i}">×</button>
+      <div style="border-top:1px solid var(--line);padding:5px 0">
+        <div class="alumno-cab">
+          <span class="n-orden">${String(i + 1).padStart(2, "0")}</span>
+          <input type="text" data-campo="alumno" data-i="${i}" value="${esc(n)}" placeholder="Nombre y apellido" style="flex:1;padding:6px 8px;font-size:14px">
+          <button class="btn btn-mini ${adeDe(i).length ? "btn-lleno" : ""}" data-accion="adecuacion" data-i="${i}"
+            title="Adecuaciones curriculares">DUA${adeDe(i).length ? ` ${adeDe(i).length}` : ""}</button>
+          <button class="btn btn-mini btn-peligro" data-accion="borrar-alumno" data-i="${i}">×</button>
+        </div>
+        ${adeDe(i).length ? `<p class="sub" style="margin:4px 0 0 26px">${adeDe(i).map((x) => esc(x)).join(" · ")}</p>` : ""}
       </div>`).join("") : `<div class="vacio"><strong>Nómina vacía</strong>
       Crea los casilleros y escribe los nombres uno por uno, o pega la lista completa de una vez. Si el curso es más grande, agregas los que falten.
       <div class="fila" style="justify-content:center;margin-top:14px">
@@ -2750,7 +2878,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v80</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v83</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -3217,41 +3345,6 @@ document.addEventListener("click", async (evt) => {
     ev.criterios[+btn.dataset.j].indicadores[+btn.dataset.q].texto = btn.dataset.t;
     cerrarModal(); marcarCambio(); pintar(); return;
   }
-  if (a === "sugerir") {
-    const j = +btn.dataset.j;
-    const sug = sugerenciasPara(ev.criterios[j]);
-    abrirModal(`
-      <h3>Indicadores sugeridos</h3>
-      <p class="sub" style="margin:4px 0 10px">${esc(sug.rotulo)}. Son propuestas de redacción observable, no texto oficial de las Bases Curriculares.</p>
-      ${sug.lista.map((t, k) => `<button class="btn btn-ancho" style="margin-bottom:6px;text-align:left"
-        data-accion="usar-sugerido" data-j="${j}" data-k="${k}">${esc(t)}</button>`).join("")}
-      <div class="fila" style="margin-top:4px">
-        <button class="btn btn-mini" data-accion="usar-todos-sugeridos" data-j="${j}">Agregar todos</button>
-        <button class="btn btn-mini" data-accion="cerrar-modal">Cerrar</button>
-      </div>`);
-    return;
-  }
-  if (a === "usar-todos-sugeridos") {
-    const j = +btn.dataset.j, c = ev.criterios[j];
-    sugerenciasPara(c).lista.forEach((texto) => {
-      const vacio = c.indicadores.findIndex((x) => !x.texto.trim());
-      if (vacio >= 0) c.indicadores[vacio].texto = texto;
-      else { c.indicadores.push({ texto, pts: ev.ptsDefecto }); ev.marcas.forEach((f) => f[j].push(0)); }
-    });
-    cerrarModal(); marcarCambio(); pintar(); return;
-  }
-  if (a === "usar-sugerido") {
-    const j = +btn.dataset.j, texto = sugerenciasPara(ev.criterios[j]).lista[+btn.dataset.k];
-    const c = ev.criterios[j];
-    const vacio = c.indicadores.findIndex((x) => !x.texto.trim());
-    if (vacio >= 0) c.indicadores[vacio].texto = texto;
-    else {
-      c.indicadores.push({ texto, pts: ev.ptsDefecto });
-      ev.marcas.forEach((f) => f[j].push(0));
-    }
-    cerrarModal(); marcarCambio(); pintar(); return;
-  }
-
   /* --- nómina --- */
   if (a === "ordenar-nomina") {
     confirmar("Se ordenará la nómina de la A a la Z. Las marcas, notas y observaciones viajan con cada estudiante.", () => {
@@ -3262,6 +3355,7 @@ document.addEventListener("click", async (evt) => {
         return x.localeCompare(y, "es", { sensitivity: "base" });
       });
       S.datos.roster = orden.map((k) => S.datos.roster[k]);
+      S.datos.adecuaciones = orden.map((k) => adeDe(k));
       S.datos.evaluaciones.forEach((e) => {
         ["marcas", "datos", "estado", "obs"].forEach((campo) => {
           e[campo] = orden.map((k) => e[campo][k]);
@@ -3282,10 +3376,39 @@ document.addEventListener("click", async (evt) => {
     sumarEstudiante(nom);
     campo.value = ""; marcarCambio(); pintar(); return;
   }
+  if (a === "adecuacion") {
+    const i = +btn.dataset.i, puestas = new Set(adeDe(i));
+    const seccion = (clase, titulo) => `<p class="rotulo-seccion">${titulo}</p>` +
+      ADECUACIONES.filter(([c]) => c === clase).map(([, nombre, items]) => `<details class="det-tarea">
+        <summary>${esc(nombre)} <i>${items.filter((t) => puestas.has(t)).length || items.length}</i></summary>
+        <div class="caja-oas">${items.map((t) => `<button class="oa-item ${puestas.has(t) ? "puesta" : ""}"
+          data-accion="marcar-ade" data-i="${i}" data-t="${esc(t)}">${puestas.has(t) ? "✓ " : ""}${esc(t)}</button>`).join("")}</div>
+      </details>`).join("");
+    abrirModal(`
+      <h3>Adecuaciones curriculares</h3>
+      <p class="sub" style="margin:4px 0 10px">${esc(S.datos.roster[i] || "Estudiante " + (i + 1))} ·
+        Decreto 83/2015. Toca para aplicar o quitar. Las de acceso no modifican el objetivo; las de objetivos sí, y requieren registro en el PACI.</p>
+      ${seccion("acceso", "Adecuaciones de acceso")}
+      ${seccion("objetivos", "Adecuaciones en los objetivos de aprendizaje")}
+      <div class="fila" style="margin-top:12px"><button class="btn btn-lleno btn-ancho" data-accion="cerrar-modal">Listo</button></div>`);
+    return;
+  }
+  if (a === "marcar-ade") {
+    const i = +btn.dataset.i, t = btn.dataset.t;
+    const lista = S.pestana === "curso" ? adeCurso(i) : adeDe(i);
+    const k = lista.indexOf(t);
+    if (k >= 0) lista.splice(k, 1); else lista.push(t);
+    if (S.pestana === "curso" || adeModo(evalActual()) === "curso") S.datos.adecuaciones[i] = lista;
+    marcarCambio();
+    cerrarModal(); pintar();
+    document.querySelector(`[data-accion="adecuacion"][data-i="${i}"]`)?.click();
+    return;
+  }
   if (a === "borrar-alumno") {
     const i = +btn.dataset.i;
     confirmar(`Se quitará a ${S.datos.roster[i] || "ese estudiante"} de la nómina y de todas las listas del curso.`, () => {
       S.datos.roster.splice(i, 1);
+      (S.datos.adecuaciones || []).splice(i, 1);
       S.datos.evaluaciones.forEach((e) => { e.marcas.splice(i, 1); e.datos.splice(i, 1); e.estado.splice(i, 1); e.obs.splice(i, 1); });
       S.alumnoActivo = 0; marcarCambio(); pintar();
     });
@@ -3403,6 +3526,12 @@ document.addEventListener("change", (evt) => {
     else if (a === "tema") {
       localStorage.setItem(CLAVE_TEMA, el.value); aplicarTema(); pintar(); return;
     }
+    else if (a === "ade-lista") {
+      const ev = evalActual();
+      ev.adeModo = el.value;
+      if (el.value === "propias" && !ev.ade) ev.ade = S.datos.roster.map((_, i) => adeCurso(i).slice());
+      marcarCambio(); pintar(); return;
+    }
     else if (a === "tipo-eval") {
       evalActual().tipo = el.value; marcarCambio(); pintar(); return;
     }
@@ -3477,14 +3606,14 @@ function claseCol(k, n) {
 function filasDeEvaluacion(ev) {
   const cols = columnasPlanilla(ev);
   const total = puntajeTotal(ev);
-  const cab = ["N°", "Estudiante", "Asis.",
+  const cab = ["N°", "Estudiante", "Adecuaciones", "Asis.",
     ...cols.map((c) => (c.ind && c.ind.texto.trim()) || `${c.j + 1}.${c.q + 1}`),
     "Puntaje", "Nota", "Observación"];
   const filas = S.datos.roster.map((n, i) => {
     const r = resultado(ev, i);
     const est = ev.estado[i] || 0;
     return [
-      i + 1, n || "", est === 1 ? "A" : est === 2 ? "J" : "P",
+      i + 1, n || "", adeDe(i).join("; "), est === 1 ? "A" : est === 2 ? "J" : "P",
       ...cols.map((c) => {
         if (est) return "";
         if (esEscala(ev)) return nivelDe(ev, i, c.j, c.q) || "";
@@ -3519,7 +3648,15 @@ function imprimir(enBlanco) {
   if (S.pestana === "consolidado") return imprimirConsolidado();
   const ev = evalActual();
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
-  const { filas, total, cols } = filasDeEvaluacion(ev);
+  const { filas: filasBrutas, total, cols } = filasDeEvaluacion(ev);
+  // En la hoja, las adecuaciones no ocupan columna: van marcadas con * y detalladas al pie.
+  const filas = filasBrutas.map((f, i) => {
+    const copia = f.slice();
+    copia.splice(2, 1);
+    if (adeDe(i).length) copia[1] = (copia[1] || "—") + " *";
+    return copia;
+  });
+  const conAde = S.datos.roster.map((n, i) => adeDe(i).length ? { n: n || `N° ${i + 1}`, lista: adeDe(i) } : null).filter(Boolean);
   const e = estadisticas(ev);
   prepararImpresion(columnasPlanilla(ev).length * (esEscala(ev) ? 1 : 1));
   $("#impresion").innerHTML = `
@@ -3547,6 +3684,8 @@ function imprimir(enBlanco) {
       <div class="rejilla-ind">${c.indicadores.map((ind, q) => `
         <div class="caja-ind"><b>${j + 1}.${q + 1}</b> ${esc(ind.texto || "sin redactar")}
           <i>${esEscala(ev) ? `1–${nNiveles(ev)}` : `${ind.pts} pts`}</i></div>`).join("")}</div>`).join("")}</div>
+    ${conAde.length ? `<p class="nota-dua"><b>* Adecuaciones curriculares · Decreto 83/2015.</b>
+      ${conAde.map((x) => `${esc(x.n)}: ${x.lista.map((t) => esc(t)).join("; ")}`).join(" — ")}</p>` : ""}
     <table>
       <thead><tr>
         <th class="c-n">N°</th><th class="c-nom izq">Estudiante</th><th class="c-asis">As.</th>
