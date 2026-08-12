@@ -1151,6 +1151,10 @@ function tablaNotas(total, exig) {
   return filas;
 }
 const TIPOS = { docente: "", auto: "Autoevaluación", coe: "Coevaluación" };
+const CLAVE_DOCENTE = PREFIJO + "docente";
+const nombreDocente = () => (localStorage.getItem(CLAVE_DOCENTE) || "").trim();
+/* Quién firma la evaluación: el profesor por su nombre, o el tipo cuando la hace el curso. */
+const quienEvalua = (ev) => rotuloTipo(ev) || nombreDocente() || "El profesor";
 const tipoDe = (ev) => (ev && TIPOS[ev.tipo] !== undefined ? ev.tipo : "docente");
 const rotuloTipo = (ev) => TIPOS[tipoDe(ev)];
 
@@ -2322,7 +2326,10 @@ function vistaCurso() {
 
   <div class="tarjeta">
     <h2 style="font-size:15px">Respaldo</h2>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v72</p>
+    <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
+      <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
+    </label>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v73</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -2880,6 +2887,7 @@ document.addEventListener("input", (evt) => {
   else if (campo === "nivel-p") ev.escala.niveles[+el.dataset.k].p = Math.max(0, +el.value || 0);
   else if (campo === "pts") ev.criterios[+el.dataset.j].indicadores[+el.dataset.q].pts = Math.max(0, +el.value || 0);
   else if (campo === "alumno") S.datos.roster[+el.dataset.i] = el.value;
+  else if (campo === "docente") { localStorage.setItem(CLAVE_DOCENTE, el.value); return; }
   else if (campo === "exigencia") { ev.exigencia = Math.min(100, Math.max(10, +el.value || EXIGENCIA)); marcarCambio(); pintar(); return; }
   else if (campo === "peso") { ev.peso = Math.min(10, Math.max(0, +el.value || 0)); marcarCambio(); pintar(); return; }
   else if (campo === "descriptor") {
@@ -3042,7 +3050,7 @@ function imprimir(enBlanco) {
       </tr>
       <tr>
         <th>Instrumento</th><td>${esEscala(ev) ? `Escala de apreciación 1–${nNiveles(ev)}` : "Lista de cotejo"}</td>
-        <th>Evalúa</th><td>${rotuloTipo(ev) || "El profesor"}</td>
+        <th>Evalúa</th><td>${esc(quienEvalua(ev))}</td>
         <th>Puntaje</th><td>${total} pts · exigencia ${exigenciaValida(ev.exigencia)}%</td>
       </tr>
       <tr>
@@ -3134,7 +3142,8 @@ async function exportarExcel() {
   S.datos.evaluaciones.forEach((ev, k) => {
     const { cab, filas, total } = filasDeEvaluacion(ev);
     const encabezado = [
-      [`${ev.nombre} · ${curso.nombre}${rotuloTipo(ev) ? " · " + rotuloTipo(ev) : ""}`],
+      [`${ev.nombre} · ${curso.nombre}`],
+      [`Evalúa: ${quienEvalua(ev)}`],
       [`Fecha: ${fechaLarga(ev.fecha)}`, `Exigencia: ${exigenciaValida(ev.exigencia)}% · 2,0 a 7,0`, `Puntaje total: ${total}`],
       [esEscala(ev) ? `Escala: ${leyendaEscala(ev).replace(/<[^>]*>/g, "")}` : "L = logrado · NL = no logrado · vacío = sin marcar"],
       ...ev.criterios.map((c, j) => [c.oa || `C${j + 1}`, c.texto || "—",
