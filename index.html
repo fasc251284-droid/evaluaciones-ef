@@ -480,6 +480,15 @@ h1,h2,h3{font-family:var(--display); letter-spacing:-.01em}
   .hoja-impresion tr{break-inside:avoid}
 
   .leyenda-escala{margin:0 0 4px; font-size:9px}
+  .cabecera-hoja{display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
+    border-bottom:1.5px solid var(--ink); padding-bottom:6px; margin-bottom:8px}
+  .cabecera-hoja h1{font-size:15px; margin:0}
+  .cabecera-hoja .linea-curso{font-size:10px; margin:2px 0 0; color:#3a4a54}
+  .cabecera-hoja .linea-unidad{font-size:10px; margin:2px 0 0; font-style:italic}
+  .ficha-hoja{flex:0 0 auto; text-align:right; font-size:9px; line-height:1.45}
+  .ficha-hoja span{display:block}
+  .ficha-hoja i{display:block; font-style:normal; font-size:7.5px; letter-spacing:.08em;
+    text-transform:uppercase; color:#5b7383}
   .leyenda-oa{line-height:1.4; margin:0 0 8px}
   .leyenda-oa .oa-titulo{margin:7px 0 1px; font-family:var(--mono)}
   .leyenda-oa .oa-texto{margin:0 0 3px; text-align:justify; hyphens:auto}
@@ -2316,7 +2325,7 @@ function vistaCurso() {
 
   <div class="tarjeta">
     <h2 style="font-size:15px">Respaldo</h2>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v70</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v71</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -3027,8 +3036,18 @@ function imprimir(enBlanco) {
   const e = estadisticas(ev);
   prepararImpresion(columnasPlanilla(ev).length * (esEscala(ev) ? 1 : 1));
   $("#impresion").innerHTML = `
-    <h1 style="font-size:15px">${esc(ev.nombre)} · ${esc(curso.nombre)}</h1>
-    <p style="font-size:11px;margin:2px 0 4px">${fechaLarga(ev.fecha)}${ev.oa ? " · " + esc(ev.oa) : ""}${codigosOA(ev).length ? " · " + codigosOA(ev).join(" · ") : ""} · ${esEscala(ev) ? "escala de apreciación" : "lista de cotejo"}${rotuloTipo(ev) ? " · " + rotuloTipo(ev) : ""} · ${total} pts · exigencia ${exigenciaValida(ev.exigencia)}% (2,0–7,0)${enBlanco ? " · hoja para marcar a mano" : ` · promedio ${num1(e.prom)}`}</p>
+    <div class="cabecera-hoja">
+      <div>
+        <h1>${esc(ev.nombre)}</h1>
+        <p class="linea-curso">${esc(curso.nombre)} · Educación Física y Salud · ${fechaLarga(ev.fecha)}</p>
+        ${ev.oa ? `<p class="linea-unidad">${esc(ev.oa)}</p>` : ""}
+      </div>
+      <div class="ficha-hoja">
+        <span><i>Instrumento</i>${esEscala(ev) ? "Escala de apreciación" : "Lista de cotejo"}${rotuloTipo(ev) ? ` · ${rotuloTipo(ev)}` : ""}</span>
+        <span><i>Puntaje</i>${total} pts · exigencia ${exigenciaValida(ev.exigencia)}%</span>
+        <span><i>${enBlanco ? "Uso" : "Promedio"}</i>${enBlanco ? "Para marcar a mano" : num1(e.prom) + " · nota de 2,0 a 7,0"}</span>
+      </div>
+    </div>
     ${esEscala(ev) ? `<p class="leyenda-escala"><b>Escala:</b> ${leyendaEscala(ev)}</p>` : ""}
     <div class="leyenda-oa">${ev.criterios.map((c, j) => `
       <p class="oa-titulo"><b>${esc(c.oa || "Criterio " + (j + 1))}</b> · ${esc(EJES[c.eje] || "criterio propio")}</p>
