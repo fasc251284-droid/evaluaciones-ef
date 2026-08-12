@@ -672,6 +672,14 @@ const CURRICULO = {
    Indicadores por tarea motriz. A diferencia de los sugeridos por OA,
    estos describen la ejecución concreta de una actividad de clase.
    ========================================================= */
+/* Estructura de la retroalimentación formativa. */
+const PAUTA_OBS = [
+  "Fortaleza observada",
+  "Aspecto que debe seguir practicando",
+  "Apoyo o adaptación utilizada",
+  "Próximo desafío de aprendizaje"
+];
+
 const TAREAS = [
   ["Salto de vallas", [
     "Corre hacia la valla sin frenar en los últimos pasos",
@@ -741,6 +749,38 @@ const TAREAS = [
     "Acierta el lanzamiento al blanco en tres de cinco intentos",
     "Lanza con la mano derecha y con la izquierda",
     "Avisa a su compañero antes de lanzarle el balón"]],
+
+  ["Salto de cuerda larga guiada por el profesor · pauta formativa", [
+    "Se ubica en el lugar indicado y mantiene una distancia segura de la cuerda y de sus compañeros",
+    "Observa el recorrido de la cuerda y espera el momento adecuado para iniciar el salto",
+    "Coordina el impulso de sus pies con el paso de la cuerda",
+    "Eleva los pies lo necesario para permitir el paso de la cuerda",
+    "Aterriza de manera controlada, flexionando levemente las rodillas y manteniendo el equilibrio",
+    "Mantiene una secuencia de saltos continuos, conservando el ritmo y el control de su cuerpo",
+    "Participa activamente y vuelve a intentarlo cuando se equivoca o interrumpe la secuencia",
+    "Respeta los turnos, escucha las instrucciones y mantiene un trato respetuoso con sus compañeros"]],
+
+  ["Salto de vallas · pauta formativa", [
+    "Inicia el recorrido desde el lugar indicado y después de recibir la señal",
+    "Se aproxima a las vallas mediante pasos controlados",
+    "Eleva los pies lo suficiente para superar las vallas bajas",
+    "Utiliza un pie y luego el otro para pasar las vallas",
+    "Coordina el movimiento de los brazos y las piernas durante el recorrido",
+    "Mantiene el equilibrio y continúa el desplazamiento después de cada salto",
+    "Respeta su turno y mantiene una distancia segura con sus compañeros",
+    "Participa con esfuerzo y vuelve a intentarlo cuando presenta alguna dificultad"]],
+
+  ["Lanzamiento y recepción · pauta formativa", [
+    "Se ubica frente a su compañero o al objetivo antes de lanzar",
+    "Dirige la mirada hacia el compañero o el objetivo antes de realizar el lanzamiento",
+    "Lanza el balón en dirección al compañero o al objetivo señalado",
+    "Ajusta la fuerza del lanzamiento de acuerdo con la distancia",
+    "Coordina el movimiento del brazo con el desplazamiento de su cuerpo al lanzar",
+    "Sigue con la mirada la trayectoria del balón durante la recepción",
+    "Prepara sus manos antes de recibir el balón",
+    "Recibe y controla el balón sin que se aleje de su cuerpo",
+    "Respeta los turnos y mantiene una distancia segura durante la actividad",
+    "Participa activamente, acepta la retroalimentación y vuelve a intentarlo cuando presenta dificultades"]],
 
   ["Salto en un pie", [
     "Salta en un pie manteniendo el otro flexionado sin tocar el suelo",
@@ -1520,6 +1560,19 @@ const exigenciaValida = (e) => { const n = Number(e); return n >= 10 && n <= 100
 const ptsAprobacion = (total, exig) => Math.round((total * exigenciaValida(exig)) / 100 * 10) / 10;
 
 /* ===== Modo escala de apreciación (opcional) ===== */
+/* Escalas de uso frecuente. La primera es la que traen las listas nuevas. */
+const ESCALAS = [
+  ["4 niveles · Por lograr a Destacado", [
+    { r: "Por lograr", p: 1 }, { r: "En desarrollo", p: 2 },
+    { r: "Logrado", p: 3 }, { r: "Destacado", p: 4 }]],
+  ["3 niveles · Requiere apoyo a Logrado", [
+    { r: "Requiere apoyo", p: 1 }, { r: "En proceso", p: 2 }, { r: "Logrado", p: 3 }]],
+  ["3 niveles · Nunca, A veces, Siempre", [
+    { r: "Nunca", p: 1 }, { r: "A veces", p: 2 }, { r: "Siempre", p: 3 }]],
+  ["2 niveles · No logrado y Logrado", [
+    { r: "No logrado", p: 1 }, { r: "Logrado", p: 2 }]]
+];
+
 const ESCALA_BASE = [
   { r: "Por lograr", p: 1 }, { r: "En desarrollo", p: 2 },
   { r: "Logrado", p: 3 }, { r: "Destacado", p: 4 }
@@ -2143,7 +2196,10 @@ function panelAjustes(ev) {
               <input type="number" min="0" max="20" step="1" data-campo="nivel-p" data-k="${k}" value="${n.p}" title="Puntos" style="flex:0 0 62px;width:62px;text-align:center">
               <button class="btn btn-mini btn-peligro" data-accion="borrar-nivel" data-k="${k}" ${nNiveles(ev) <= 2 ? "disabled" : ""}>×</button>
             </div>`).join("")}
-          <div class="fila" style="margin-top:8px"><button class="btn btn-mini" data-accion="agregar-nivel">Agregar nivel</button></div>
+          <div class="fila" style="margin-top:8px">
+            <button class="btn btn-mini" data-accion="agregar-nivel">Agregar nivel</button>
+            <button class="btn btn-mini" data-accion="cambiar-escala">Usar una escala frecuente</button>
+          </div>
         </div>` : ""}
     </div>
 
@@ -2694,7 +2750,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v77</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v80</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -2825,6 +2881,22 @@ document.addEventListener("click", async (evt) => {
     ev.modo = v;
     marcarCambio(); pintar(); return;
   }
+  if (a === "cambiar-escala") {
+    abrirModal(`
+      <h3>Escalas frecuentes</h3>
+      <p class="sub" style="margin:4px 0 10px">Reemplaza los niveles de esta lista. Las marcas por sobre el nuevo máximo se ajustan.</p>
+      <div class="caja-oas">${ESCALAS.map(([nombre, niveles], k) => `<button class="oa-item" data-accion="poner-escala" data-k="${k}">
+        <b>${esc(nombre)}</b><br><span class="sub">${niveles.map((n) => `${n.p} · ${esc(n.r)}`).join(" | ")}</span></button>`).join("")}</div>
+      <div class="fila" style="margin-top:10px"><button class="btn btn-ancho" data-accion="cerrar-modal">Cancelar</button></div>`);
+    return;
+  }
+  if (a === "poner-escala") {
+    const niveles = ESCALAS[+btn.dataset.k][1];
+    ev.escala = { niveles: niveles.map((n) => ({ ...n })) };
+    const N = niveles.length;
+    ev.datos.forEach((f) => f.forEach((fila) => { if (Array.isArray(fila)) fila.forEach((v, q) => { if (v > N) fila[q] = N; }); }));
+    cerrarModal(); marcarCambio(); pintar(); return;
+  }
   if (a === "agregar-nivel") {
     ev.escala.niveles.push({ r: "Nivel " + (nNiveles(ev) + 1), p: maxNivel(ev) + 1 });
     marcarCambio(); pintar(); return;
@@ -2908,11 +2980,23 @@ document.addEventListener("click", async (evt) => {
     abrirModal(`
       <h3>Observación</h3>
       <p class="sub" style="margin:4px 0 10px">${esc(S.datos.roster[i])}</p>
-      <textarea id="txt-obs" rows="4" placeholder="Qué observaste y qué apoyo necesita">${esc(ev.obs[i] || "")}</textarea>
+      <textarea id="txt-obs" rows="5" placeholder="Qué observaste y qué apoyo necesita">${esc(ev.obs[i] || "")}</textarea>
+      <div class="fila" style="margin-top:9px">
+        <button class="btn btn-mini" data-accion="pauta-obs">Usar pauta de retroalimentación</button>
+      </div>
       <div class="fila" style="margin-top:12px">
         <button class="btn btn-lleno" data-accion="guardar-obs" data-i="${i}">Guardar</button>
         <button class="btn" data-accion="cerrar-modal">Cancelar</button>
       </div>`);
+    return;
+  }
+  if (a === "pauta-obs") {
+    const campo = $("#txt-obs");
+    if (!campo) return;
+    const pauta = PAUTA_OBS.map((r) => `${r}: `).join("\n");
+    campo.value = campo.value.trim() ? campo.value.trim() + "\n\n" + pauta : pauta;
+    campo.focus();
+    campo.setSelectionRange(campo.value.length, campo.value.length);
     return;
   }
   if (a === "guardar-obs") {
