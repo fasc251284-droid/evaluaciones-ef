@@ -290,6 +290,17 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .etiqueta-tipo{display:inline-block; vertical-align:middle; font-size:11px; font-weight:700;
   background:var(--verde-claro); color:var(--verde-oscuro); border-radius:20px; padding:2px 9px; margin-left:4px}
 .rejilla-cursos{display:grid; grid-template-columns:repeat(2, 1fr); gap:7px}
+.det-tarea{border:1px solid var(--line); border-radius:var(--r-s); margin-bottom:6px; overflow:hidden}
+.det-tarea summary{padding:11px 12px; font-size:14px; font-weight:600; cursor:pointer;
+  list-style:none; display:flex; justify-content:space-between; align-items:center; gap:8px;
+  min-height:44px; transition:background .14s var(--curva)}
+.det-tarea summary::-webkit-details-marker{display:none}
+.det-tarea summary .mono{font-size:11px; color:var(--verde-oscuro); margin-right:5px}
+.det-tarea summary i{font-style:normal; font-size:11px; font-weight:700; color:var(--verde-oscuro);
+  background:var(--verde-claro); border-radius:999px; padding:2px 8px}
+.det-tarea[open] summary{background:var(--surface-2); border-bottom:1px solid var(--line)}
+.det-tarea .caja-oas{border:0; border-radius:0; max-height:none}
+
 .det-desc{margin-top:8px}
 .det-desc summary{font-size:12.5px; color:var(--verde-oscuro); cursor:pointer; padding:3px 0; list-style:none}
 .det-desc summary::-webkit-details-marker{display:none}
@@ -656,6 +667,249 @@ const CURRICULO = {
 
 /* Indicadores sugeridos por eje. Son propuestas de redacción observable,
    no forman parte del texto oficial de las Bases Curriculares. */
+
+/* =========================================================
+   Indicadores por tarea motriz. A diferencia de los sugeridos por OA,
+   estos describen la ejecución concreta de una actividad de clase.
+   ========================================================= */
+const TAREAS = [
+  ["Salto de vallas", [
+    "Corre hacia la valla sin frenar en los últimos pasos",
+    "Pasa la valla con la pierna de ataque extendida al frente",
+    "Recoge la pierna de arrastre por el costado del cuerpo",
+    "Mantiene el tronco levemente inclinado al pasar la valla",
+    "Cae con el pie de la pierna de ataque y continúa la carrera",
+    "Conserva el mismo pie de batida en todas las vallas",
+    "Mantiene el ritmo de zancadas entre una valla y otra",
+    "Supera la serie completa de vallas sin derribarlas",
+    "Regula la altura del salto según la valla que enfrenta",
+    "Mira al frente durante el paso de la valla"]],
+
+  ["Salto de cuerda girada por el profesor", [
+    "Observa el giro de la cuerda antes de saltar",
+    "Salta con los dos pies juntos cuando la cuerda toca el suelo",
+    "Coordina el salto con el ritmo del giro de la cuerda",
+    "Mantiene el cuerpo erguido durante los saltos",
+    "Amortigua la caída con las rodillas semiflexionadas",
+    "Realiza saltos seguidos sin detener la cuerda",
+    "Sostiene el ritmo cuando cambia la velocidad del giro",
+    "Salta alternando un pie y el otro cuando se le indica",
+    "Gira la cuerda con muñecas y no con todo el brazo cuando le toca girar",
+    "Mantiene la cuerda tensa y a la misma altura mientras gira",
+    "Gira la cuerda a velocidad pareja para que su compañero salte",
+    "Salta sin desplazarse del lugar donde inició",
+    "Cae sobre la punta de los pies y no con el talón",
+    "Salta con la cuerda al doble de velocidad cuando se le pide",
+    "Ejecuta diez saltos seguidos sin cortar la cuerda",
+    "Detiene la cuerda con el pie al terminar la serie"]],
+
+  ["Cuerda girada: entrar y salir", [
+    "Espera el momento adecuado para entrar a la cuerda",
+    "Entra corriendo desde el costado sin detener el giro",
+    "Se ubica al centro de la cuerda al ingresar",
+    "Completa la cantidad de saltos indicada antes de salir",
+    "Sale hacia el costado opuesto sin frenar la cuerda",
+    "Encadena entrada, saltos y salida en una sola secuencia",
+    "Repite la secuencia manteniendo el ritmo del grupo",
+    "Ingresa a la cuerda junto a un compañero y coordina los saltos",
+    "Cuenta los saltos en voz alta mientras ejecuta",
+    "Entra a la cuerda por el lado que sube y no por el que baja",
+    "Da el primer salto sin detenerse tras el ingreso",
+    "Sale sin tocar la cuerda con el cuerpo",
+    "Entra y sale tres veces seguidas sin cortar el giro",
+    "Ingresa detrás de un compañero manteniendo la distancia",
+    "Espera su turno en la fila sin adelantarse"]],
+
+  ["Lanzamiento y recepción", [
+    "Adelanta el pie contrario al brazo que lanza",
+    "Acompaña el lanzamiento con rotación del tronco",
+    "Dirige el lanzamiento hacia el objetivo o el compañero",
+    "Regula la fuerza del lanzamiento según la distancia",
+    "Recibe el balón con las dos manos y los brazos semiflexionados",
+    "Amortigua la recepción llevando el balón hacia el cuerpo",
+    "Sigue la trayectoria del móvil con la vista hasta recibirlo",
+    "Se desplaza para ubicarse bajo el móvil antes de recibirlo",
+    "Recibe sin dejar caer el balón en intentos consecutivos",
+    "Lanza y recibe en movimiento sin perder el control",
+    "Lanza por sobre el hombro cuando la distancia es larga",
+    "Lanza con bote al piso cuando el compañero está marcado",
+    "Recibe el móvil a la altura del pecho con los pulgares juntos",
+    "Recibe por debajo de la cintura con los meñiques juntos",
+    "Extiende los brazos hacia el móvil antes de recibirlo",
+    "Da un paso hacia el balón al recibir un pase corto",
+    "Recibe cinco pases seguidos sin que el balón caiga",
+    "Acierta el lanzamiento al blanco en tres de cinco intentos",
+    "Lanza con la mano derecha y con la izquierda",
+    "Avisa a su compañero antes de lanzarle el balón"]],
+
+  ["Salto en un pie", [
+    "Salta en un pie manteniendo el otro flexionado sin tocar el suelo",
+    "Realiza cinco saltos seguidos en el mismo pie",
+    "Salta en un pie avanzando en línea recta",
+    "Mantiene los brazos en equilibrio durante los saltos",
+    "Cae con la rodilla semiflexionada para amortiguar",
+    "Salta en un pie y luego en el otro cuando se le indica",
+    "Salta en un pie dentro de los aros sin pisar los bordes",
+    "Cambia de pie al llegar a la marca señalada",
+    "Salta en un pie hacia adelante y hacia atrás",
+    "Mantiene el equilibrio al detener la secuencia de saltos",
+    "Salta en un pie girando en el lugar",
+    "Combina el salto en un pie con un desplazamiento lateral"]],
+
+  ["Balonmano", [
+    "Bota el balón con una mano mientras se desplaza",
+    "Ejecuta los tres pasos permitidos antes de botear o pasar",
+    "Realiza el lanzamiento en suspensión con el brazo extendido",
+    "Lanza al arco apoyando el pie contrario al brazo ejecutor",
+    "Dirige el lanzamiento hacia los rincones del arco",
+    "Pasa el balón a la altura del pecho de su compañero",
+    "Recibe el pase con las dos manos y protege el balón",
+    "Se desmarca buscando espacio libre en el ataque",
+    "Ocupa su posición en la defensa cuando el equipo pierde el balón",
+    "Marca a su rival sin empujarlo ni sujetarlo",
+    "Respeta el área del arquero durante el juego",
+    "Ejecuta el saque de banda con un pie en contacto con el suelo",
+    "Realiza el contraataque tras recuperar el balón",
+    "Aplica la regla de pasos y dobles sin que se lo recuerden"]],
+
+  ["Bádminton", [
+    "Toma la raqueta con empuñadura de martillo",
+    "Se ubica en el centro de la cancha después de cada golpe",
+    "Mantiene la raqueta en alto en posición de espera",
+    "Golpea el volante por encima de la cabeza en el saque largo",
+    "Ejecuta el saque corto por debajo de la cintura",
+    "Dirige el saque a la zona de saque contraria",
+    "Golpea el volante en el punto más alto posible",
+    "Ejecuta el golpe de derecha con rotación de antebrazo",
+    "Ejecuta el golpe de revés cambiando la posición de la mano",
+    "Se desplaza al fondo de la cancha para devolver un volante largo",
+    "Realiza el desplazamiento en paso lateral sin cruzar los pies",
+    "Devuelve el volante por sobre la red en tres intentos seguidos",
+    "Mantiene el peloteo con su compañero durante diez golpes",
+    "Anuncia el puntaje en voz alta antes de cada saque"]],
+
+  ["Bote y conducción del balón", [
+    "Bota el balón con la yema de los dedos, no con la palma",
+    "Mantiene el balón a la altura de la cintura al botear",
+    "Bota el balón sin mirarlo, con la vista al frente",
+    "Conduce el balón en zigzag entre los conos sin perderlo",
+    "Cambia de mano al esquivar un obstáculo",
+    "Bota con la mano derecha y con la izquierda",
+    "Protege el balón con el cuerpo ante la marca del rival",
+    "Conduce el balón con los pies alternando ambos lados"]],
+
+  ["Equilibrio y estabilidad", [
+    "Camina sobre una línea o base baja sin perder el equilibrio",
+    "Se mantiene en apoyo sobre un pie durante el tiempo indicado",
+    "Conserva el equilibrio al detener bruscamente la carrera",
+    "Ejecuta el desplazamiento sobre la base sin mirar los pies",
+    "Traslada un objeto sobre la base sin caer",
+    "Recupera el equilibrio tras un desbalance sin apoyar las manos",
+    "Mantiene la postura al cambiar de dirección"]],
+
+  ["Giros, rodadas y volteos", [
+    "Realiza la rodada adelante con el mentón pegado al pecho",
+    "Mantiene el cuerpo agrupado durante la rodada",
+    "Se incorpora al final del volteo sin apoyar las manos",
+    "Ejecuta el giro de 360° en un solo pie",
+    "Encadena dos giros consecutivos manteniendo el control",
+    "Utiliza los brazos para dirigir el giro",
+    "Ejecuta la suspensión manteniendo el cuerpo alineado"]],
+
+  ["Carrera de velocidad", [
+    "Reacciona a la señal de partida sin anticiparse",
+    "Sale en posición baja con el cuerpo inclinado al frente",
+    "Aumenta la frecuencia de zancadas en los primeros metros",
+    "Mueve los brazos coordinados con las piernas",
+    "Corre en línea recta dentro de su carril",
+    "Cruza la meta sin desacelerar antes de llegar",
+    "Ejecuta el cambio de dirección apoyando el pie externo",
+    "Apoya la planta del pie y no el talón durante la carrera",
+    "Mantiene los hombros relajados mientras corre",
+    "Flexiona los brazos en noventa grados al correr",
+    "Eleva las rodillas al frente en la fase de impulso",
+    "Corre sin cruzar los brazos por delante del cuerpo",
+    "Frena en el punto indicado sin pasarse de la marca",
+    "Entrega o recibe el testimonio dentro de la zona de cambio",
+    "Sale a correr recién cuando su compañero llega a la marca",
+    "Completa el circuito de velocidad en el tiempo acordado"]],
+
+  ["Resistencia y trabajo aeróbico", [
+    "Mantiene un ritmo constante durante toda la actividad",
+    "Regula su velocidad para completar el tiempo indicado",
+    "Controla la respiración durante el esfuerzo",
+    "Reconoce cuándo debe bajar la intensidad",
+    "Mide su frecuencia cardiaca siguiendo el procedimiento",
+    "Completa el circuito sin detenerse",
+    "Continúa la actividad pese a la fatiga"]],
+
+  ["Danza y expresión rítmica", [
+    "Ejecuta los pasos básicos en el orden aprendido",
+    "Mantiene el pulso de la música durante la secuencia",
+    "Coordina sus movimientos con los de su pareja o grupo",
+    "Ocupa el espacio siguiendo el desplazamiento de la danza",
+    "Ejecuta la coreografía completa sin detenerse",
+    "Expresa la intención o el carácter de la danza",
+    "Mantiene la postura propia del baile trabajado"]],
+
+  ["Juegos colectivos y táctica", [
+    "Se ubica en los espacios libres de la cancha",
+    "Pasa el balón al compañero mejor ubicado",
+    "Se desmarca para recibir el pase",
+    "Vuelve a la posición defensiva al perder el balón",
+    "Toma decisiones rápidas en el juego reducido",
+    "Comunica sus intenciones al equipo durante el juego",
+    "Aplica la estrategia acordada antes del juego",
+    "Cumple el rol asignado dentro del equipo"]],
+
+  ["Actitud · Participación y esfuerzo", [
+    "Llega con la ropa deportiva requerida para la clase",
+    "Se integra a la activación inicial sin que se le insista",
+    "Permanece en actividad durante toda la clase",
+    "Vuelve a intentar la tarea después de un error",
+    "Termina la serie de repeticiones asignada",
+    "Pide ayuda al profesor cuando no logra la tarea",
+    "Se ofrece como voluntario para demostrar el ejercicio",
+    "Mantiene el esfuerzo aunque la tarea le resulte difícil",
+    "Retoma la actividad de inmediato tras la pausa"]],
+
+  ["Actitud · Convivencia y juego limpio", [
+    "Respeta las reglas acordadas del juego",
+    "Acepta las decisiones del profesor o del árbitro sin reclamar",
+    "Reconoce su falta cuando comete una infracción",
+    "Saluda a sus rivales al inicio y al término del juego",
+    "Felicita a un compañero por un logro",
+    "Incluye a todos sus compañeros en la actividad",
+    "Invita a participar a quien está fuera del juego",
+    "Resuelve los desacuerdos hablando, sin agresión",
+    "Evita descalificar a un compañero por su desempeño",
+    "Acepta el resultado del juego sin agredir ni burlarse",
+    "Juega con la misma intensidad gane o pierda"]],
+
+  ["Actitud · Responsabilidad y seguridad", [
+    "Llega puntualmente al lugar de la clase",
+    "Colabora en instalar y retirar los materiales",
+    "Usa los materiales para lo que fueron destinados",
+    "Guarda los materiales en el lugar acordado al terminar",
+    "Avisa al profesor si observa un riesgo en el espacio",
+    "Respeta las distancias de seguridad con sus compañeros",
+    "Se hidrata durante la sesión sin que se lo recuerden",
+    "Avisa cuando siente dolor o malestar",
+    "Cumple el rol que se le asigna dentro del equipo",
+    "Sigue las instrucciones de seguridad antes de ejecutar"]],
+
+  ["Actitud · Autonomía y trabajo en equipo", [
+    "Organiza a su grupo para iniciar la tarea",
+    "Propone una estrategia al equipo antes de jugar",
+    "Escucha las propuestas de sus compañeros",
+    "Asume el rol de líder cuando el grupo lo requiere",
+    "Explica la tarea a un compañero que no la comprendió",
+    "Ayuda a un compañero que presenta dificultad en el ejercicio",
+    "Cumple los acuerdos tomados por el equipo",
+    "Reconoce sus avances y se plantea una meta personal",
+    "Registra sus resultados sin que se lo soliciten"]]
+];
+
 const SUGERENCIAS = {
   hm: [
     "Ejecuta el gesto técnico con control del cuerpo",
@@ -948,6 +1202,98 @@ const _SUG = [
 
 const SUG_OA = {};
 _SUG.forEach(([codigos, arr]) => codigos.forEach((c) => { SUG_OA[c] = arr; }));
+
+
+/* =========================================================
+   Indicadores para las actitudes (OAA) del programa.
+   Letras A–H para 1° a 6°; A–G para 7° y 8°, según las Bases.
+   ========================================================= */
+const SUG_OAA_1_6 = {
+  A: ["Explica un beneficio de la actividad física para su salud",
+      "Nombra un cambio que percibe en su cuerpo tras el ejercicio",
+      "Relaciona la actividad física con un hábito de vida saludable",
+      "Se hidrata durante la sesión sin que se lo recuerden",
+      "Menciona una actividad física que practica fuera del colegio"],
+  B: ["Se plantea una meta personal para mejorar su desempeño",
+      "Registra sus resultados y los compara con la clase anterior",
+      "Repite el ejercicio buscando mejorar su marca",
+      "Comenta actividades físicas que realiza en su tiempo libre",
+      "Solicita ejercicios para practicar en casa"],
+  C: ["Ejecuta el ejercicio frente al curso cuando se le solicita",
+      "Intenta la tarea nueva sin esperar a ver a otros",
+      "Se ofrece como voluntario para demostrar el ejercicio",
+      "Expresa qué logró y qué le costó de la actividad",
+      "Participa en el juego sin retirarse ante el error"],
+  D: ["Se integra a la activación inicial sin que se le insista",
+      "Permanece en actividad durante toda la clase",
+      "Retoma la actividad de inmediato tras la pausa",
+      "Llega con la ropa deportiva requerida para la clase",
+      "Sigue las instrucciones del profesor a la primera indicación"],
+  E: ["Forma equipos mixtos cuando la tarea lo permite",
+      "Pasa el balón por igual a compañeros y compañeras",
+      "Juega con la misma intensidad ante cualquier compañero",
+      "Evita comentarios que excluyan por ser hombre o mujer",
+      "Invita a participar a quien queda fuera del juego"],
+  F: ["Se relaciona con todos sus compañeros sin excluir a nadie",
+      "Evita comentarios sobre el aspecto físico de un compañero",
+      "Adapta el juego para que participe un compañero con dificultad",
+      "Acepta a cualquier integrante en su equipo",
+      "Ayuda a un compañero que presenta dificultad en el ejercicio"],
+  G: ["Cumple el rol que se le asigna dentro del equipo",
+      "Escucha las propuestas de sus compañeros",
+      "Acepta una corrección del profesor y la aplica",
+      "Colabora en la organización de la actividad",
+      "Cumple los acuerdos tomados por el equipo"],
+  H: ["Vuelve a intentar la tarea después de un error",
+      "Termina la serie de repeticiones asignada",
+      "Mantiene el esfuerzo aunque la tarea le resulte difícil",
+      "Continúa la actividad pese a la fatiga",
+      "Pide ayuda al profesor cuando no logra la tarea"]
+};
+
+const SUG_OAA_7_8 = {
+  A: ["Acepta las decisiones del árbitro sin reclamar",
+      "Reconoce su falta cuando comete una infracción",
+      "Saluda a sus rivales al inicio y al término del juego",
+      "Acepta el resultado sin agredir ni burlarse",
+      "Llega a acuerdos con su equipo antes de jugar"],
+  B: ["Incluye a todos sus compañeros en la actividad",
+      "Adapta la tarea para que participe un compañero con dificultad",
+      "Evita comentarios sobre el aspecto o la condición física de otro",
+      "Forma equipos sin excluir por rendimiento",
+      "Invita a participar a quien queda fuera del juego"],
+  C: ["Asume el rol que le corresponde en el equipo",
+      "Organiza a su grupo para iniciar la tarea",
+      "Escucha las propuestas de sus compañeros",
+      "Acepta una crítica y ajusta su desempeño",
+      "Explica la tarea a un compañero que no la comprendió"],
+  D: ["Comenta actividades físicas que practica fuera del colegio",
+      "Explica un beneficio del ejercicio para su bienestar",
+      "Participa en la actividad mostrando disposición",
+      "Propone una actividad recreativa para el curso",
+      "Relaciona la práctica regular con su estado de ánimo"],
+  E: ["Practica actividad física fuera del horario de clases",
+      "Registra su práctica semanal de actividad física",
+      "Se plantea una meta de práctica regular y la revisa",
+      "Explica cómo organiza su tiempo para ejercitarse",
+      "Recomienda una actividad física a un compañero"],
+  F: ["Propone una actividad física para la comunidad escolar",
+      "Motiva a sus compañeros a participar en la actividad",
+      "Colabora en la organización de un evento deportivo",
+      "Difunde información sobre vida activa en el curso",
+      "Asume la conducción de la activación inicial"],
+  G: ["Colabora en instalar y retirar los materiales",
+      "Usa los materiales para lo que fueron destinados",
+      "Guarda los materiales en el lugar acordado al terminar",
+      "Deja el espacio de trabajo limpio al finalizar",
+      "Avisa al profesor si un material está en mal estado"]
+};
+
+/* Cada OAA de cada curso queda con sus indicadores. */
+Object.values(CURRICULO).forEach((cur) => {
+  const fuente = cur.oaa === OAA_7_8 ? SUG_OAA_7_8 : SUG_OAA_1_6;
+  cur.oaa.forEach((a) => { if (fuente[a.n]) SUG_OA[`${cur.sigla} OAA ${a.n}`] = fuente[a.n]; });
+});
 
 function sugerenciasPara(criterio) {
   if (criterio.oa && SUG_OA[criterio.oa]) return { lista: SUG_OA[criterio.oa], rotulo: criterio.oa };
@@ -2348,7 +2694,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v74</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v77</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -2761,8 +3107,25 @@ document.addEventListener("click", async (evt) => {
     abrirModal(`
       <h3>Indicador ${j + 1}.${q + 1}</h3>
       <p class="sub" style="margin:4px 0 10px">Toca uno para escribirlo en ese indicador.</p>
+      <p class="rotulo-seccion" style="margin-top:0">Según el objetivo</p>
       <div class="caja-oas">${lista.map((t) => `<button class="oa-item" data-accion="poner-indicador"
         data-j="${j}" data-q="${q}" data-t="${esc(t)}" ${usados.has(t) ? "disabled" : ""}>${esc(t)}${usados.has(t) ? " (ya está)" : ""}</button>`).join("")}</div>
+      <p class="rotulo-seccion">Según las actitudes del programa</p>
+      ${CURRICULO[S.cursoId].oaa.map((a) => {
+        const cod = `${CURRICULO[S.cursoId].sigla} OAA ${a.n}`;
+        const items = SUG_OA[cod] || [];
+        return items.length ? `<details class="det-tarea">
+          <summary><span class="mono">${esc(cod)}</span> ${esc(recorte(a.t, 46))} <i>${items.length}</i></summary>
+          <div class="caja-oas">${items.map((t) => `<button class="oa-item" data-accion="poner-indicador"
+            data-j="${j}" data-q="${q}" data-t="${esc(t)}" ${usados.has(t) ? "disabled" : ""}>${esc(t)}${usados.has(t) ? " (ya está)" : ""}</button>`).join("")}</div>
+        </details>` : "";
+      }).join("")}
+      <p class="rotulo-seccion">Según la tarea de la clase</p>
+      ${TAREAS.map(([nombre, items]) => `<details class="det-tarea">
+        <summary>${esc(nombre)} <i>${items.length}</i></summary>
+        <div class="caja-oas">${items.map((t) => `<button class="oa-item" data-accion="poner-indicador"
+          data-j="${j}" data-q="${q}" data-t="${esc(t)}" ${usados.has(t) ? "disabled" : ""}>${esc(t)}${usados.has(t) ? " (ya está)" : ""}</button>`).join("")}</div>
+      </details>`).join("")}
       <div class="fila" style="margin-top:10px"><button class="btn btn-ancho" data-accion="cerrar-modal">Cancelar</button></div>`);
     return;
   }
