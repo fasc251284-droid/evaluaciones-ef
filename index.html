@@ -1694,6 +1694,61 @@ async function copiarListaA(cursoId, lista) {
   catch (e) { if (e.message !== "sin-sesion") throw e; }   // sin sesión queda guardado solo aquí
 }
 
+/* =========================================================
+   Plantillas: una evaluación armada que se guarda para reutilizar.
+   Viven en este equipo; se llevan de un dispositivo a otro con el respaldo.
+   ========================================================= */
+const CLAVE_PLANTILLAS = PREFIJO + "plantillas";
+
+function plantillas() {
+  try { const j = JSON.parse(localStorage.getItem(CLAVE_PLANTILLAS) || "[]"); return Array.isArray(j) ? j : []; }
+  catch { return []; }
+}
+
+function guardarPlantillas(lista) {
+  try { localStorage.setItem(CLAVE_PLANTILLAS, JSON.stringify(lista)); } catch {}
+}
+
+/* Toma la estructura de una lista, sin estudiantes ni marcas. */
+function plantillaDesde(ev, nombre, cursoId) {
+  return {
+    id: idNuevo(),
+    nombre: nombre || ev.nombre || "Plantilla",
+    curso: cursoId,
+    modo: ev.modo, exigencia: ev.exigencia, ptsDefecto: ev.ptsDefecto,
+    tipo: ev.tipo, peso: ev.peso, oa: ev.oa,
+    escala: JSON.parse(JSON.stringify(ev.escala)),
+    criterios: JSON.parse(JSON.stringify(ev.criterios))
+  };
+}
+
+/* Crea una lista para el curso abierto a partir de una plantilla. */
+function listaDesdePlantilla(pl) {
+  const n = S.datos.roster.length;
+  const criterios = JSON.parse(JSON.stringify(pl.criterios));
+  // Si la plantilla venía de otro nivel, se traducen los códigos de OA.
+  if (pl.curso !== S.cursoId) {
+    criterios.forEach((c) => {
+      if (!c.oa) return;
+      const eq = buscarOA(S.cursoId, c.oa.replace(/^EF\d\d/, CURRICULO[S.cursoId].sigla));
+      if (eq) { c.oa = eq.codigo; c.eje = eq.eje; if (esTextoDeOA(c.texto, pl.curso)) c.texto = eq.texto; }
+      else c.oa = "";
+    });
+  }
+  return {
+    id: idNuevo(), nombre: pl.nombre, fecha: hoy(), oa: pl.oa || "",
+    tipo: pl.tipo || "docente", adeModo: "curso", ade: null,
+    exigencia: exigenciaValida(pl.exigencia), peso: pesoDe(pl),
+    ptsDefecto: pl.ptsDefecto || PTS_DEFECTO, modo: pl.modo || "cotejo",
+    escala: JSON.parse(JSON.stringify(pl.escala)),
+    criterios,
+    marcas: Array.from({ length: n }, () => criterios.map((c) => Array(c.indicadores.length).fill(0))),
+    datos: Array.from({ length: n }, () => criterios.map((c) => c.indicadores.map(() => 0))),
+    estado: Array(n).fill(0),
+    obs: Array(n).fill("")
+  };
+}
+
 /* Deja una nómina nueva en un curso, ajustando las filas de todas sus listas. */
 function ponerNomina(datos, nombres) {
   datos.roster = nombres.slice();
@@ -2444,6 +2499,7 @@ function panelAjustes(ev) {
     </div>
     <div class="fila fila-peligro">
       <button class="btn btn-mini" data-accion="duplicar-eval">Duplicar aquí</button>
+      <button class="btn btn-mini" data-accion="guardar-plantilla">Guardar como plantilla</button>
       <button class="btn btn-mini" data-accion="copiar-a-curso">Copiar a otro curso</button>
     </div>
   </div>`;
@@ -2943,7 +2999,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v84</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v85</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -3201,7 +3257,15 @@ document.addEventListener("click", async (evt) => {
   if (a === "nueva-eval") {
     abrirModal(`
       <h3>Nueva lista de cotejo</h3>
-      <label class="campo" style="margin-top:10px"><span>Nombre</span><input type="text" id="ne-nombre" placeholder="Cotejo de handball"></label>
+      ${plantillas().length ? `<p class="rotulo-seccion" style="margin-top:10px">Partir de una plantilla</p>
+        <div class="caja-oas">${plantillas().map((pl) => `<button class="oa-item" data-accion="usar-plantilla" data-id="${esc(pl.id)}">
+          <b>${esc(pl.nombre)}</b> · ${pl.criterios.length} objetivo${pl.criterios.length === 1 ? "" : "s"} ·
+          ${pl.criterios.reduce((a, c) => a + c.indicadores.length, 0)} indicadores${pl.modo === "escala" ? " · escala" : ""}<br>
+          <span class="sub">${esc((CURSOS.find((c) => c.id === pl.curso) || {}).nombre || "")}${pl.curso === S.cursoId ? "" : " · se adapta al nivel"}</span>
+          </button>`).join("")}</div>
+        <div class="fila" style="margin:6px 0 4px"><button class="btn btn-mini" data-accion="borrar-plantillas">Administrar plantillas</button></div>
+        <p class="rotulo-seccion">O armarla desde cero</p>` : ""}
+      <label class="campo"><span>Nombre</span><input type="text" id="ne-nombre" placeholder="Cotejo de handball"></label>
       <label class="campo"><span>Fecha</span><input type="date" id="ne-fecha" value="${hoy()}"></label>
       <p class="sub" style="margin:2px 0 8px">Elige los objetivos de aprendizaje de ${esc((CURSOS.find((c) => c.id === S.cursoId) || {}).nombre)}. Cada uno se agrega como criterio de la lista.</p>
       <div class="caja-oas">${listaOAsHTML(S.cursoId, "check")}</div>
@@ -3210,6 +3274,50 @@ document.addEventListener("click", async (evt) => {
         <button class="btn" data-accion="cerrar-modal">Cancelar</button>
       </div>`);
     return;
+  }
+  if (a === "guardar-plantilla") {
+    abrirModal(`
+      <h3>Guardar como plantilla</h3>
+      <p class="sub" style="margin:4px 0 10px">Se guardan los objetivos, los indicadores y la escala.
+        No se guardan estudiantes ni marcas. Podrás usarla en cualquier curso.</p>
+      <label class="campo"><span>Nombre de la plantilla</span>
+        <input type="text" id="pl-nombre" value="${esc(ev.nombre || "")}" placeholder="Salto de vallas · pauta formativa"></label>
+      <div class="fila" style="margin-top:10px">
+        <button class="btn btn-lleno" data-accion="confirmar-plantilla">Guardar</button>
+        <button class="btn" data-accion="cerrar-modal">Cancelar</button>
+      </div>`);
+    return;
+  }
+  if (a === "confirmar-plantilla") {
+    const nom = ($("#pl-nombre").value || "").trim();
+    const lista = plantillas();
+    lista.push(plantillaDesde(ev, nom, S.cursoId));
+    guardarPlantillas(lista);
+    cerrarModal();
+    abrirModal(`<h3>Plantilla guardada</h3>
+      <p class="sub" style="margin:6px 0 0">La encontrarás al crear una lista nueva, con el botón +.</p>
+      <div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="cerrar-modal">Entendido</button></div>`);
+    return;
+  }
+  if (a === "usar-plantilla") {
+    const pl = plantillas().find((x) => x.id === btn.dataset.id);
+    if (!pl) return;
+    S.datos.evaluaciones.push(listaDesdePlantilla(pl));
+    S.evalIdx = S.datos.evaluaciones.length - 1; S.criterioActivo = 0;
+    cerrarModal(); marcarCambio(); pintar(); return;
+  }
+  if (a === "borrar-plantillas") {
+    abrirModal(`
+      <h3>Plantillas guardadas</h3>
+      <p class="sub" style="margin:4px 0 10px">Toca una para eliminarla. Las listas ya creadas no se ven afectadas.</p>
+      <div class="caja-oas">${plantillas().map((pl) => `<button class="oa-item" data-accion="quitar-plantilla" data-id="${esc(pl.id)}">
+        ${esc(pl.nombre)} <span class="sub">· quitar</span></button>`).join("") || `<p class="sub">No hay plantillas guardadas.</p>`}</div>
+      <div class="fila" style="margin-top:10px"><button class="btn btn-ancho" data-accion="cerrar-modal">Cerrar</button></div>`);
+    return;
+  }
+  if (a === "quitar-plantilla") {
+    guardarPlantillas(plantillas().filter((x) => x.id !== btn.dataset.id));
+    cerrarModal(); pintar(); return;
   }
   if (a === "crear-eval") {
     const nom = $("#ne-nombre").value.trim(), f = $("#ne-fecha").value;
