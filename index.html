@@ -37,7 +37,12 @@ body{
   font-size:16px; line-height:1.45; -webkit-text-size-adjust:100%;
   padding-bottom:env(safe-area-inset-bottom);
 }
-h1,h2,h3{font-family:var(--display); font-weight:700; letter-spacing:-.015em; margin:0}
+/* Tres niveles de título: cada uno con su tamaño, peso y espaciado.
+   Los titulares se aprietan; los rótulos pequeños se abren. */
+h1,h2,h3{font-family:var(--display); margin:0; color:var(--ink)}
+h1{font-size:21px; font-weight:800; letter-spacing:-.028em; line-height:1.18}
+h2{font-size:16px; font-weight:700; letter-spacing:-.018em; line-height:1.3}
+h3{font-size:17px; font-weight:800; letter-spacing:-.024em; line-height:1.22}
 button,input,select,textarea{font:inherit; color:inherit}
 button{cursor:pointer}
 .mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
@@ -172,7 +177,7 @@ button,select,a{-webkit-tap-highlight-color:transparent}
 /* ---------- Tarjetas ---------- */
 .tarjeta{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:16px; margin-bottom:14px}
 .tarjeta > h2{font-size:16px; margin-bottom:2px}
-.sub{color:var(--soft); font-size:12.5px}
+.sub{color:var(--soft); font-size:12.5px; line-height:1.45}
 .fila{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
 .fila-sep{justify-content:space-between}
 .pasos{margin:0; padding-left:20px}
@@ -180,8 +185,10 @@ button,select,a{-webkit-tap-highlight-color:transparent}
 .pasos li:last-child{margin-bottom:0}
 .caja-oa-lista{flex:1; min-width:0; display:flex; flex-wrap:wrap; gap:5px; align-items:center;
   padding:9px 10px; border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface)}
-.rotulo-seccion{display:block; font-size:11px; font-weight:700; letter-spacing:.06em;
-  text-transform:uppercase; color:var(--soft); margin:16px 0 7px}
+.rotulo-seccion{display:flex; align-items:center; gap:9px;
+  font-family:var(--display); font-size:10.5px; font-weight:700; letter-spacing:.11em;
+  text-transform:uppercase; color:var(--soft); margin:17px 0 8px}
+.rotulo-seccion::after{content:""; flex:1; height:1px; background:var(--line)}
 .bloque-seccion{border-top:1px solid var(--line); margin-top:14px; padding-top:2px}
 .fila-peligro{border-top:1px solid var(--line); margin-top:14px; padding-top:11px}
 .campo{display:block; margin-bottom:10px}
@@ -405,9 +412,12 @@ th.col-fija{background:var(--surface-2); z-index:3}
   padding-bottom:2px; border-top:1px solid var(--line); padding-top:11px}
 .acciones-menores::-webkit-scrollbar{display:none}
 .acciones-menores .btn{flex:0 0 auto}
-.titulo-eval{font-family:var(--display); font-size:17px; letter-spacing:-.01em; color:var(--verde-oscuro)}
+.titulo-eval{font-family:var(--display); font-size:19px; font-weight:800; letter-spacing:-.028em;
+  line-height:1.2; color:var(--verde-oscuro); text-wrap:balance}
+.titulo-criterio{font-family:var(--body); font-size:15px; font-weight:600;
+  letter-spacing:0; line-height:1.4; color:var(--ink); text-wrap:pretty}
 .cifra b{font-family:var(--display)}
-h1,h2,h3{font-family:var(--display); letter-spacing:-.01em}
+.titulo-app{font-family:var(--display); font-weight:700}
 .tiras{display:flex; gap:7px; overflow-x:auto; margin-top:12px; padding:9px; border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface-2); scrollbar-width:none}
 .tiras::-webkit-scrollbar{display:none}
 .tira{
@@ -2695,7 +2705,7 @@ function vistaPorCriterio(ev) {
       ${ev.criterios.map((x, k) => `<button class="chip-crit" data-accion="criterio" data-j="${k}" aria-pressed="${k === j}">${esc(x.oa || "Sin OA")}</button>`).join("")}
     </div>
     ${c.oa ? `<p class="sub" style="margin:0 0 4px">${esc(EJES[c.eje] || "")}</p>` : ""}
-    <h2 style="font-size:15px;line-height:1.35">${esc(c.texto || "Criterio " + (j + 1))}</h2>
+    <h2 class="titulo-criterio">${esc(c.texto || "Criterio " + (j + 1))}</h2>
     ${esEscala(ev) ? `<p class="sub" style="margin:6px 0 0">${leyendaEscala(ev)}</p>`
       : `<ol class="lista-ind">${c.indicadores.map((ind, q) => `<li><b class="mono">${q + 1}</b> ${esc(ind.texto || "Indicador sin redactar")} <span class="pts-pill oscuro">${ind.pts} pts</span></li>`).join("")}</ol>`}
     <div class="fila no-imprimir" style="gap:5px;padding:10px 0;border-bottom:1px solid var(--line)">
@@ -2744,7 +2754,7 @@ function vistaPorAlumno(ev) {
     </div>
     <div class="fila fila-sep" style="border-bottom:1px solid var(--line);padding-bottom:10px">
       <div>
-        <h2 style="font-size:16px">${esc(S.datos.roster[i] || "—")}</h2>
+        <h2>${esc(S.datos.roster[i] || "—")}</h2>
         <p class="sub" style="margin:2px 0 0">${esEscala(ev) ? `${r.marcados} de ${totalIndicadores(ev)} indicadores evaluados` : `${r.logrados} de ${totalIndicadores(ev)} indicadores logrados`} · ${r.puntaje} de ${r.total} pts${r.sinMarca ? ` · ${r.sinMarca} sin marcar` : ""}</p>
       </div>
       <div class="fila">
@@ -2834,7 +2844,7 @@ function vistaResumen() {
   </div>
 
   <div class="tarjeta">
-    <h2 style="font-size:15px">${esEscala(ev) ? "Logro por criterio" : "Logro por indicador"}</h2>
+    <h2>${esEscala(ev) ? "Logro por criterio" : "Logro por indicador"}</h2>
     <p class="sub" style="margin:2px 0 12px">${esEscala(ev) ? "Porcentaje del puntaje posible alcanzado en cada criterio." : "Porcentaje de estudiantes que logró cada indicador, entre quienes ya tienen marca."}</p>
     <div class="logro">
       ${logros.map((l) => `
@@ -2846,7 +2856,7 @@ function vistaResumen() {
   </div>
 
   <div class="tarjeta">
-    <h2 style="font-size:15px">Notas del curso</h2>
+    <h2>Notas del curso</h2>
     <div style="margin-top:8px">
       ${S.datos.roster.map((nom, i) => {
         const r = resultado(ev, i);
@@ -3002,7 +3012,7 @@ function vistaCurso() {
   </div>
 
   <div class="tarjeta">
-    <h2 style="font-size:15px">Listas de cotejo del curso</h2>
+    <h2>Listas de cotejo del curso</h2>
     <div style="margin-top:8px">
       ${S.datos.evaluaciones.map((e, i) => `
         <div class="alumno-cab" style="padding:7px 0;border-top:1px solid var(--line)">
@@ -3014,11 +3024,11 @@ function vistaCurso() {
   </div>
 
   <div class="tarjeta">
-    <h2 style="font-size:15px">Respaldo</h2>
+    <h2>Respaldo</h2>
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v88</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v90</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]

@@ -1,5 +1,5 @@
 /* Cache del cascarón: la app abre sin conexión y los datos quedan en localStorage */
-const CACHE = "evalef-v87";
+const CACHE = "evalef-v90";
 const BASICOS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (e) => {
