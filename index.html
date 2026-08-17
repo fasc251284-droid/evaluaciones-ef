@@ -185,10 +185,14 @@ button,select,a{-webkit-tap-highlight-color:transparent}
 .pasos li:last-child{margin-bottom:0}
 .caja-oa-lista{flex:1; min-width:0; display:flex; flex-wrap:wrap; gap:5px; align-items:center;
   padding:9px 10px; border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface)}
-.rotulo-seccion{display:flex; align-items:center; gap:9px;
-  font-family:var(--display); font-size:10.5px; font-weight:700; letter-spacing:.11em;
-  text-transform:uppercase; color:var(--soft); margin:17px 0 8px}
-.rotulo-seccion::after{content:""; flex:1; height:1px; background:var(--line)}
+/* Rótulo de sección: marca el comienzo de un bloque, con el filo dorado
+   que en el resto de la app significa "aquí estás". */
+.rotulo-seccion{display:flex; align-items:center; gap:10px;
+  font-family:var(--display); font-size:12px; font-weight:800; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--verde-oscuro);
+  margin:22px 0 10px; padding-left:10px; border-left:3px solid var(--oro)}
+.rotulo-seccion::after{content:""; flex:1; height:2px; border-radius:2px;
+  background:linear-gradient(90deg, var(--line), transparent)}
 .bloque-seccion{border-top:1px solid var(--line); margin-top:14px; padding-top:2px}
 .fila-peligro{border-top:1px solid var(--line); margin-top:14px; padding-top:11px}
 .campo{display:block; margin-bottom:10px}
@@ -3034,7 +3038,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v91</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v92</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
