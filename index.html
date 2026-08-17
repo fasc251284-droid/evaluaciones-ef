@@ -2512,7 +2512,8 @@ function panelAjustes(ev) {
           ${opcionesOAsHTML(S.cursoId, ev)}
         </select></label>
       <div class="fila">
-        <button class="btn btn-mini" data-accion="oa-picker">Ver los objetivos completos</button>
+        <button class="btn btn-mini btn-lleno" data-accion="cargar-pauta">Cargar una pauta completa</button>
+      <button class="btn btn-mini" data-accion="oa-picker">Ver los objetivos completos</button>
       </div>
     </div>
     <div class="fila fila-peligro">
@@ -3017,7 +3018,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v86</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v87</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -3501,6 +3502,47 @@ document.addEventListener("click", async (evt) => {
     ev.criterios.push(criterioDesdeOA(btn.dataset.codigo, S.cursoId, 3));
     ev.marcas.forEach((f) => f.push([0, 0, 0]));
     ev.datos.forEach((f) => f.push(filaNiveles(ev.criterios[ev.criterios.length - 1])));
+    cerrarModal(); marcarCambio(); pintar(); return;
+  }
+  if (a === "cargar-pauta") {
+    let familia = null;
+    abrirModal(`
+      <h3>Cargar una pauta completa</h3>
+      <p class="sub" style="margin:4px 0 10px">Se agrega un criterio con todos los indicadores de la pauta, ya escritos.
+        Podrás editarlos, quitarlos o asociarles un objetivo de aprendizaje.</p>
+      ${TAREAS.map(([nombre, items]) => {
+        const f = FAMILIAS_TAREA[nombre] || "Otros";
+        const cab = f !== familia ? (familia = f, `<p class="rotulo-seccion">${esc(f)}</p>`) : "";
+        return cab + `<button class="oa-item" data-accion="poner-pauta" data-t="${esc(nombre)}">
+          <b>${esc(nombre.replace(" · pauta formativa", ""))}</b> · ${items.length} indicadores<br>
+          <span class="sub">${esc(recorte(items.join(" · "), 78))}</span></button>`;
+      }).join("")}
+      <div class="fila" style="margin-top:12px"><button class="btn btn-ancho" data-accion="cerrar-modal">Cancelar</button></div>`);
+    return;
+  }
+  if (a === "poner-pauta") {
+    const par = TAREAS.find(([n]) => n === btn.dataset.t);
+    if (!par) return;
+    const [nombre, items] = par;
+    const criterio = {
+      texto: nombre.replace(" · pauta formativa", ""),
+      oa: "", eje: "",
+      indicadores: items.map((t) => ({ texto: t, pts: ev.ptsDefecto }))
+    };
+    // Si la lista solo tiene el criterio en blanco con que nace, se reemplaza.
+    const vacio = ev.criterios.length === 1 && !ev.criterios[0].oa &&
+      !ev.criterios[0].texto.trim() && ev.criterios[0].indicadores.every((x) => !x.texto.trim());
+    if (vacio) {
+      ev.criterios = [criterio];
+      ev.marcas.forEach((f) => { f.length = 0; f.push(items.map(() => 0)); });
+      ev.datos.forEach((f) => { f.length = 0; f.push(items.map(() => 0)); });
+    } else {
+      ev.criterios.push(criterio);
+      ev.marcas.forEach((f) => f.push(items.map(() => 0)));
+      ev.datos.forEach((f) => f.push(items.map(() => 0)));
+    }
+    if (!ev.nombre || /^Lista de cotejo$/.test(ev.nombre)) ev.nombre = criterio.texto;
+    S.criterioActivo = ev.criterios.length - 1;
     cerrarModal(); marcarCambio(); pintar(); return;
   }
   if (a === "sugerir-uno") {
