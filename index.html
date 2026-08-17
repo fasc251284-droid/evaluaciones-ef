@@ -192,10 +192,16 @@ button,select,a{-webkit-tap-highlight-color:transparent}
 .bloque-seccion{border-top:1px solid var(--line); margin-top:14px; padding-top:2px}
 .fila-peligro{border-top:1px solid var(--line); margin-top:14px; padding-top:11px}
 .campo{display:block; margin-bottom:10px}
-.campo span{display:block; font-size:12px; font-weight:600; color:var(--soft); margin-bottom:4px; letter-spacing:.01em}
+/* Etiqueta del campo: pequeña y sobria, para que el dato mande. */
+.campo > span{display:block; font-family:var(--display); font-size:11px; font-weight:700;
+  letter-spacing:.07em; text-transform:uppercase; color:var(--soft); margin-bottom:5px}
+/* La explicación bajo el campo, en cursiva y más chica que el dato. */
+.campo .sub,.campo > span.sub{font-family:var(--body); font-size:12px; font-weight:400;
+  letter-spacing:0; text-transform:none; font-style:italic; color:var(--soft);
+  margin:5px 0 0; line-height:1.4}
 input[type=text],input[type=date],input[type=number],input[type=email],input[type=password],select,textarea{
   width:100%; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-s);
-  padding:10px 11px; font-size:15px; outline:none;
+  padding:10px 11px; font-size:15px; font-weight:500; outline:none;
 }
 input:focus,select:focus,textarea:focus{border-color:var(--verde); box-shadow:0 0 0 3px var(--verde-claro)}
 textarea{resize:vertical; min-height:76px}
@@ -2408,7 +2414,7 @@ function panelAjustes(ev) {
         <option value="propias" ${adeModo(ev) === "propias" ? "selected" : ""}>Propias de esta lista</option>
         <option value="ninguna" ${adeModo(ev) === "ninguna" ? "selected" : ""}>Sin adecuaciones</option>
       </select>
-      <span class="sub" style="font-weight:400">Úsalo cuando una unidad requiera un apoyo distinto al habitual.</span></label>
+      <span class="sub">Úsalo cuando una unidad requiera un apoyo distinto al habitual.</span></label>
     <label class="campo"><span>Quién evalúa</span>
       <select data-accion="tipo-eval">
         ${[["docente", "El profesor"], ["auto", "Autoevaluación"], ["coe", "Coevaluación entre pares"]]
@@ -2416,7 +2422,7 @@ function panelAjustes(ev) {
       </select></label>
     <label class="campo"><span>Peso en el consolidado</span>
       <input type="number" min="0" max="10" step="0.5" data-campo="peso" value="${pesoDe(ev)}">
-      <span class="sub" style="font-weight:400">1 es el peso normal. Con 2 esta lista vale el doble; con 0 no entra en el promedio.</span></label>
+      <span class="sub">1 es el peso normal. Con 2 esta lista vale el doble; con 0 no entra en el promedio.</span></label>
     ${esEscala(ev) ? "" : `<label class="campo"><span>Puntos por indicador</span><input type="number" min="1" max="20" step="1" data-campo="ptsDefecto" value="${ev.ptsDefecto}"></label>`}
     <label class="campo"><span>Unidad del programa</span>
       <select data-accion="elegir-unidad">
@@ -3028,7 +3034,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v90</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v91</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
