@@ -370,6 +370,23 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .caja-oas{max-height:46vh; overflow:auto; border:1px solid var(--line); border-radius:var(--r-s); padding:10px; background:var(--surface-2)}
 .eje-tit{font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--verde-oscuro); margin:10px 0 6px}
 .eje-tit:first-child{margin-top:0}
+.ficha-pauta{display:block; width:100%; text-align:left; background:var(--surface);
+  border:1px solid var(--line); border-radius:var(--r-s); padding:11px 12px; margin-bottom:8px;
+  transition:border-color .16s var(--curva), transform .1s var(--curva)}
+.ficha-pauta:active{transform:scale(.99); border-color:var(--verde)}
+.ficha-pauta b{display:block; font-family:var(--display); font-size:15px; font-weight:700;
+  letter-spacing:-.015em; color:var(--verde-oscuro); line-height:1.25}
+.ficha-pauta i{display:inline-block; font-style:normal; font-size:10.5px; font-weight:700;
+  letter-spacing:.05em; text-transform:uppercase; color:var(--soft); margin:4px 0 5px}
+.ficha-pauta span{display:block; font-size:12.5px; line-height:1.4; color:var(--soft)}
+
+.cab-criterio{border-left:3px solid var(--verde); padding-left:11px; margin-bottom:14px}
+.barra-curso{padding:12px 0 14px; border-bottom:1px solid var(--line); margin-bottom:4px}
+.lista-ind li{display:flex; align-items:flex-start; gap:9px}
+.lista-ind li > span{flex:1; min-width:0}
+.lista-ind .pts-ind{flex:0 0 auto; font-style:normal; font-family:var(--mono); font-size:11px;
+  color:var(--soft); background:var(--surface-2); border-radius:5px; padding:2px 7px; margin-top:1px}
+
 .oa-item{
   display:flex; gap:9px; align-items:flex-start; width:100%; text-align:left;
   background:var(--surface); border:1px solid var(--line); border-radius:7px;
@@ -2714,18 +2731,26 @@ function vistaPorCriterio(ev) {
     <div class="fila no-imprimir tira-crit" style="gap:5px;margin-bottom:10px;overflow-x:auto">
       ${ev.criterios.map((x, k) => `<button class="chip-crit" data-accion="criterio" data-j="${k}" aria-pressed="${k === j}">${esc(x.oa || "Sin OA")}</button>`).join("")}
     </div>
-    ${c.oa ? `<p class="sub" style="margin:0 0 4px">${esc(EJES[c.eje] || "")}</p>` : ""}
-    <h2 class="titulo-criterio">${esc(c.texto || "Criterio " + (j + 1))}</h2>
-    ${esEscala(ev) ? `<p class="sub" style="margin:6px 0 0">${leyendaEscala(ev)}</p>`
-      : `<ol class="lista-ind">${c.indicadores.map((ind, q) => `<li><b class="mono">${q + 1}</b> ${esc(ind.texto || "Indicador sin redactar")} <span class="pts-pill oscuro">${ind.pts} pts</span></li>`).join("")}</ol>`}
-    <div class="fila no-imprimir" style="gap:5px;padding:10px 0;border-bottom:1px solid var(--line)">
-      ${esEscala(ev)
-        ? `<span class="sub">Marcar a todo el curso:</span>
-           ${ev.escala.niveles.map((n, k) => `<button class="btn btn-mini" data-accion="todos-nivel" data-j="${j}" data-k="${k + 1}" title="${esc(n.r)}">${k + 1}</button>`).join("")}`
-        : `<span class="sub">✓ a todo el curso:</span>
-           ${c.indicadores.map((ind, q) => `<button class="btn btn-mini" data-accion="todos-marca" data-j="${j}" data-q="${q}" title="${esc(ind.texto)}">${q + 1}</button>`).join("")}`}
-      <button class="btn btn-mini" data-accion="limpiar-criterio" data-j="${j}">Limpiar</button>
+    <div class="cab-criterio">
+      <span class="rotulo-seccion" style="margin:0 0 6px">${c.oa ? esc(c.oa) : "Criterio " + (j + 1)}</span>
+      <h2 class="titulo-criterio">${esc(c.texto || "Sin redactar")}</h2>
+      ${c.oa ? `<p class="sub" style="margin:4px 0 0">${esc(EJES[c.eje] || "")}</p>` : ""}
     </div>
+    ${esEscala(ev) ? `<p class="sub" style="margin:6px 0 0">${leyendaEscala(ev)}</p>`
+      : `<span class="rotulo-seccion">${c.indicadores.length} indicadores · ${c.indicadores.reduce((a, x) => a + (Number(x.pts) || 0), 0)} pts</span>
+         <ol class="lista-ind">${c.indicadores.map((ind, q) => `<li><b class="mono">${q + 1}</b>
+           <span>${esc(ind.texto || "Indicador sin redactar")}</span>
+           <i class="pts-ind">${ind.pts}</i></li>`).join("")}</ol>`}
+    <div class="barra-curso no-imprimir">
+      <span class="rotulo-seccion" style="margin:0 0 7px">${esEscala(ev) ? "Poner un nivel a todo el curso" : "Marcar logrado a todo el curso"}</span>
+      <div class="fila" style="gap:6px">
+        ${esEscala(ev)
+          ? ev.escala.niveles.map((n, k) => `<button class="btn btn-mini" data-accion="todos-nivel" data-j="${j}" data-k="${k + 1}" title="${esc(n.r)}">${k + 1}</button>`).join("")
+          : c.indicadores.map((ind, q) => `<button class="btn btn-mini" data-accion="todos-marca" data-j="${j}" data-q="${q}" title="${esc(ind.texto)}">${q + 1}</button>`).join("")}
+        <button class="btn btn-mini" data-accion="limpiar-criterio" data-j="${j}">Limpiar</button>
+      </div>
+    </div>
+    <span class="rotulo-seccion">Estudiantes</span>
     ${S.datos.roster.map((nombre, i) => {
       const r = resultado(ev, i);
       const est = ev.estado[i] || 0;
@@ -3038,7 +3063,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v92</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v93</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -3530,9 +3555,10 @@ document.addEventListener("click", async (evt) => {
       <h3>Cargar una pauta completa</h3>
       <p class="sub" style="margin:4px 0 10px">Pautas de evaluación ya elaboradas. Se agregan como un criterio
         con todos sus indicadores escritos; después puedes editarlos o quitar los que no uses.</p>
-      ${pautas.map(([nombre, items]) => `<button class="oa-item" data-accion="poner-pauta" data-t="${esc(nombre)}">
-        <b>${esc(nombre.replace(" · pauta formativa", ""))}</b> · ${items.length} indicadores<br>
-        <span class="sub">${esc(recorte(items.join(" · "), 78))}</span></button>`).join("")}
+      ${pautas.map(([nombre, items]) => `<button class="ficha-pauta" data-accion="poner-pauta" data-t="${esc(nombre)}">
+        <b>${esc(nombre.replace(" · pauta formativa", ""))}</b>
+        <i>${items.length} indicadores</i>
+        <span>${esc(recorte(items.join(" · "), 74))}</span></button>`).join("")}
       <p class="sub" style="margin:10px 0 0">Para indicadores sueltos de otras tareas, usa <b>Sugerir</b> en cada indicador.</p>
       <div class="fila" style="margin-top:12px"><button class="btn btn-ancho" data-accion="cerrar-modal">Cancelar</button></div>`);
     return;
