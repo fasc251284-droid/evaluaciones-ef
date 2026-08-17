@@ -3018,7 +3018,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v87</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v88</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -3505,18 +3505,15 @@ document.addEventListener("click", async (evt) => {
     cerrarModal(); marcarCambio(); pintar(); return;
   }
   if (a === "cargar-pauta") {
-    let familia = null;
+    const pautas = TAREAS.filter(([n]) => n.includes("pauta formativa"));
     abrirModal(`
       <h3>Cargar una pauta completa</h3>
-      <p class="sub" style="margin:4px 0 10px">Se agrega un criterio con todos los indicadores de la pauta, ya escritos.
-        Podrás editarlos, quitarlos o asociarles un objetivo de aprendizaje.</p>
-      ${TAREAS.map(([nombre, items]) => {
-        const f = FAMILIAS_TAREA[nombre] || "Otros";
-        const cab = f !== familia ? (familia = f, `<p class="rotulo-seccion">${esc(f)}</p>`) : "";
-        return cab + `<button class="oa-item" data-accion="poner-pauta" data-t="${esc(nombre)}">
-          <b>${esc(nombre.replace(" · pauta formativa", ""))}</b> · ${items.length} indicadores<br>
-          <span class="sub">${esc(recorte(items.join(" · "), 78))}</span></button>`;
-      }).join("")}
+      <p class="sub" style="margin:4px 0 10px">Pautas de evaluación ya elaboradas. Se agregan como un criterio
+        con todos sus indicadores escritos; después puedes editarlos o quitar los que no uses.</p>
+      ${pautas.map(([nombre, items]) => `<button class="oa-item" data-accion="poner-pauta" data-t="${esc(nombre)}">
+        <b>${esc(nombre.replace(" · pauta formativa", ""))}</b> · ${items.length} indicadores<br>
+        <span class="sub">${esc(recorte(items.join(" · "), 78))}</span></button>`).join("")}
+      <p class="sub" style="margin:10px 0 0">Para indicadores sueltos de otras tareas, usa <b>Sugerir</b> en cada indicador.</p>
       <div class="fila" style="margin-top:12px"><button class="btn btn-ancho" data-accion="cerrar-modal">Cancelar</button></div>`);
     return;
   }
