@@ -340,7 +340,11 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .par-cas{display:inline-flex; gap:8px}
 .par-cas.compacto .cas{width:38px; height:38px; flex:0 0 38px; font-size:17px}
 .indicadores{display:flex; flex-direction:column; gap:9px; margin-top:4px}
-.indicador{display:flex; gap:10px; align-items:center; font-size:13.5px; line-height:1.3}
+.indicador{display:grid; grid-template-columns:auto 1fr 46px; gap:10px; align-items:center;
+  font-size:13.5px; line-height:1.35}
+.indicador .pts-ind{display:block; font-style:normal; font-family:var(--mono);
+  font-variant-numeric:tabular-nums; font-size:11px; text-align:center; color:var(--soft);
+  background:var(--surface-2); border:1px solid var(--line); border-radius:6px; padding:3px 0}
 .indicador-mini{display:flex; flex-direction:column; align-items:center; gap:3px}
 .indicador-mini b{font-size:10.5px; color:var(--soft)}
 .insignia-nivel{
@@ -356,9 +360,16 @@ th.col-fija{background:var(--surface-2); z-index:3}
 }
 .pts-pill.oscuro{background:var(--surface-2); color:var(--soft); border:1px solid var(--line)}
 .planilla .th-ind .pts-pill{display:block; width:fit-content; margin:4px auto 0}
-.lista-ind{margin:8px 0 0; padding:0; list-style:none; font-size:13px; color:var(--soft)}
-.lista-ind li{margin:3px 0; display:flex; gap:8px; align-items:baseline}
-.lista-ind b{color:var(--ink); font-size:11.5px}
+/* Un indicador por fila, en tres columnas fijas: número, texto y puntaje.
+   Los anchos son iguales en todas las filas, así las columnas quedan a plomo. */
+.lista-ind{margin:6px 0 0; padding:0; list-style:none; font-size:13.5px; color:var(--ink)}
+.lista-ind li{
+  display:grid; grid-template-columns:22px 1fr 46px; gap:10px; align-items:start;
+  padding:9px 0; border-bottom:1px solid var(--line); line-height:1.4;
+}
+.lista-ind li:last-child{border-bottom:0}
+.lista-ind b{font-family:var(--mono); font-size:11.5px; color:var(--soft);
+  text-align:right; padding-top:2px}
 .bloque-criterio{border:1px solid var(--line); border-radius:var(--r-s); padding:9px; margin-bottom:9px; background:var(--surface-2)}
 .bloque-criterio textarea,.bloque-criterio input{background:var(--surface)}
 /* ---------- Currículum ---------- */
@@ -382,10 +393,14 @@ th.col-fija{background:var(--surface-2); z-index:3}
 
 .cab-criterio{border-left:3px solid var(--verde); padding-left:11px; margin-bottom:14px}
 .barra-curso{padding:12px 0 14px; border-bottom:1px solid var(--line); margin-bottom:4px}
-.lista-ind li{display:flex; align-items:flex-start; gap:9px}
-.lista-ind li > span{flex:1; min-width:0}
-.lista-ind .pts-ind{flex:0 0 auto; font-style:normal; font-family:var(--mono); font-size:11px;
-  color:var(--soft); background:var(--surface-2); border-radius:5px; padding:2px 7px; margin-top:1px}
+.lista-ind li > span{min-width:0}
+/* Puntaje: mismo ancho y misma forma en todas las filas, sea 3 o 12. */
+.lista-ind .pts-ind{
+  display:block; font-style:normal; font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:11px; text-align:center; color:var(--soft);
+  background:var(--surface-2); border:1px solid var(--line); border-radius:6px;
+  padding:3px 0; margin-top:1px;
+}
 
 .oa-item{
   display:flex; gap:9px; align-items:flex-start; width:100%; text-align:left;
@@ -734,65 +749,111 @@ const PAUTA_OBS = [
    ========================================================= */
 const ADECUACIONES = [
   ["acceso", "Presentación de la información", [
-    "Demuestra el ejercicio antes de la ejecución",
-    "Entrega la instrucción en pasos cortos y de a uno",
-    "Acompaña la instrucción verbal con apoyo visual o gestual",
-    "Ubica al estudiante cerca del docente al dar la instrucción",
-    "Marca el espacio con conos, colores o líneas de referencia",
-    "Verifica la comprensión pidiendo que repita la instrucción",
-    "Usa señales sonoras además de las visuales"]],
+    "Demostración del ejercicio antes de la ejecución",
+    "Instrucción entregada en pasos cortos y de a uno",
+    "Apoyo visual o gestual junto a la instrucción verbal",
+    "Ubicación cercana al docente al momento de la instrucción",
+    "Espacio delimitado con conos, colores o líneas de referencia",
+    "Verificación de la comprensión mediante repetición de la instrucción",
+    "Uso de señales sonoras además de las visuales"]],
 
   ["acceso", "Formas de respuesta", [
-    "Permite mostrar el logro de forma oral, gestual o práctica",
-    "Acepta la ejecución con apoyo de un compañero tutor",
-    "Permite el uso de material adaptado: balón blando, más liviano o de mayor tamaño",
-    "Reduce la altura del implemento: valla, red o cesto",
-    "Acorta la distancia de lanzamiento o de recorrido",
-    "Permite ejecutar desde una posición estable o con apoyo",
-    "Acepta la respuesta con el segmento corporal que el estudiante controla mejor"]],
+    "Demostración del logro en forma oral, gestual o práctica",
+    "Ejecución con apoyo de un compañero tutor",
+    "Material adaptado: balón blando, más liviano o de mayor tamaño",
+    "Altura reducida del implemento: valla, red o cesto",
+    "Distancia acortada de lanzamiento o de recorrido",
+    "Ejecución desde una posición estable o con apoyo",
+    "Respuesta con el segmento corporal de mayor control"]],
 
   ["acceso", "Entorno y organización", [
-    "Ubica al estudiante en un sector con menos estímulos",
-    "Reduce el número de participantes en el grupo de trabajo",
-    "Mantiene la misma rutina de inicio en cada clase",
-    "Anticipa los cambios de actividad antes de que ocurran",
-    "Asigna un compañero de apoyo durante la tarea",
-    "Delimita un espacio más pequeño y libre de obstáculos"]],
+    "Ubicación en un sector con menos estímulos",
+    "Grupo de trabajo reducido en número de participantes",
+    "Rutina de inicio estable en cada clase",
+    "Anticipación de los cambios de actividad",
+    "Compañero de apoyo asignado durante la tarea",
+    "Espacio acotado y libre de obstáculos"]],
 
   ["acceso", "Tiempo y ritmo", [
-    "Otorga más tiempo para ejecutar la tarea",
-    "Permite pausas durante la actividad",
-    "Divide la tarea en dos o más sesiones",
-    "Reduce la cantidad de repeticiones exigidas",
-    "Permite iniciar la ejecución cuando el estudiante se siente preparado"]],
+    "Tiempo adicional para ejecutar la tarea",
+    "Pausas durante la actividad",
+    "Tarea dividida en dos o más sesiones",
+    "Cantidad reducida de repeticiones",
+    "Inicio de la ejecución según disposición del estudiante"]],
 
   ["objetivos", "Graduación del nivel de complejidad", [
-    "Ejecuta la habilidad en situación estática antes que en movimiento",
-    "Trabaja el gesto por partes antes de la ejecución completa",
-    "Evalúa la habilidad sin oposición del rival",
-    "Reduce la exigencia de precisión del objetivo",
-    "Solicita menos elementos encadenados en la secuencia"]],
+    "Ejecución en situación estática antes que en movimiento",
+    "Trabajo del gesto por partes antes de la ejecución completa",
+    "Evaluación de la habilidad sin oposición del rival",
+    "Exigencia reducida de precisión sobre el objetivo",
+    "Menor cantidad de elementos encadenados en la secuencia"]],
 
   ["objetivos", "Priorización de objetivos y contenidos", [
-    "Prioriza los indicadores esenciales del objetivo",
-    "Evalúa solo los aprendizajes basales de la unidad",
-    "Centra la evaluación en la participación y la seguridad",
-    "Reduce el número de indicadores a evaluar en esta lista"]],
+    "Priorización de los indicadores esenciales del objetivo",
+    "Evaluación centrada en los aprendizajes basales de la unidad",
+    "Foco de la evaluación en la participación y la seguridad",
+    "Cantidad reducida de indicadores a evaluar en esta lista"]],
 
   ["objetivos", "Temporalización", [
-    "Extiende el plazo para lograr el objetivo a otra unidad",
-    "Evalúa el objetivo en más de una clase",
-    "Retoma el objetivo trabajado en el nivel anterior"]],
+    "Plazo extendido para lograr el objetivo a otra unidad",
+    "Evaluación del objetivo en más de una clase",
+    "Recuperación del objetivo trabajado en el nivel anterior"]],
 
   ["objetivos", "Enriquecimiento del currículum", [
-    "Agrega un desafío adicional de mayor complejidad",
-    "Solicita que asuma un rol de apoyo o arbitraje",
-    "Propone que enseñe el gesto a un compañero"]],
+    "Desafío adicional de mayor complejidad",
+    "Asignación de un rol de apoyo o arbitraje",
+    "Enseñanza del gesto a un compañero"]],
+
+  ["tarea", "Salto de cuerda", [
+    "Cuerda girada a velocidad reducida y constante",
+    "Cuerda balanceada de lado a lado en vez de giro completo",
+    "Ingreso a la cuerda tomado de la mano de un compañero",
+    "Salto sobre una cuerda apoyada en el suelo antes del giro",
+    "Cantidad reducida de saltos exigidos en la secuencia",
+    "Conteo en voz alta del docente para marcar el ritmo",
+    "Cuerda de mayor largo o más liviana",
+    "Ejecución sin exigencia de entrada y salida en movimiento",
+    "Ingreso a la cuerda ya detenida, con giro iniciado después",
+    "Ejecución en pareja dentro de la cuerda"]],
+
+  ["tarea", "Salto de vallas", [
+    "Vallas de menor altura o conos en reemplazo de la valla",
+    "Cantidad reducida de vallas en el recorrido",
+    "Mayor distancia entre una valla y otra",
+    "Paso por sobre la valla sin exigencia de carrera previa",
+    "Marcas en el suelo para ubicar el pie de batida",
+    "Elementos blandos que no se caen ni provocan tropiezos",
+    "Ejecución sin control de tiempo",
+    "Paso lateral por sobre la valla como alternativa al salto",
+    "Acompañamiento de un compañero durante el recorrido"]],
+
+  ["tarea", "Salto en un pie", [
+    "Apoyo en la pared o en un compañero para mantener el equilibrio",
+    "Cantidad reducida de saltos consecutivos",
+    "Salto en el lugar antes de exigir desplazamiento",
+    "Aros o marcas de mayor tamaño para la caída",
+    "Distancia acortada del recorrido a saltar",
+    "Elección libre del pie de apoyo",
+    "Alternancia de pies permitida durante la secuencia",
+    "Salto con dos pies como paso previo al salto en un pie"]],
+
+  ["tarea", "Lanzamiento y recepción", [
+    "Balón blando, más liviano o de mayor tamaño",
+    "Distancia acortada entre quien lanza y quien recibe",
+    "Blanco de mayor tamaño o ubicado a menor altura",
+    "Recepción de un balón lanzado con bote previo",
+    "Lanzamiento desde posición sentada o de rodillas",
+    "Recepción con ambas manos y contra el cuerpo",
+    "Globo o pelota de esponja para reducir la velocidad del móvil",
+    "Mayor cantidad de intentos para lograr el acierto",
+    "Lanzamiento sin oposición ni presión de tiempo",
+    "Recepción con apoyo de un compañero que anticipa la trayectoria"]],
 
   ["objetivos", "Eliminación de aprendizajes", [
-    "Excluye el aprendizaje contraindicado por informe médico",
-    "Reemplaza el objetivo por otro equivalente y seguro para el estudiante"]]
+    "Exclusión del aprendizaje contraindicado por informe médico",
+    "Reemplazo del objetivo por otro equivalente y seguro"]]
 ];
+
 
 const TAREAS = [
 
@@ -2808,7 +2869,8 @@ function vistaPorAlumno(ev) {
           <div class="fila" style="margin-top:7px">${insigniaCriterio(ev, i, j)}</div>` : `<div class="indicadores">
             <div class="cabecera-lnl"><span>L</span><span>NL</span></div>
             ${c.indicadores.map((ind, q) => `<div class="indicador">${parCasillas(ev, i, j, q)}
-              <span>${esc(ind.texto || "Indicador " + (q + 1))} <span class="pts-pill oscuro">${ind.pts} pts</span></span></div>`).join("")}
+              <span>${esc(ind.texto || "Indicador " + (q + 1))}</span>
+              <i class="pts-ind">${ind.pts}</i></div>`).join("")}
           </div>
           <div class="fila" style="margin-top:7px">${insigniaCriterio(ev, i, j)}</div>`}
         </div>`).join("")}
@@ -3063,7 +3125,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v93</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v96</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -3691,6 +3753,7 @@ document.addEventListener("click", async (evt) => {
       <p class="sub" style="margin:4px 0 10px">${esc(S.datos.roster[i] || "Estudiante " + (i + 1))} ·
         Decreto 83/2015. Toca para aplicar o quitar. Las de acceso no modifican el objetivo; las de objetivos sí, y requieren registro en el PACI.</p>
       ${seccion("acceso", "Adecuaciones de acceso")}
+      ${seccion("tarea", "Según la tarea de la clase")}
       ${seccion("objetivos", "Adecuaciones en los objetivos de aprendizaje")}
       <div class="fila" style="margin-top:12px"><button class="btn btn-lleno btn-ancho" data-accion="cerrar-modal">Listo</button></div>`);
     return;
