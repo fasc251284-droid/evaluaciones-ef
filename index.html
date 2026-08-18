@@ -276,10 +276,30 @@ th.col-fija{background:var(--surface-2); z-index:3}
 
 /* ---------- Criterios (editor) ---------- */
 /* Un indicador por tarjeta: texto arriba, sus controles abajo. */
-/* El objetivo se muestra como texto: es lo que saldrá impreso. */
-.texto-oa{display:flex; align-items:flex-start; gap:10px}
-.texto-oa p{flex:1; min-width:0; margin:0; font-size:14px; line-height:1.45; color:var(--ink)}
-.texto-oa .btn{flex:0 0 auto; padding:5px 10px; font-size:12px}
+/* El texto oficial del OA queda plegado: se consulta, no estorba. */
+/* Botón de sugerencias: vive dentro del campo, discreto pero claro. */
+.campo-objeval{position:relative}
+/* Objetivo sugerido: el texto y, al costado, el OA al que corresponde. */
+.obj-item{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+  width:100%; text-align:left; background:transparent; border:0; border-bottom:1px solid var(--line);
+  padding:11px 12px; font-size:13.5px; line-height:1.4; color:var(--ink); min-height:44px}
+.obj-item:last-child{border-bottom:0}
+.obj-item:active{background:var(--surface-2)}
+.obj-item > span{flex:1; min-width:0}
+.obj-item i{flex:0 0 auto; font-style:normal; font-family:var(--mono); font-size:10.5px;
+  color:var(--verde-oscuro); background:var(--verde-claro); border-radius:5px;
+  padding:3px 7px; white-space:nowrap; margin-top:1px}
+
+.btn-sugerencia{
+  display:inline-flex; align-items:center; gap:6px; margin-top:7px;
+  background:var(--verde-claro); border:1px solid #bcd9ec; border-radius:999px;
+  color:var(--verde-oscuro); font-size:12.5px; font-weight:600; padding:7px 13px 7px 11px;
+  min-height:38px; transition:background .16s var(--curva), transform .1s var(--curva);
+}
+.btn-sugerencia:active{transform:scale(.97); background:#d4e8f5}
+.btn-sugerencia svg{width:15px; height:15px; fill:none; stroke:currentColor;
+  stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+
 
 .ind-edit{border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface);
   padding:8px; margin-bottom:8px}
@@ -586,7 +606,8 @@ th.col-fija{background:var(--surface-2); z-index:3}
     border:1px solid var(--line); line-height:1.2}
   .leyenda-oa{line-height:1.4; margin:0 0 8px}
   .leyenda-oa .oa-titulo{margin:7px 0 1px; font-family:var(--mono)}
-  .leyenda-oa .oa-texto{margin:0 0 3px; text-align:justify; hyphens:auto}
+  .leyenda-oa .oa-objeval{margin:1px 0 3px; text-align:justify}
+  .leyenda-oa .oa-texto{margin:0 0 3px; text-align:justify; hyphens:auto; color:#3a4a54}
   .leyenda-oa .rejilla-ind{display:grid; grid-template-columns:repeat(3, 1fr);
     grid-auto-rows:1fr; gap:3px; margin:0 0 4px; align-items:stretch}
   .leyenda-oa .caja-ind{border:1px solid #b9cfdc; border-radius:3px; padding:2px 4px;
@@ -761,6 +782,89 @@ const PAUTA_OBS = [
    Dos categorías: las de acceso, que no cambian el objetivo, y las
    que sí modifican los objetivos de aprendizaje.
    ========================================================= */
+/* =========================================================
+   Objetivos de evaluación de ejemplo. A diferencia del OA, que es del
+   programa, este describe qué se evalúa en esta clase concreta.
+   ========================================================= */
+const OBJETIVOS_EVAL = [
+  ["Habilidades motrices básicas", [
+    ["Ejecutar las habilidades de locomoción en distintas direcciones manteniendo el control del cuerpo", [1], [1]],
+    ["Ejecutar el salto de vallas manteniendo el control del cuerpo durante todo el recorrido", [1], [1]],
+    ["Superar una serie de obstáculos bajos alternando el pie de batida", [1], [1]],
+    ["Saltar la cuerda girada por el docente coordinando el impulso con el paso de la cuerda", [1], [1]],
+    ["Ingresar y salir de la cuerda larga completando la cantidad de saltos indicada", [1], [1]],
+    ["Saltar en un pie manteniendo el equilibrio en un desplazamiento en línea recta", [1], [1]],
+    ["Saltar con los dos pies de forma consecutiva en una dirección determinada", [1], [1]],
+    ["Lanzar y recibir un balón con un compañero regulando la fuerza según la distancia", [1], [1]],
+    ["Lanzar hacia un blanco ajustando la trayectoria en intentos sucesivos", [1], [1]],
+    ["Recibir un móvil desplazándose para ubicarse bajo su trayectoria", [1], [1]],
+    ["Desplazarse botando el balón con control en un recorrido con obstáculos", [1], [1]],
+    ["Conducir el balón con los pies alternando ambos lados del cuerpo", [1], [1]],
+    ["Mantener el equilibrio al desplazarse sobre una base estrecha o a baja altura", [1], [1]],
+    ["Ejecutar giros, rodadas y volteos manteniendo el cuerpo agrupado", [1], [1]],
+    ["Ejecutar suspensiones manteniendo el cuerpo alineado", [1], [1]],
+    ["Combinar dos o más habilidades motrices en una secuencia continua", [1], [1]]]],
+
+  ["Juegos colectivos y estrategias", [
+    ["Tomar decisiones de pase y desmarque durante el juego colectivo", [2], [2]],
+    ["Ubicarse en los espacios libres de la cancha durante el juego", [2], [2]],
+    ["Resolver una situación de superioridad numérica en el juego reducido", [2], [2]],
+    ["Aplicar la estrategia acordada por el equipo durante el juego", [2], [2]],
+    ["Evaluar con su equipo la estrategia utilizada al término del juego", [2], [2]],
+    ["Recuperar la posición defensiva tras la pérdida del balón", [2], [2]],
+    ["Anticipar la jugada del rival para interceptar el móvil", [2], [2]]]],
+
+  ["Deportes y sus reglas", [
+    ["Aplicar los gestos técnicos básicos del deporte en situación de juego", [3], [1]],
+    ["Aplicar las reglas del deporte sin necesidad de que se le recuerden", [3], [1]],
+    ["Ocupar la posición que le corresponde en el ataque y en la defensa", [3], [2]],
+    ["Ejecutar el lanzamiento al arco aplicando la técnica trabajada", [3], [1]],
+    ["Mantener el peloteo con un compañero controlando la dirección del móvil", [3], [1]],
+    ["Ejecutar el saque cumpliendo la regla del deporte practicado", [3], [1]],
+    ["Asumir distintos roles dentro del equipo durante el partido", [3, 4], [2]]]],
+
+  ["Planificación de la práctica", [
+    ["Planificar y ejecutar una actividad física con sus compañeros", [4], [4]],
+    ["Organizar un circuito de trabajo aplicando lo aprendido en clases", [4], [4]],
+    ["Proponer una adaptación del juego para incluir a todo el grupo", [4], [4]]]],
+
+  ["Danza y expresión", [
+    ["Ejecutar la secuencia de la danza manteniendo el pulso de la música", [5], [1]],
+    ["Coordinar sus movimientos con los de su grupo durante la coreografía", [5], [1]],
+    ["Expresar una idea o emoción a través del movimiento corporal", [5], [1]],
+    ["Ejecutar los pasos básicos de una danza nacional en pareja", [5], [1]]]],
+
+  ["Condición física y salud", [
+    ["Ejecutar actividad física de intensidad moderada a vigorosa durante la sesión", [6], [3]],
+    ["Completar el circuito manteniendo un ritmo constante de trabajo", [6], [3]],
+    ["Ejecutar la carrera de velocidad aplicando la técnica trabajada en clases", [6], [3]],
+    ["Sostener la actividad física durante el tiempo indicado sin detenerse", [6], [3]],
+    ["Mejorar su marca personal respecto de la medición anterior", [6], [3]],
+    ["Practicar de forma regular actividad física fuera del horario de clases", [7], [4]],
+    ["Registrar su práctica semanal de actividad física", [7], [4]],
+    ["Registrar su frecuencia cardiaca antes y después del esfuerzo", [8], [3]],
+    ["Reconocer la intensidad de su esfuerzo durante la sesión", [8], [3]],
+    ["Aplicar los principios de frecuencia, intensidad y duración en su trabajo", [8], [3]]]],
+
+  ["Seguridad e higiene", [
+    ["Aplicar las normas de seguridad e higiene en la práctica de la clase", [9], [3]],
+    ["Ejecutar la activación inicial antes de la parte principal de la clase", [9], [3]],
+    ["Hidratarse de forma adecuada durante la sesión", [9], [3]],
+    ["Usar y guardar los materiales de forma segura", [9], [3]]]],
+
+  ["Responsabilidad y convivencia", [
+    ["Participar de manera activa durante toda la clase", [10], [5]],
+    ["Trabajar en equipo respetando los acuerdos del grupo", [10], [5]],
+    ["Asumir el rol de liderazgo cuando el grupo lo requiere", [10], [5]],
+    ["Perseverar ante la dificultad volviendo a intentar la tarea", [10], [5]],
+    ["Colaborar en la organización y el cuidado de los materiales", [10], [5]],
+    ["Demostrar juego limpio durante la práctica deportiva", [11], [5]],
+    ["Aceptar las decisiones del árbitro o del docente sin reclamar", [11], [5]],
+    ["Incluir a todos sus compañeros en la actividad propuesta", [11], [5]],
+    ["Resolver los desacuerdos del juego mediante el diálogo", [11], [5]]]]
+];
+
+
 const ADECUACIONES = [
   ["acceso", "Presentación de la información", [
     "Demostración del ejercicio antes de la ejecución",
@@ -2058,7 +2162,8 @@ function normalizarCriterio(c, ptsDefecto) {
   let indicadores = Array.isArray(base.indicadores) ? base.indicadores.map((x) => normalizarIndicador(x, ptsDefecto)) : [];
   if (!indicadores.length) indicadores = [{ texto: "", pts: ptsDefecto }];
   const descriptores = Array.isArray(base.descriptores) ? base.descriptores.slice(0, 8).map((x) => String(x == null ? "" : x)) : [];
-  return { texto, oa, eje, indicadores, descriptores };
+  const objEval = String(base.objEval == null ? "" : base.objEval);
+  return { texto, oa, eje, objEval, indicadores, descriptores };
 }
 
 function criterioDesdeOA(codigo, cursoId, nInd) {
@@ -2069,6 +2174,7 @@ function criterioDesdeOA(codigo, cursoId, nInd) {
     texto: oa ? oa.texto : "",
     oa: oa ? oa.codigo : "",
     eje: oa ? oa.eje : "",
+    objEval: "",
     indicadores: Array.from({ length: n }, (_, q) => ({ texto: sug[q] || "", pts: PTS_DEFECTO }))
   };
 }
@@ -2582,18 +2688,13 @@ function panelAjustes(ev) {
           </select>
           <button class="btn btn-mini btn-peligro" data-accion="borrar-criterio" data-j="${j}" ${ev.criterios.length <= 1 ? "disabled" : ""} title="Quitar criterio">×</button>
         </div>
-        ${S.editandoOA === j
-          ? `<textarea data-campo="criterio" data-j="${j}" rows="3" placeholder="Redacta el objetivo con tus palabras"
-               style="width:100%;min-height:74px">${esc(c.texto)}</textarea>
-             <div class="fila" style="margin:6px 0 2px">
-               <button class="btn btn-mini btn-lleno" data-accion="cerrar-oa">Listo</button>
-               ${c.oa ? `<button class="btn btn-mini" data-accion="restaurar-oa" data-j="${j}">Volver al texto oficial</button>` : ""}
-             </div>`
-          : `<div class="texto-oa">
-               <p>${esc(c.texto || "Sin redactar")}</p>
-               <button class="btn btn-mini" data-accion="editar-oa" data-j="${j}">Editar</button>
-             </div>
-             ${c.oa ? `<p class="sub" style="margin:3px 0 0">${esc(EJES[c.eje] || "")}${esTextoDeOA(c.texto, S.cursoId) ? "" : " · redacción propia"}</p>` : ""}`}
+        <label class="campo campo-objeval" style="margin-top:11px"><span>Objetivo de evaluación</span>
+          <textarea data-campo="objeval" data-j="${j}" rows="2" style="min-height:60px"
+            placeholder="Qué se evalúa en esta clase">${esc(c.objEval)}</textarea>
+          <button class="btn-sugerencia" data-accion="ejemplos-obj" data-j="${j}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.5.4.8 1 .8 1.6h5.4c0-.6.3-1.2.8-1.6A6 6 0 0012 3z"/></svg>
+            Sugerencias
+          </button></label>
         <div style="padding-left:24px">
           ${c.indicadores.map((ind, q) => `
             <div class="ind-edit">
@@ -2750,7 +2851,7 @@ function vistaPlanilla(ev) {
           <th class="izq col-fija" rowspan="3">ESTUDIANTE</th>
           <th rowspan="3">ASIS.</th>
           ${ev.criterios.map((c, j) => `<th class="th-grupo" colspan="${c.indicadores.length * (esEscala(ev) ? 1 : 2)}">
-            <span class="rot-crit">${esc(c.oa || "Sin OA")}</span> ${esc(recorte(c.texto || "Objetivo sin redactar", 90))}
+            <span class="rot-crit">${esc(c.oa || "Sin OA")}</span> ${esc(recorte(c.objEval || c.texto || "Objetivo sin redactar", 90))}
             <button class="btn-mas" data-accion="agregar-indicador" data-j="${j}" title="Agregar indicador">+</button>
           </th>`).join("")}
           <th rowspan="3">PTS</th><th rowspan="3">NOTA</th><th rowspan="3">OBS</th>
@@ -2818,7 +2919,8 @@ function vistaPorCriterio(ev) {
     </div>
     <div class="cab-criterio">
       <span class="rotulo-seccion" style="margin:0 0 6px">${c.oa ? esc(c.oa) : "Criterio " + (j + 1)}</span>
-      <h2 class="titulo-criterio">${esc(c.texto || "Sin redactar")}</h2>
+      <h2 class="titulo-criterio">${esc(c.objEval || c.texto || "Sin redactar")}</h2>
+      ${c.objEval && c.texto ? `<p class="sub" style="margin:5px 0 0">${esc(recorte(c.texto, 110))}</p>` : ""}
       ${c.oa ? `<p class="sub" style="margin:4px 0 0">${esc(EJES[c.eje] || "")}</p>` : ""}
     </div>
     ${esEscala(ev) ? `<p class="sub" style="margin:6px 0 0">${leyendaEscala(ev)}</p>`
@@ -3149,7 +3251,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v98</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v102</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -3541,13 +3643,38 @@ document.addEventListener("click", async (evt) => {
   }
 
   /* --- criterios e indicadores --- */
-  if (a === "editar-oa") { S.editandoOA = +btn.dataset.j; pintar(); return; }
-  if (a === "cerrar-oa") { S.editandoOA = null; pintar(); return; }
-  if (a === "restaurar-oa") {
-    const c = ev.criterios[+btn.dataset.j];
-    const oa = buscarOA(S.cursoId, c.oa);
-    if (oa) { c.texto = oa.texto; marcarCambio(); }
-    S.editandoOA = null; pintar(); return;
+  if (a === "ejemplos-obj") {
+    const j = +btn.dataset.j, cur = CURRICULO[S.cursoId];
+    const superior = cur.oaa === OAA_7_8;                 // 7° y 8° numeran distinto
+    const nOA = ((ev.criterios[j].oa || "").match(/OA (\d+)/) || [])[1];
+    const numero = nOA ? +nOA : null;
+    const codigo = (k) => `${cur.sigla} OA ${String(k).padStart(2, "0")}`;
+    const aplica = (item) => (superior ? item[2] : item[1]);
+    const boton = (item) => {
+      const cods = aplica(item).map(codigo);
+      return `<button class="obj-item" data-accion="poner-objeval" data-j="${j}" data-t="${esc(item[0])}">
+        <span>${esc(item[0])}</span>
+        <i>${cods.map((x) => esc(x)).join(" · ")}</i></button>`;
+    };
+    const todos = OBJETIVOS_EVAL.flatMap(([, items]) => items);
+    const calzan = numero ? todos.filter((x) => aplica(x).includes(numero)) : [];
+    abrirModal(`
+      <h3>Sugerencias de objetivo</h3>
+      <p class="sub" style="margin:4px 0 10px">Cada objetivo indica a qué OA corresponde.
+        Toca uno para usarlo; después puedes editarlo con tus palabras.</p>
+      ${calzan.length ? `<p class="rotulo-seccion" style="margin-top:0">Para ${esc(codigo(numero))} · ${calzan.length}</p>
+        <div class="caja-oas">${calzan.map(boton).join("")}</div>
+        <p class="rotulo-seccion">Todos los objetivos</p>` : ""}
+      ${OBJETIVOS_EVAL.map(([grupo, items]) => `<details class="det-tarea">
+        <summary>${esc(grupo)} <i>${items.length}</i></summary>
+        <div class="caja-oas">${items.map(boton).join("")}</div>
+      </details>`).join("")}
+      <div class="fila" style="margin-top:12px"><button class="btn btn-ancho" data-accion="cerrar-modal">Cancelar</button></div>`);
+    return;
+  }
+  if (a === "poner-objeval") {
+    ev.criterios[+btn.dataset.j].objEval = btn.dataset.t;
+    cerrarModal(); marcarCambio(); pintar(); return;
   }
   if (a === "borrar-criterio") {
     const j = +btn.dataset.j;
@@ -3913,6 +4040,7 @@ document.addEventListener("input", (evt) => {
   else if (campo === "pts") ev.criterios[+el.dataset.j].indicadores[+el.dataset.q].pts = Math.max(0, +el.value || 0);
   else if (campo === "alumno") S.datos.roster[+el.dataset.i] = el.value;
   else if (campo === "docente") { localStorage.setItem(CLAVE_DOCENTE, el.value); return; }
+  else if (campo === "objeval") { ev.criterios[+el.dataset.j].objEval = el.value; marcarCambio(); return; }
   else if (campo === "exigencia") { ev.exigencia = Math.min(100, Math.max(10, +el.value || EXIGENCIA)); marcarCambio(); pintar(); return; }
   else if (campo === "peso") { ev.peso = Math.min(10, Math.max(0, +el.value || 0)); marcarCambio(); pintar(); return; }
   else if (campo === "descriptor") {
@@ -4100,6 +4228,7 @@ function imprimir(enBlanco) {
     ${esEscala(ev) ? `<p class="leyenda-escala"><b>Escala:</b> ${leyendaEscala(ev)}</p>` : ""}
     <div class="leyenda-oa">${ev.criterios.map((c, j) => `
       <p class="oa-titulo"><b>${esc(c.oa || "Criterio " + (j + 1))}</b> · ${esc(EJES[c.eje] || "criterio propio")}</p>
+      ${c.objEval ? `<p class="oa-objeval"><b>Objetivo de evaluación:</b> ${esc(c.objEval)}</p>` : ""}
       <p class="oa-texto">${esc(c.texto || "—")}</p>
       <div class="rejilla-ind">${c.indicadores.map((ind, q) => `
         <div class="caja-ind"><b>${j + 1}.${q + 1}</b> ${esc(ind.texto || "sin redactar")}
