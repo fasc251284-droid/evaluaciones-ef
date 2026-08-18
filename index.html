@@ -277,6 +277,9 @@ th.col-fija{background:var(--surface-2); z-index:3}
 /* ---------- Criterios (editor) ---------- */
 /* Un indicador por tarjeta: texto arriba, sus controles abajo. */
 /* El texto oficial del OA queda plegado: se consulta, no estorba. */
+/* Campos que crecen con su contenido, sin barra de desplazamiento interna. */
+.auto-alto{resize:none; overflow:hidden; min-height:0; line-height:1.4}
+
 /* Botón de sugerencias: vive dentro del campo, discreto pero claro. */
 .campo-objeval{position:relative}
 /* Objetivo sugerido: el texto y, al costado, el OA al que corresponde. */
@@ -606,8 +609,9 @@ th.col-fija{background:var(--surface-2); z-index:3}
     border:1px solid var(--line); line-height:1.2}
   .leyenda-oa{line-height:1.4; margin:0 0 8px}
   .leyenda-oa .oa-titulo{margin:7px 0 1px; font-family:var(--mono)}
-  .leyenda-oa .oa-objeval{margin:1px 0 3px; text-align:justify}
   .leyenda-oa .oa-texto{margin:0 0 3px; text-align:justify; hyphens:auto; color:#3a4a54}
+  .leyenda-oa .oa-objeval{margin:0 0 4px; text-align:justify; padding-left:7px;
+    border-left:2px solid #b9cfdc}
   .leyenda-oa .rejilla-ind{display:grid; grid-template-columns:repeat(3, 1fr);
     grid-auto-rows:1fr; gap:3px; margin:0 0 4px; align-items:stretch}
   .leyenda-oa .caja-ind{border:1px solid #b9cfdc; border-radius:3px; padding:2px 4px;
@@ -2448,6 +2452,17 @@ function vigilarDeslizamiento() {
   }, { passive: true });
 }
 
+/* Deja el cuadro del alto exacto de su texto. */
+function ajustarAlto(el) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+}
+
+function ajustarTodos() {
+  document.querySelectorAll(".auto-alto").forEach(ajustarAlto);
+}
+
 function pintar() {
   const raiz = $("#raiz");
   if (S.verificando) { raiz.innerHTML = `<div class="vacio" style="padding-top:60px">Verificando sesión…</div>`; return; }
@@ -2455,6 +2470,7 @@ function pintar() {
   const memoria = guardarScroll();
   raiz.innerHTML = vistaApp();
   devolverScroll(memoria);
+  ajustarTodos();
   vigilarCabecera();
   pintarEstado();
 }
@@ -2689,7 +2705,7 @@ function panelAjustes(ev) {
           <button class="btn btn-mini btn-peligro" data-accion="borrar-criterio" data-j="${j}" ${ev.criterios.length <= 1 ? "disabled" : ""} title="Quitar criterio">×</button>
         </div>
         <label class="campo campo-objeval" style="margin-top:11px"><span>Objetivo de evaluación</span>
-          <textarea data-campo="objeval" data-j="${j}" rows="2" style="min-height:60px"
+          <textarea data-campo="objeval" data-j="${j}" rows="1" class="auto-alto"
             placeholder="Qué se evalúa en esta clase">${esc(c.objEval)}</textarea>
           <button class="btn-sugerencia" data-accion="ejemplos-obj" data-j="${j}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.5.4.8 1 .8 1.6h5.4c0-.6.3-1.2.8-1.6A6 6 0 0012 3z"/></svg>
@@ -3251,7 +3267,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v102</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v104</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -4040,7 +4056,11 @@ document.addEventListener("input", (evt) => {
   else if (campo === "pts") ev.criterios[+el.dataset.j].indicadores[+el.dataset.q].pts = Math.max(0, +el.value || 0);
   else if (campo === "alumno") S.datos.roster[+el.dataset.i] = el.value;
   else if (campo === "docente") { localStorage.setItem(CLAVE_DOCENTE, el.value); return; }
-  else if (campo === "objeval") { ev.criterios[+el.dataset.j].objEval = el.value; marcarCambio(); return; }
+  else if (campo === "objeval") {
+    ev.criterios[+el.dataset.j].objEval = el.value;
+    ajustarAlto(el);
+    marcarCambio(); return;
+  }
   else if (campo === "exigencia") { ev.exigencia = Math.min(100, Math.max(10, +el.value || EXIGENCIA)); marcarCambio(); pintar(); return; }
   else if (campo === "peso") { ev.peso = Math.min(10, Math.max(0, +el.value || 0)); marcarCambio(); pintar(); return; }
   else if (campo === "descriptor") {
@@ -4228,8 +4248,8 @@ function imprimir(enBlanco) {
     ${esEscala(ev) ? `<p class="leyenda-escala"><b>Escala:</b> ${leyendaEscala(ev)}</p>` : ""}
     <div class="leyenda-oa">${ev.criterios.map((c, j) => `
       <p class="oa-titulo"><b>${esc(c.oa || "Criterio " + (j + 1))}</b> · ${esc(EJES[c.eje] || "criterio propio")}</p>
-      ${c.objEval ? `<p class="oa-objeval"><b>Objetivo de evaluación:</b> ${esc(c.objEval)}</p>` : ""}
       <p class="oa-texto">${esc(c.texto || "—")}</p>
+      ${c.objEval ? `<p class="oa-objeval"><b>Objetivo de evaluación:</b> ${esc(c.objEval)}</p>` : ""}
       <div class="rejilla-ind">${c.indicadores.map((ind, q) => `
         <div class="caja-ind"><b>${j + 1}.${q + 1}</b> ${esc(ind.texto || "sin redactar")}
           <i>${esEscala(ev) ? `1–${nNiveles(ev)}` : `${ind.pts} pts`}</i></div>`).join("")}</div>`).join("")}</div>
