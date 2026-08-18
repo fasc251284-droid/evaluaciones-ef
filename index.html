@@ -271,6 +271,19 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .detalle-logro{margin:3px 0 0; font-size:11.5px; color:var(--soft); line-height:1.4}
 
 /* Detalle por indicador de cada estudiante. */
+/* Apoyo sugerido para quienes están bajo 4,0. */
+.det-apoyo{border:1px solid var(--line); border-left:3px solid var(--oro);
+  border-radius:var(--r-s); padding:10px 12px; margin-bottom:8px; background:var(--surface)}
+.det-apoyo summary{list-style:none; cursor:pointer; display:flex; justify-content:space-between;
+  gap:10px; align-items:baseline; min-height:32px; font-size:14px}
+.det-apoyo summary::-webkit-details-marker{display:none}
+.det-apoyo summary em{font-style:normal; font-family:var(--mono); font-size:11px; color:var(--falta);
+  white-space:nowrap}
+.det-apoyo summary em::after{content:" ▸"; opacity:.6}
+.det-apoyo[open] summary em::after{content:" ▾"}
+.lista-rem{margin:0; padding-left:18px; font-size:13px; line-height:1.45}
+.lista-rem li{margin-bottom:5px}
+
 .det-alumno summary{list-style:none; cursor:pointer; padding:2px 0}
 .det-alumno summary::-webkit-details-marker{display:none}
 .det-alumno summary .rotulo em::after{content:" ▸"; font-size:10px; opacity:.6}
@@ -888,6 +901,191 @@ const OBJETIVOS_EVAL = [
     ["Resolver los desacuerdos del juego mediante el diálogo", [11], [5]]]]
 ];
 
+
+/* =========================================================
+   Actividades remediales por tarea motriz, para trabajar el gesto concreto.
+   ========================================================= */
+const REMEDIALES_TAREA = {
+  "Salto de vallas": [
+    "Pasar por sobre cuerdas o conos bajos antes de usar la valla",
+    "Marcar con tiza el punto de batida y practicar la llegada sin salto",
+    "Practicar el paso de la valla caminando, sin carrera previa",
+    "Trabajar la pierna de ataque contra la pared, sin obstáculo",
+    "Repetir el recorrido con una sola valla hasta afianzar el gesto"],
+  "Salto de cuerda girada por el profesor": [
+    "Saltar sobre una cuerda quieta en el suelo, marcando el ritmo",
+    "Imitar el salto sin cuerda mientras el docente marca el pulso",
+    "Saltar con la cuerda balanceada de lado a lado antes del giro completo",
+    "Contar en voz alta junto al docente durante los primeros saltos",
+    "Practicar de a dos, uno salta y el otro cuenta"],
+  "Cuerda girada: entrar y salir": [
+    "Practicar el ingreso con la cuerda detenida y girar después",
+    "Entrar tomado de la mano de un compañero las primeras veces",
+    "Marcar en el suelo el punto de entrada y el de salida",
+    "Practicar solo la salida, partiendo ya dentro de la cuerda",
+    "Reducir a tres los saltos exigidos antes de salir"],
+  "Salto en un pie": [
+    "Sostener el equilibrio en un pie apoyado en la pared, sin saltar",
+    "Saltar en un pie dentro de un aro, sin desplazamiento",
+    "Alternar dos saltos en un pie y dos en el otro",
+    "Recorrer una línea saltando con los dos pies antes de exigir uno",
+    "Jugar al luche para practicar el salto en un pie de forma lúdica"],
+  "Lanzamiento y recepción": [
+    "Lanzar y recibir contra la pared a corta distancia",
+    "Recibir un globo o una pelota de esponja para bajar la velocidad",
+    "Lanzar a un blanco grande y acercarlo o alejarlo según el logro",
+    "Practicar solo la posición de manos antes de recibir el móvil",
+    "Recibir un balón con bote previo antes de la recepción directa"],
+  "Bote y conducción del balón": [
+    "Botear en el lugar mirando al frente, sin desplazamiento",
+    "Conducir en línea recta antes de exigir el zigzag",
+    "Botear con la mano hábil y luego con la otra, por separado",
+    "Aumentar el tamaño del balón para facilitar el control"],
+  "Equilibrio y estabilidad": [
+    "Caminar sobre una línea pintada en el suelo antes de usar una base elevada",
+    "Sostener la posición sobre un pie apoyado en un compañero",
+    "Trasladar un objeto liviano caminando sobre la línea",
+    "Detener la carrera a la señal y sostener la posición tres segundos"],
+  "Giros, rodadas y volteos": [
+    "Practicar la posición agrupada sentado, sin rodar",
+    "Rodar sobre una colchoneta inclinada para facilitar el impulso",
+    "Girar de a 180° antes de exigir el giro completo",
+    "Ejecutar el volteo con apoyo del docente en la nuca"],
+  "Carrera de velocidad": [
+    "Practicar la salida sin carrera, solo la posición y la reacción",
+    "Correr tramos cortos de diez metros con foco en la técnica",
+    "Trabajar el movimiento de brazos en el lugar",
+    "Correr entre dos líneas marcadas para mantener la trayectoria"],
+  "Resistencia y trabajo aeróbico": [
+    "Alternar tramos de trote y de caminata dentro del tiempo",
+    "Reducir el tiempo total y aumentarlo en clases sucesivas",
+    "Trabajar en pareja marcando un ritmo sostenible",
+    "Registrar la frecuencia cardiaca para reconocer la intensidad"],
+  "Danza y expresión rítmica": [
+    "Practicar los pasos por separado antes de encadenarlos",
+    "Ejecutar la secuencia sin música, contando en voz alta",
+    "Reducir la velocidad de la música en los primeros intentos",
+    "Ejecutar frente a un compañero que sirva de espejo"],
+  "Balonmano": [
+    "Practicar los tres pasos caminando, sin balón",
+    "Lanzar al arco sin arquero y desde corta distancia",
+    "Jugar en superioridad numérica para facilitar el pase",
+    "Trabajar el pase en pareja antes de la situación de juego"],
+  "Bádminton": [
+    "Golpear el volante suspendido con un hilo, sin desplazamiento",
+    "Practicar la empuñadura y el gesto sin volante",
+    "Peloteo a corta distancia sin red",
+    "Golpear un globo para prolongar el tiempo de reacción"],
+  "Juegos colectivos y táctica": [
+    "Jugar en espacio reducido y con menos participantes",
+    "Detener el juego para señalar los espacios libres",
+    "Asignar roles fijos antes de exigir rotación",
+    "Jugar sin oposición para practicar el desplazamiento"],
+  "Actitud": [
+    "Acordar una meta breve y alcanzable para la próxima clase",
+    "Asignar un rol con responsabilidad concreta dentro del grupo",
+    "Reforzar de inmediato los avances observados",
+    "Conversar en privado sobre la dificultad y acordar un apoyo",
+    "Emparejar con un compañero tutor durante la actividad"]
+};
+
+/* Busca a qué tarea pertenece un indicador para ofrecer sus remediales. */
+function tareaDelIndicador(texto) {
+  const t = (texto || "").trim();
+  if (!t) return null;
+  const exacto = TAREAS.find(([, items]) => items.includes(t));
+  if (exacto) return exacto[0].replace(" · pauta formativa", "");
+  const bajo = t.toLowerCase();
+  const claves = [
+    ["valla", "Salto de vallas"], ["cuerda", "Salto de cuerda girada por el profesor"],
+    ["un pie", "Salto en un pie"], ["lanz", "Lanzamiento y recepción"],
+    ["recib", "Lanzamiento y recepción"], ["bote", "Bote y conducción del balón"],
+    ["bota", "Bote y conducción del balón"], ["equilibri", "Equilibrio y estabilidad"],
+    ["gir", "Giros, rodadas y volteos"], ["rueda", "Giros, rodadas y volteos"],
+    ["corr", "Carrera de velocidad"], ["resistencia", "Resistencia y trabajo aeróbico"],
+    ["danza", "Danza y expresión rítmica"], ["ritmo", "Danza y expresión rítmica"],
+    ["equipo", "Actitud"], ["respet", "Actitud"], ["particip", "Actitud"], ["esfuerzo", "Actitud"]
+  ];
+  const hallada = claves.find(([k]) => bajo.includes(k));
+  return hallada ? hallada[1] : null;
+}
+
+/* Indicadores no logrados de un estudiante, con su remedial sugerida. */
+function remedialesPara(ev, i) {
+  const fallidos = [];
+  ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
+    const fallo = esEscala(ev)
+      ? (() => { const v = nivelDe(ev, i, j, q); return v && puntosNivel(ev, v) / maxNivel(ev) < 0.6; })()
+      : marcaDe(ev, i, j, q) === 2;
+    if (fallo) fallidos.push({ rot: `${j + 1}.${q + 1}`, texto: ind.texto, oa: c.oa, tarea: tareaDelIndicador(ind.texto) });
+  }));
+  const tareas = [...new Set(fallidos.map((x) => x.tarea).filter(Boolean))];
+  return { fallidos, tareas };
+}
+
+/* =========================================================
+   Remediales por objetivo de aprendizaje, para la decisión pedagógica.
+   ========================================================= */
+const REMEDIALES_OA = [
+  ["Habilidades motrices", [1], [1], [
+    "Volver a la habilidad por partes: primero el gesto sin móvil, luego con móvil, luego en desplazamiento",
+    "Reducir la exigencia del entorno: menos distancia, menor altura, más espacio libre",
+    "Trabajar en estación fija con repeticiones cortas antes de volver al circuito",
+    "Usar material de mayor tamaño o más lento: globo, pelota de esponja, balón blando",
+    "Grabar la ejecución y revisarla con el estudiante señalando un solo aspecto a corregir",
+    "Asignar un compañero tutor que ejecute el gesto como modelo cercano",
+    "Dar una consigna a la vez, evitando corregir dos aspectos en la misma repetición",
+    "Practicar la habilidad en un juego de baja demanda antes de la situación formal"]],
+
+  ["Juegos colectivos y estrategias", [2], [2], [
+    "Jugar en espacio reducido y con menos participantes para aumentar sus contactos con el balón",
+    "Congelar el juego en momentos clave y preguntarle dónde estaba el espacio libre",
+    "Asignarle una tarea única por partido: recibir tres pases, ocupar el espacio libre",
+    "Trabajar la situación de dos contra uno antes de volver al juego completo",
+    "Usar peto de color para que identifique con claridad a sus compañeros",
+    "Dar responsabilidad de un rol fijo antes de rotar posiciones"]],
+
+  ["Deportes y sus reglas", [3], [1], [
+    "Practicar el gesto técnico sin oposición antes de la situación de juego",
+    "Revisar la regla con una demostración concreta y no solo con la explicación verbal",
+    "Asignarle el rol de árbitro en un juego corto para interiorizar la regla",
+    "Descomponer el gesto en dos fases y evaluar solo la primera",
+    "Reducir la altura del implemento o el tamaño de la cancha"]],
+
+  ["Planificación de la práctica", [4], [4], [
+    "Entregar una pauta con los pasos de la planificación en vez de pedirla abierta",
+    "Planificar en pareja antes de hacerlo de forma individual",
+    "Partir adaptando una actividad ya conocida en lugar de crear una nueva"]],
+
+  ["Danza y expresión", [5], [1], [
+    "Practicar la secuencia por partes, agregando un paso cada vez",
+    "Ejecutar con conteo en voz alta antes de usar la música",
+    "Bajar la velocidad de la música hasta lograr la secuencia completa",
+    "Ubicarlo detrás de un compañero que domine la coreografía",
+    "Reducir la cantidad de pasos exigidos en la secuencia"]],
+
+  ["Condición física y salud", [6, 7, 8], [3, 4], [
+    "Fijar una meta personal alcanzable y revisarla cada dos clases",
+    "Fraccionar el trabajo: series más cortas con pausas más frecuentes",
+    "Registrar su marca clase a clase para que observe su propio avance",
+    "Enseñar a regular el ritmo con una referencia concreta: poder hablar mientras corre",
+    "Acompañar el trabajo con un compañero de ritmo similar",
+    "Proponer una rutina breve para practicar fuera del horario de clases"]],
+
+  ["Seguridad e higiene", [9], [3], [
+    "Revisar las normas antes de cada clase con una pregunta directa al estudiante",
+    "Asignarle el rol de encargado de materiales o de seguridad del grupo",
+    "Usar apoyo visual con las normas en el lugar de trabajo",
+    "Reforzar de inmediato la conducta correcta cuando la ejecute"]],
+
+  ["Responsabilidad y convivencia", [10, 11], [5], [
+    "Acordar con el estudiante una meta conductual concreta para la próxima clase",
+    "Asignarle un rol con responsabilidad visible dentro del equipo",
+    "Trabajar en grupos pequeños donde su participación sea necesaria",
+    "Conversar en privado la situación al término de la clase, sin exponerlo ante el curso",
+    "Reconocer públicamente el avance cuando cumpla el acuerdo",
+    "Coordinar con la familia una estrategia común de refuerzo"]]
+];
 
 const ADECUACIONES = [
   ["acceso", "Presentación de la información", [
@@ -2856,6 +3054,14 @@ function botonAsistencia(ev, i) {
   return `<button class="asis ${cls}" data-accion="asistencia" data-i="${i}" title="${tit}">${txt}</button>`;
 }
 
+/* Busca las remediales del OA de un criterio. */
+function remedialesDelOA(codigo) {
+  const n = +((codigo || "").match(/OA (\d+)/) || [])[1];
+  if (!n) return null;
+  const superior = CURRICULO[S.cursoId].oaa === OAA_7_8;
+  return REMEDIALES_OA.find((r) => (superior ? r[2] : r[1]).includes(n)) || null;
+}
+
 function insigniaCriterio(ev, i, j) {
   const l = logroCriterio(ev, i, j);
   const cls = !l.marcados ? "" : l.puntaje === l.total ? "verde" : l.puntaje === 0 ? "roja" : "media";
@@ -3114,6 +3320,46 @@ function vistaResumen() {
     </div>
   </div>
 
+  ${(() => {
+    const bajos = S.datos.roster.map((nom, i) => {
+      if (ev.estado[i]) return null;
+      const r = resultado(ev, i);
+      if (r.nota === null || r.nota >= 4) return null;
+      // el criterio con menor logro es donde conviene intervenir
+      const flojos = ev.criterios.map((c, j) => {
+        const l = logroCriterio(ev, i, j);
+        return { j, c, pct: l.total ? Math.round((l.puntaje / l.total) * 100) : null, l };
+      }).filter((x) => x.pct !== null).sort((a, b) => a.pct - b.pct);
+      return { i, nom, r, flojos };
+    }).filter(Boolean);
+    if (!bajos.length) return "";
+    return `
+  <div class="tarjeta">
+    <h2>Apoyo sugerido</h2>
+    <p class="sub" style="margin:2px 0 12px">${bajos.length} estudiante${bajos.length > 1 ? "s" : ""} bajo 4,0.
+      Se propone dónde intervenir según el objetivo con menor logro.</p>
+    ${bajos.map(({ i, nom, r, flojos }) => {
+      const peor = flojos[0];
+      const rem = peor ? remedialesDelOA(peor.c.oa) : null;
+      const falla = remedialesPara(ev, i);
+      return `<details class="det-apoyo">
+        <summary>
+          <span><b>${esc(nom || "N° " + (i + 1))}</b> · nota ${num1(r.nota)}</span>
+          <em>${peor ? `${esc(peor.c.oa || "Criterio " + (peor.j + 1))} · ${peor.pct}%` : ""}</em>
+        </summary>
+        ${falla.fallidos.length ? `<p class="rotulo-seccion" style="margin:8px 0 5px">No logró · ${falla.fallidos.length}</p>
+          <ul class="lista-rem">${falla.fallidos.slice(0, 6).map((f) => `<li><b class="mono">${f.rot}</b> ${esc(f.texto || "sin redactar")}</li>`).join("")}</ul>` : ""}
+        ${falla.tareas.map((t) => `<p class="rotulo-seccion" style="margin:12px 0 5px">Para ${esc(t.replace(" · pauta formativa", ""))}</p>
+          <ul class="lista-rem">${(REMEDIALES_TAREA[t] || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`).join("")}
+        ${rem ? `<p class="rotulo-seccion" style="margin:12px 0 5px">${esc(rem[0])}</p>
+          <ul class="lista-rem">${rem[3].map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+        ${flojos.length > 1 ? `<p class="sub" style="margin:8px 0 0">Otros objetivos bajo 60%:
+          ${flojos.slice(1).filter((x) => x.pct < 60).map((x) => `${esc(x.c.oa || "C" + (x.j + 1))} ${x.pct}%`).join(" · ") || "ninguno"}</p>` : ""}
+      </details>`;
+    }).join("")}
+  </div>`;
+  })()}
+
   <div class="tarjeta">
     <h2>Logro por estudiante</h2>
     <p class="sub" style="margin:2px 0 12px">Porcentaje del puntaje alcanzado sobre el total de la lista${esEscala(ev) ? "" : ", y cuántos indicadores logró"}.</p>
@@ -3340,7 +3586,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v106</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v107</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
