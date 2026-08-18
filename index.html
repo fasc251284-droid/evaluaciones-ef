@@ -276,6 +276,11 @@ th.col-fija{background:var(--surface-2); z-index:3}
 
 /* ---------- Criterios (editor) ---------- */
 /* Un indicador por tarjeta: texto arriba, sus controles abajo. */
+/* El objetivo se muestra como texto: es lo que saldrá impreso. */
+.texto-oa{display:flex; align-items:flex-start; gap:10px}
+.texto-oa p{flex:1; min-width:0; margin:0; font-size:14px; line-height:1.45; color:var(--ink)}
+.texto-oa .btn{flex:0 0 auto; padding:5px 10px; font-size:12px}
+
 .ind-edit{border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface);
   padding:8px; margin-bottom:8px}
 .ind-edit textarea{width:100%; min-height:56px; font-size:14.5px; line-height:1.35; resize:vertical}
@@ -318,6 +323,15 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .det-tarea[open] summary{background:var(--surface-2); border-bottom:1px solid var(--line)}
 .det-tarea .caja-oas{border:0; border-radius:0; max-height:none}
 .oa-item.puesta{background:var(--verde-claro); color:var(--verde-oscuro); font-weight:600}
+/* Lo aplicado, a la vista y con su propio botón para quitarlo. */
+.caja-aplicadas{display:flex; flex-direction:column; gap:6px}
+.quitar-ade{display:flex; align-items:center; justify-content:space-between; gap:10px;
+  width:100%; text-align:left; background:var(--verde-claro); border:1px solid #bcd9ec;
+  border-radius:var(--r-s); padding:10px 12px; min-height:44px; color:var(--verde-oscuro);
+  font-size:13.5px; line-height:1.35; transition:background .14s var(--curva), transform .1s var(--curva)}
+.quitar-ade:active{transform:scale(.99); background:#d4e8f5}
+.quitar-ade i{flex:0 0 auto; font-style:normal; font-size:11px; font-weight:700;
+  letter-spacing:.05em; text-transform:uppercase; color:var(--falta)}
 .aviso-dua{border:1px solid var(--line); border-left:3px solid var(--oro); border-radius:var(--r-s);
   background:var(--surface-2); padding:9px 11px; margin-top:10px; font-size:13px}
 .aviso-dua b{display:block; font-size:11px; letter-spacing:.05em; text-transform:uppercase;
@@ -2568,8 +2582,18 @@ function panelAjustes(ev) {
           </select>
           <button class="btn btn-mini btn-peligro" data-accion="borrar-criterio" data-j="${j}" ${ev.criterios.length <= 1 ? "disabled" : ""} title="Quitar criterio">×</button>
         </div>
-        ${c.oa ? `<p class="sub" style="margin:0 0 5px">${esc(EJES[c.eje] || "")}</p>` : ""}
-        <textarea data-campo="criterio" data-j="${j}" rows="2" placeholder="Objetivo de aprendizaje" style="width:100%;min-height:54px">${esc(c.texto)}</textarea>
+        ${S.editandoOA === j
+          ? `<textarea data-campo="criterio" data-j="${j}" rows="3" placeholder="Redacta el objetivo con tus palabras"
+               style="width:100%;min-height:74px">${esc(c.texto)}</textarea>
+             <div class="fila" style="margin:6px 0 2px">
+               <button class="btn btn-mini btn-lleno" data-accion="cerrar-oa">Listo</button>
+               ${c.oa ? `<button class="btn btn-mini" data-accion="restaurar-oa" data-j="${j}">Volver al texto oficial</button>` : ""}
+             </div>`
+          : `<div class="texto-oa">
+               <p>${esc(c.texto || "Sin redactar")}</p>
+               <button class="btn btn-mini" data-accion="editar-oa" data-j="${j}">Editar</button>
+             </div>
+             ${c.oa ? `<p class="sub" style="margin:3px 0 0">${esc(EJES[c.eje] || "")}${esTextoDeOA(c.texto, S.cursoId) ? "" : " · redacción propia"}</p>` : ""}`}
         <div style="padding-left:24px">
           ${c.indicadores.map((ind, q) => `
             <div class="ind-edit">
@@ -3125,7 +3149,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v96</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v98</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -3517,6 +3541,14 @@ document.addEventListener("click", async (evt) => {
   }
 
   /* --- criterios e indicadores --- */
+  if (a === "editar-oa") { S.editandoOA = +btn.dataset.j; pintar(); return; }
+  if (a === "cerrar-oa") { S.editandoOA = null; pintar(); return; }
+  if (a === "restaurar-oa") {
+    const c = ev.criterios[+btn.dataset.j];
+    const oa = buscarOA(S.cursoId, c.oa);
+    if (oa) { c.texto = oa.texto; marcarCambio(); }
+    S.editandoOA = null; pintar(); return;
+  }
   if (a === "borrar-criterio") {
     const j = +btn.dataset.j;
     if (ev.criterios.length <= 1) return;
@@ -3741,21 +3773,44 @@ document.addEventListener("click", async (evt) => {
     campo.value = ""; marcarCambio(); pintar(); return;
   }
   if (a === "adecuacion") {
-    const i = +btn.dataset.i, puestas = new Set(adeDe(i));
+    const i = +btn.dataset.i, aplicadas = adeDe(i), puestas = new Set(aplicadas);
     const seccion = (clase, titulo) => `<p class="rotulo-seccion">${titulo}</p>` +
-      ADECUACIONES.filter(([c]) => c === clase).map(([, nombre, items]) => `<details class="det-tarea">
-        <summary>${esc(nombre)} <i>${items.filter((t) => puestas.has(t)).length || items.length}</i></summary>
-        <div class="caja-oas">${items.map((t) => `<button class="oa-item ${puestas.has(t) ? "puesta" : ""}"
-          data-accion="marcar-ade" data-i="${i}" data-t="${esc(t)}">${puestas.has(t) ? "✓ " : ""}${esc(t)}</button>`).join("")}</div>
-      </details>`).join("");
+      ADECUACIONES.filter(([c]) => c === clase).map(([, nombre, items]) => {
+        const n = items.filter((t) => puestas.has(t)).length;
+        return `<details class="det-tarea" ${n ? "open" : ""}>
+          <summary>${esc(nombre)} <i>${n ? `${n} de ${items.length}` : items.length}</i></summary>
+          <div class="caja-oas">${items.map((t) => `<button class="oa-item ${puestas.has(t) ? "puesta" : ""}"
+            data-accion="marcar-ade" data-i="${i}" data-t="${esc(t)}">${puestas.has(t) ? "✓ " : ""}${esc(t)}</button>`).join("")}</div>
+        </details>`;
+      }).join("");
     abrirModal(`
       <h3>Adecuaciones curriculares</h3>
-      <p class="sub" style="margin:4px 0 10px">${esc(S.datos.roster[i] || "Estudiante " + (i + 1))} ·
-        Decreto 83/2015. Toca para aplicar o quitar. Las de acceso no modifican el objetivo; las de objetivos sí, y requieren registro en el PACI.</p>
+      <p class="sub" style="margin:4px 0 10px">${esc(S.datos.roster[i] || "Estudiante " + (i + 1))} · Decreto 83/2015.
+        Las de acceso no modifican el objetivo; las de objetivos sí, y requieren registro en el PACI.</p>
+      ${aplicadas.length ? `
+        <p class="rotulo-seccion" style="margin-top:0">Aplicadas · ${aplicadas.length}</p>
+        <div class="caja-aplicadas">
+          ${aplicadas.map((t) => `<button class="quitar-ade" data-accion="marcar-ade" data-i="${i}" data-t="${esc(t)}">
+            <span>${esc(t)}</span><i>quitar</i></button>`).join("")}
+        </div>
+        <div class="fila" style="margin:8px 0 2px">
+          <button class="btn btn-mini btn-peligro" data-accion="quitar-todas-ade" data-i="${i}">Quitar todas</button>
+        </div>
+        <p class="rotulo-seccion">Agregar otra</p>`
+      : `<p class="sub" style="margin:0 0 10px">Sin adecuaciones. Toca una del listado para aplicarla.</p>`}
       ${seccion("acceso", "Adecuaciones de acceso")}
       ${seccion("tarea", "Según la tarea de la clase")}
       ${seccion("objetivos", "Adecuaciones en los objetivos de aprendizaje")}
       <div class="fila" style="margin-top:12px"><button class="btn btn-lleno btn-ancho" data-accion="cerrar-modal">Listo</button></div>`);
+    return;
+  }
+  if (a === "quitar-todas-ade") {
+    const i = +btn.dataset.i;
+    confirmar(`Se quitarán todas las adecuaciones de ${esc(S.datos.roster[i] || "ese estudiante")}.`, () => {
+      if (S.pestana === "curso" || adeModo(evalActual()) === "curso") S.datos.adecuaciones[i] = [];
+      else evalActual().ade[i] = [];
+      marcarCambio(); cerrarModal(); pintar();
+    });
     return;
   }
   if (a === "marcar-ade") {
