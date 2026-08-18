@@ -268,6 +268,7 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .metrica span{font-size:11px; color:var(--soft); letter-spacing:.02em}
 .logro{margin-top:12px}
 .logro-item{margin-bottom:11px}
+.detalle-logro{margin:3px 0 0; font-size:11.5px; color:var(--soft); line-height:1.4}
 .logro-item .rotulo{display:flex; justify-content:space-between; gap:10px; font-size:12.5px; margin-bottom:4px}
 .logro-item .rotulo em{font-family:var(--mono); font-style:normal; font-weight:600}
 .pista{height:7px; border-radius:4px; background:var(--surface-2); overflow:hidden}
@@ -585,7 +586,7 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .hoja-impresion th{background:#e3f1fa; text-transform:none; letter-spacing:0;
     font-weight:700; color:#14303d; vertical-align:bottom}
   .hoja-impresion .c-n,.hoja-impresion .c-asis,.hoja-impresion .c-pts,
-  .hoja-impresion .c-nota,.hoja-impresion .c-marca{
+  .hoja-impresion .c-pct,.hoja-impresion .c-nota,.hoja-impresion .c-marca{
     width:1%; white-space:nowrap; overflow-wrap:normal; word-break:normal}
   .hoja-impresion th.c-marca{font-family:var(--mono); font-weight:700}
   .hoja-impresion .c-nom{width:22%; min-width:26mm}
@@ -3095,6 +3096,31 @@ function vistaResumen() {
   </div>
 
   <div class="tarjeta">
+    <h2>Logro por estudiante</h2>
+    <p class="sub" style="margin:2px 0 12px">Porcentaje del puntaje alcanzado sobre el total de la lista${esEscala(ev) ? "" : ", y cuántos indicadores logró"}.</p>
+    <div class="logro">
+      ${S.datos.roster.map((nom, i) => {
+        const est = ev.estado[i] || 0;
+        if (est) return `<div class="logro-item">
+          <div class="rotulo"><span><b class="mono" style="font-size:11px">${String(i + 1).padStart(2, "0")}</b> ${esc(nom || "—")}</span>
+          <em>${est === 1 ? "ausente" : "justificado"}</em></div></div>`;
+        const r = resultado(ev, i);
+        const pct = r.total ? Math.round((r.puntaje / r.total) * 100) : null;
+        return `<div class="logro-item">
+          <div class="rotulo">
+            <span><b class="mono" style="font-size:11px">${String(i + 1).padStart(2, "0")}</b> ${esc(nom || "—")}</span>
+            <em>${pct === null ? "—" : pct + "%"}</em>
+          </div>
+          <div class="pista"><i class="${pct === null ? "" : pct < 50 ? "critica" : pct < 70 ? "baja" : ""}" style="width:${pct || 0}%"></i></div>
+          <p class="detalle-logro">${r.puntaje} de ${r.total} pts · nota ${num1(r.nota)}${
+            esEscala(ev) ? "" : ` · ${r.logrados} de ${totalIndicadores(ev)} indicadores`}${
+            r.sinMarca ? ` · ${r.sinMarca} sin marcar` : ""}</p>
+        </div>`;
+      }).join("")}
+    </div>
+  </div>
+
+  <div class="tarjeta">
     <h2>Notas del curso</h2>
     <div style="margin-top:8px">
       ${S.datos.roster.map((nom, i) => {
@@ -3267,7 +3293,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v104</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v105</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -4167,7 +4193,8 @@ function claseCol(k, n) {
   if (k === 2) return "c-asis";
   if (k === n - 1) return "c-obs izq";
   if (k === n - 2) return "c-nota";
-  if (k === n - 3) return "c-pts";
+  if (k === n - 3) return "c-pct";
+  if (k === n - 4) return "c-pts";
   return "c-marca";
 }
 
@@ -4176,7 +4203,7 @@ function filasDeEvaluacion(ev) {
   const total = puntajeTotal(ev);
   const cab = ["N°", "Estudiante", "Adecuaciones", "Asis.",
     ...cols.map((c) => (c.ind && c.ind.texto.trim()) || `${c.j + 1}.${c.q + 1}`),
-    "Puntaje", "Nota", "Observación"];
+    "Puntaje", "% logro", "Nota", "Observación"];
   const filas = S.datos.roster.map((n, i) => {
     const r = resultado(ev, i);
     const est = ev.estado[i] || 0;
@@ -4189,6 +4216,7 @@ function filasDeEvaluacion(ev) {
         return v === 1 ? "L" : v === 2 ? "NL" : "";
       }),
       est ? "" : `${r.puntaje}/${total}`,
+      est || !total ? "" : Math.round((r.puntaje / total) * 100) + "%",
       est ? "" : (r.nota === null ? "" : num1(r.nota)),
       ev.obs[i] || ""
     ];
@@ -4259,7 +4287,7 @@ function imprimir(enBlanco) {
       <thead><tr>
         <th class="c-n">N°</th><th class="c-nom izq">Estudiante</th><th class="c-asis">As.</th>
         ${cols.map((c) => `<th class="c-marca">${c.j + 1}.${c.q + 1}</th>`).join("")}
-        <th class="c-pts">Pts</th><th class="c-nota">Nota</th><th class="c-obs izq">Obs.</th>
+        <th class="c-pts">Pts</th><th class="c-pct">%</th><th class="c-nota">Nota</th><th class="c-obs izq">Obs.</th>
       </tr></thead>
       <tbody>${filas.map((f) => `<tr>${f.map((v, k) => {
         const clase = claseCol(k, f.length);
