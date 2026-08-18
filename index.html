@@ -269,6 +269,25 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .logro{margin-top:12px}
 .logro-item{margin-bottom:11px}
 .detalle-logro{margin:3px 0 0; font-size:11.5px; color:var(--soft); line-height:1.4}
+
+/* Detalle por indicador de cada estudiante. */
+.det-alumno summary{list-style:none; cursor:pointer; padding:2px 0}
+.det-alumno summary::-webkit-details-marker{display:none}
+.det-alumno summary .rotulo em::after{content:" ▸"; font-size:10px; opacity:.6}
+.det-alumno[open] summary .rotulo em::after{content:" ▾"}
+.por-indicador{margin:8px 0 4px; padding:9px 11px; background:var(--surface-2);
+  border-radius:var(--r-s); border:1px solid var(--line)}
+.sub-criterio{display:flex; justify-content:space-between; gap:10px; margin:9px 0 5px;
+  font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--soft)}
+.sub-criterio:first-child{margin-top:0}
+.sub-criterio em{font-style:normal; font-family:var(--mono); color:var(--verde-oscuro)}
+.fila-ind{display:grid; grid-template-columns:26px 1fr auto; gap:8px; align-items:start;
+  padding:5px 0 5px 7px; font-size:12.5px; line-height:1.35; border-left:3px solid var(--line)}
+.fila-ind b{font-family:var(--mono); font-size:10.5px; color:var(--soft); padding-top:1px}
+.fila-ind i{font-style:normal; font-size:11px; white-space:nowrap; color:var(--soft); padding-top:1px}
+.fila-ind.ok{border-left-color:var(--logro)} .fila-ind.ok i{color:var(--logro); font-weight:600}
+.fila-ind.medio{border-left-color:var(--n2)} .fila-ind.medio i{color:#8a6300; font-weight:600}
+.fila-ind.bajo{border-left-color:var(--falta)} .fila-ind.bajo i{color:var(--falta); font-weight:600}
 .logro-item .rotulo{display:flex; justify-content:space-between; gap:10px; font-size:12.5px; margin-bottom:4px}
 .logro-item .rotulo em{font-family:var(--mono); font-style:normal; font-weight:600}
 .pista{height:7px; border-radius:4px; background:var(--surface-2); overflow:hidden}
@@ -3106,16 +3125,44 @@ function vistaResumen() {
           <em>${est === 1 ? "ausente" : "justificado"}</em></div></div>`;
         const r = resultado(ev, i);
         const pct = r.total ? Math.round((r.puntaje / r.total) * 100) : null;
-        return `<div class="logro-item">
-          <div class="rotulo">
-            <span><b class="mono" style="font-size:11px">${String(i + 1).padStart(2, "0")}</b> ${esc(nom || "—")}</span>
-            <em>${pct === null ? "—" : pct + "%"}</em>
+        return `<details class="logro-item det-alumno">
+          <summary>
+            <div class="rotulo">
+              <span><b class="mono" style="font-size:11px">${String(i + 1).padStart(2, "0")}</b> ${esc(nom || "—")}</span>
+              <em>${pct === null ? "—" : pct + "%"}</em>
+            </div>
+            <div class="pista"><i class="${pct === null ? "" : pct < 50 ? "critica" : pct < 70 ? "baja" : ""}" style="width:${pct || 0}%"></i></div>
+            <p class="detalle-logro">${r.puntaje} de ${r.total} pts · nota ${num1(r.nota)}${
+              esEscala(ev) ? "" : ` · ${r.logrados} de ${totalIndicadores(ev)} indicadores`}${
+              r.sinMarca ? ` · ${r.sinMarca} sin marcar` : ""}</p>
+          </summary>
+          <div class="por-indicador">
+            ${ev.criterios.map((c, j) => {
+              const l = logroCriterio(ev, i, j);
+              const pc = l.total ? Math.round((l.puntaje / l.total) * 100) : null;
+              return `<p class="sub-criterio"><b>${esc(c.oa || "Criterio " + (j + 1))}</b>
+                <em>${pc === null ? "—" : pc + "%"}</em></p>
+              ${c.indicadores.map((ind, q) => {
+                let rot, cls, pi;
+                if (esEscala(ev)) {
+                  const v = nivelDe(ev, i, j, q);
+                  pi = v ? Math.round((puntosNivel(ev, v) / maxNivel(ev)) * 100) : null;
+                  rot = v ? `${esc(descriptorDe(ev, c, v - 1))} · ${pi}%` : "sin marcar";
+                  cls = !v ? "vacio" : pi >= 70 ? "ok" : pi >= 50 ? "medio" : "bajo";
+                } else {
+                  const v = marcaDe(ev, i, j, q);
+                  rot = v === 1 ? `logrado · ${ind.pts} pts` : v === 2 ? "no logrado · 0 pts" : "sin marcar";
+                  cls = v === 1 ? "ok" : v === 2 ? "bajo" : "vacio";
+                }
+                return `<div class="fila-ind ${cls}">
+                  <b class="mono">${j + 1}.${q + 1}</b>
+                  <span>${esc(ind.texto || "Indicador " + (q + 1))}</span>
+                  <i>${rot}</i>
+                </div>`;
+              }).join("")}`;
+            }).join("")}
           </div>
-          <div class="pista"><i class="${pct === null ? "" : pct < 50 ? "critica" : pct < 70 ? "baja" : ""}" style="width:${pct || 0}%"></i></div>
-          <p class="detalle-logro">${r.puntaje} de ${r.total} pts · nota ${num1(r.nota)}${
-            esEscala(ev) ? "" : ` · ${r.logrados} de ${totalIndicadores(ev)} indicadores`}${
-            r.sinMarca ? ` · ${r.sinMarca} sin marcar` : ""}</p>
-        </div>`;
+        </details>`;
       }).join("")}
     </div>
   </div>
@@ -3293,7 +3340,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v105</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v106</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
