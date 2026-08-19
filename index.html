@@ -645,6 +645,11 @@ th.col-fija{background:var(--surface-2); z-index:3}
     border-left:2px solid #a86c00; background:#f7f3ea}
   .nota-med{font-size:8px; line-height:1.4; margin:0 0 6px; padding:4px 7px;
     border-left:2px solid #175f85; background:#eef4f8}
+  .rot-informe{font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    color:#175f85; margin:12px 0 5px; padding-left:6px; border-left:3px solid #e0980f}
+  .barra-pdf{display:block; height:7px; background:#edf4f8; border-radius:4px; overflow:hidden}
+  .barra-pdf i{display:block; height:100%}
+  .oa-min{font-family:var(--mono); font-size:7.5px; color:#5b7383}
   .titulo-hoja{font-size:15px; margin:0 0 5px}
   .hoja-impresion table.ficha-hoja{width:100%; table-layout:auto; margin:0 0 9px; font-size:9px}
   .ficha-hoja th{width:1%; white-space:nowrap; text-align:left; vertical-align:middle;
@@ -2853,6 +2858,7 @@ function cabeceraEvaluacion() {
     <div class="fila acciones-menores">
       <button class="btn btn-mini" data-accion="imprimir">PDF con marcas</button>
       <button class="btn btn-mini" data-accion="imprimir-blanco">PDF en blanco</button>
+      <button class="btn btn-mini" data-accion="informe-logro">Informe de logro (PDF)</button>
       <button class="btn btn-mini" data-accion="limpiar-marcas">Limpiar marcas</button>
     </div>
     <div class="fila fila-peligro">
@@ -3620,7 +3626,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v108</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v109</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -4393,6 +4399,7 @@ document.addEventListener("click", async (evt) => {
   /* --- salidas --- */
   if (a === "imprimir") { imprimir(); return; }
   if (a === "imprimir-blanco") { imprimir(true); return; }
+  if (a === "informe-logro") { imprimirInforme(); return; }
   if (a === "excel") { await exportarExcel(); return; }
   if (a === "respaldo") { descargarRespaldo(); return; }
   if (a === "respaldo-todo") { descargarRespaldoTotal(); return; }
@@ -4637,6 +4644,85 @@ function imprimir(enBlanco) {
         return `<td class="${clase}">${vaciar ? "" : esc(v)}</td>`;
       }).join("")}</tr>`).join("")}</tbody>
     </table>`;
+  setTimeout(() => window.print(), 60);
+}
+
+/* Informe de logro: qué indicadores costaron al curso y cómo le fue a cada estudiante. */
+function imprimirInforme() {
+  const ev = evalActual();
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  const n = S.datos.roster.length;
+  const e = estadisticas(ev);
+  const total = puntajeTotal(ev);
+  prepararImpresion(0);
+
+  // logro de cada indicador en el curso
+  const porInd = [];
+  ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
+    let suma = 0, cont = 0, sin = 0;
+    for (let i = 0; i < n; i++) {
+      if (ev.estado[i]) continue;
+      if (esEscala(ev)) {
+        const v = nivelDe(ev, i, j, q);
+        if (v) { suma += puntosNivel(ev, v) / maxNivel(ev); cont++; } else sin++;
+      } else {
+        const v = marcaDe(ev, i, j, q);
+        if (v) { suma += v === 1 ? 1 : 0; cont++; } else sin++;
+      }
+    }
+    porInd.push({ rot: `${j + 1}.${q + 1}`, oa: c.oa, texto: ind.texto,
+      pct: cont ? Math.round((suma / cont) * 100) : null, cont, sin });
+  }));
+  const flojos = porInd.filter((x) => x.pct !== null && x.pct < 60);
+
+  // logro de cada estudiante
+  const porAlu = S.datos.roster.map((nom, i) => {
+    const est = ev.estado[i] || 0;
+    if (est) return { nom: nom || `N° ${i + 1}`, i, est };
+    const r = resultado(ev, i);
+    return { nom: nom || `N° ${i + 1}`, i, est: 0, r,
+      pct: r.total ? Math.round((r.puntaje / r.total) * 100) : null,
+      medidas: (ev.medidas && ev.medidas[i]) || [] };
+  });
+
+  const barra = (pct) => `<span class="barra-pdf"><i style="width:${pct || 0}%;
+    background:${pct === null ? "#d5e2ea" : pct < 50 ? "#b8392e" : pct < 70 ? "#d99a10" : "#1e8a5f"}"></i></span>`;
+
+  $("#impresion").innerHTML = `
+    <h1 class="titulo-hoja">Informe de logro · ${esc(ev.nombre)}</h1>
+    <table class="ficha-hoja"><tbody>
+      <tr><th>Curso</th><td>${esc(curso.nombre)}</td>
+          <th>Fecha</th><td>${fechaLarga(ev.fecha)}</td>
+          <th>Instrumento</th><td>${esEscala(ev) ? `Escala 1–${nNiveles(ev)}` : "Lista de cotejo"}</td></tr>
+      <tr><th>Estudiantes</th><td>${n - e.ausentes} evaluados${e.ausentes ? ` · ${e.ausentes} ausentes` : ""}</td>
+          <th>Promedio</th><td>${num1(e.prom)}</td>
+          <th>Logro del curso</th><td>${e.logro === null ? "—" : e.logro + "%"} · ${total} pts</td></tr>
+    </tbody></table>
+
+    <p class="rot-informe">Logro por indicador</p>
+    <table><thead><tr><th class="c-n">N°</th><th class="izq">Indicador</th>
+      <th style="width:14%">Logro</th><th class="c-pct">%</th><th class="c-asis">Sin marcar</th></tr></thead>
+    <tbody>${porInd.map((x) => `<tr>
+      <td class="c-n mono">${x.rot}</td>
+      <td class="izq">${esc(x.texto || "sin redactar")}${x.oa ? ` <span class="oa-min">${esc(x.oa)}</span>` : ""}</td>
+      <td>${barra(x.pct)}</td>
+      <td class="c-pct">${x.pct === null ? "—" : x.pct + "%"}</td>
+      <td class="c-asis">${x.sin || ""}</td></tr>`).join("")}</tbody></table>
+    ${flojos.length ? `<p class="nota-med"><b>Indicadores bajo 60%:</b>
+      ${flojos.map((x) => `${x.rot} (${x.pct}%)`).join(" · ")}. Conviene retomarlos en la próxima clase.</p>` : ""}
+
+    <p class="rot-informe">Logro por estudiante</p>
+    <table><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
+      <th style="width:14%">Logro</th><th class="c-pct">%</th><th class="c-pts">Pts</th>
+      <th class="c-nota">Nota</th><th class="izq">Medidas remediales</th></tr></thead>
+    <tbody>${porAlu.map((x, k) => `<tr>
+      <td class="c-n">${k + 1}</td>
+      <td class="c-nom izq">${esc(x.nom)}</td>
+      <td>${x.est ? "" : barra(x.pct)}</td>
+      <td class="c-pct">${x.est ? (x.est === 1 ? "A" : "J") : (x.pct === null ? "—" : x.pct + "%")}</td>
+      <td class="c-pts">${x.est ? "" : `${x.r.puntaje}/${x.r.total}`}</td>
+      <td class="c-nota">${x.est ? "" : num1(x.r.nota)}</td>
+      <td class="izq">${x.est ? "" : esc((x.medidas || []).join("; "))}</td></tr>`).join("")}</tbody></table>`;
   setTimeout(() => window.print(), 60);
 }
 
