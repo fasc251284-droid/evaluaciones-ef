@@ -378,6 +378,11 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .etiqueta-tipo{display:inline-block; vertical-align:middle; font-size:11px; font-weight:700;
   background:var(--verde-claro); color:var(--verde-oscuro); border-radius:20px; padding:2px 9px; margin-left:4px}
 .rejilla-cursos{display:grid; grid-template-columns:repeat(2, 1fr); gap:7px}
+.ficha-curso{display:flex; align-items:center; gap:9px; border:1px solid var(--line);
+  border-radius:var(--r-s); padding:11px 12px; min-height:46px; font-size:14px;
+  transition:background .14s var(--curva), border-color .14s var(--curva)}
+.ficha-curso input{width:19px; height:19px; flex:0 0 19px; margin:0; accent-color:var(--verde)}
+.ficha-curso:has(input:checked){background:var(--verde-claro); border-color:#bcd9ec; font-weight:600}
 .det-tarea{border:1px solid var(--line); border-radius:var(--r-s); margin-bottom:6px; overflow:hidden}
 .det-tarea summary{padding:11px 12px; font-size:14px; font-weight:600; cursor:pointer;
   list-style:none; display:flex; justify-content:space-between; align-items:center; gap:8px;
@@ -398,6 +403,31 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .quitar-ade:active{transform:scale(.99); background:#d4e8f5}
 .quitar-ade i{flex:0 0 auto; font-style:normal; font-size:11px; font-weight:700;
   letter-spacing:.05em; text-transform:uppercase; color:var(--falta)}
+/* Trayectoria de un indicador a lo largo de las listas. */
+.trayecto{padding:10px 12px; border-bottom:1px solid var(--line)}
+.trayecto:last-child{border-bottom:0}
+.trayecto .txt{margin:0 0 6px; font-size:13.5px; line-height:1.4}
+.hitos{display:flex; align-items:center; flex-wrap:wrap; gap:5px}
+.hito{display:inline-flex; flex-direction:column; align-items:center; gap:1px;
+  border-radius:6px; padding:4px 8px; font-size:9.5px; letter-spacing:.02em;
+  background:var(--surface-2); color:var(--soft); min-width:46px}
+.hito b{font-family:var(--mono); font-size:12px}
+.hito.ok{background:#e6f5ee; color:#1c7a55} .hito.medio{background:#fdf3e0; color:#8a6300}
+.hito.bajo{background:#fbeceb; color:#a3322a}
+.hitos i{font-style:normal; color:var(--soft); font-size:12px}
+.hitos em{font-style:normal; margin-left:auto; font-family:var(--mono); font-size:12px; font-weight:700; color:var(--soft)}
+.hitos em.sube{color:var(--logro)} .hitos em.baja{color:var(--falta)}
+
+.fila-comp{margin-bottom:13px}
+.fila-comp .rotulo{display:flex; justify-content:space-between; gap:10px; font-size:13px; margin-bottom:4px}
+.fila-comp .rotulo em{font-style:normal; font-family:var(--mono); font-weight:700; color:var(--verde-oscuro)}
+
+.aviso-pend{border:1px solid #e8c9c5; border-left:3px solid var(--falta); border-radius:var(--r-s);
+  background:#fdf3f2; padding:11px 13px; margin:0 0 12px}
+.aviso-pend b{display:block; font-size:11px; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--falta); margin-bottom:4px}
+.aviso-pend p{margin:0; font-size:13px; line-height:1.45}
+
 .aviso-dua{border:1px solid var(--line); border-left:3px solid var(--oro); border-radius:var(--r-s);
   background:var(--surface-2); padding:9px 11px; margin-top:10px; font-size:13px}
 .aviso-dua b{display:block; font-size:11px; letter-spacing:.05em; text-transform:uppercase;
@@ -650,6 +680,15 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .barra-pdf{display:block; height:7px; background:#edf4f8; border-radius:4px; overflow:hidden}
   .barra-pdf i{display:block; height:100%}
   .oa-min{font-family:var(--mono); font-size:7.5px; color:#5b7383}
+  .eval-titulo{font-size:9.5px; margin:9px 0 3px}
+  .res-ok{color:#126b45; font-weight:700}
+  .res-no{color:#8e2118; font-weight:700}
+  .obs-informe{font-size:8.5px; line-height:1.45; margin:3px 0 6px; padding:4px 7px;
+    background:#f4f8fa; border-radius:3px}
+  .tabla-firmas th{width:26%; text-align:left; background:#edf4f8; padding:7px 8px}
+  .tabla-firmas td.linea{height:30px}
+  .tabla-firmas td.firma{text-align:center; padding-top:26px; border:0;
+    border-top:1px solid #102b38; font-size:8.5px}
   .titulo-hoja{font-size:15px; margin:0 0 5px}
   .hoja-impresion table.ficha-hoja{width:100%; table-layout:auto; margin:0 0 9px; font-size:9px}
   .ficha-hoja th{width:1%; white-space:nowrap; text-align:left; vertical-align:middle;
@@ -2557,6 +2596,12 @@ const almacen = {
     if (local) { try { return normalizar(JSON.parse(local)); } catch {} }
     return cursoVacio(cursoId);
   },
+  /* Lo guardado en este equipo, sin consultar al servidor. */
+  leerLocal(cursoId) {
+    const local = localStorage.getItem(PREFIJO + cursoId);
+    if (!local) return null;
+    try { return normalizar(JSON.parse(local)); } catch { return null; }
+  },
   async escribir(cursoId, obj) {
     try { localStorage.setItem(PREFIJO + cursoId, JSON.stringify(obj)); } catch {}
     const u = await usuarioActual();
@@ -2601,11 +2646,61 @@ async function guardar() {
   try {
     await almacen.escribir(curso, datos);
     S.guardado = "ok";
+    marcarSubido(curso);
   } catch (e) {
     S.guardado = e.message === "sin-sesion" ? "local" : "error";
     S.detalleError = e.message === "sin-sesion" ? "" : e.message;
+    marcarSinSubir(curso, e.message);
   }
   pintarEstado();
+}
+
+/* ---- Qué quedó sin llegar al servidor ----
+   Si el gimnasio no tiene señal, la app guarda en el equipo. Este registro
+   deja constancia de qué cursos faltan por subir y desde cuándo. */
+const CLAVE_PEND = PREFIJO + "pendientes";
+
+function leerPendientes() {
+  try { const j = JSON.parse(localStorage.getItem(CLAVE_PEND) || "{}"); return j && typeof j === "object" ? j : {}; }
+  catch { return {}; }
+}
+
+function marcarSinSubir(curso, motivo) {
+  const p = leerPendientes();
+  if (!p[curso]) p[curso] = { desde: new Date().toISOString(), motivo };
+  else p[curso].motivo = motivo;
+  try { localStorage.setItem(CLAVE_PEND, JSON.stringify(p)); } catch {}
+}
+
+function marcarSubido(curso) {
+  const p = leerPendientes();
+  if (!p[curso]) return;
+  delete p[curso];
+  try { localStorage.setItem(CLAVE_PEND, JSON.stringify(p)); } catch {}
+}
+
+/* Reintenta subir todo lo que quedó pendiente. */
+async function reintentarPendientes() {
+  const p = leerPendientes();
+  const cursos = Object.keys(p);
+  if (!cursos.length) return;
+  const fallaron = [];
+  for (const c of cursos) {
+    try {
+      const d = c === S.cursoId ? S.datos : await almacen.leerLocal(c);
+      if (!d) { marcarSubido(c); continue; }
+      await almacen.escribir(c, d);
+      marcarSubido(c);
+    } catch (e) { fallaron.push(CURSOS.find((x) => x.id === c)?.nombre || c); }
+  }
+  pintar();
+  abrirModal(fallaron.length
+    ? `<h3>Quedaron cursos sin subir</h3>
+       <p class="sub" style="margin:6px 0 0">${esc(fallaron.join(", "))}. Vuelve a intentarlo cuando tengas señal.</p>
+       <div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`
+    : `<h3>Todo sincronizado</h3>
+       <p class="sub" style="margin:6px 0 0">No queda nada por subir.</p>
+       <div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="cerrar-modal">Listo</button></div>`);
 }
 function pintarEstado() {
   const c = $("#estado");
@@ -2615,7 +2710,9 @@ function pintarEstado() {
     pendiente: ["trabajando", "Guardando…"], local: ["error", "Solo en este equipo"],
     error: ["error", "No se pudo guardar"]
   };
-  const [cls, txt] = mapa[S.guardado] || mapa.ok;
+  const pend = Object.keys(leerPendientes()).length;
+  let [cls, txt] = mapa[S.guardado] || mapa.ok;
+  if (pend && S.guardado !== "guardando") { cls = "error"; txt = `${pend} curso${pend > 1 ? "s" : ""} sin subir`; }
   c.innerHTML = `<span class="punto ${cls}"></span><span>${esc(txt)}</span>`;
 }
 
@@ -2826,6 +2923,7 @@ function cabeceraEvaluacion() {
     <div class="fila" style="margin-top:11px">
       <button class="btn" data-accion="pestana" data-v="resumen">Ver resumen</button>
       <button class="btn" data-accion="excel">Exportar curso (Excel)</button>
+      <button class="btn" data-accion="comparar">Comparar entre cursos</button>
       <button class="btn" data-accion="ayuda">¿Cómo funciona?</button>
     </div>
 
@@ -2859,6 +2957,7 @@ function cabeceraEvaluacion() {
       <button class="btn btn-mini" data-accion="imprimir">PDF con marcas</button>
       <button class="btn btn-mini" data-accion="imprimir-blanco">PDF en blanco</button>
       <button class="btn btn-mini" data-accion="informe-logro">Informe de logro (PDF)</button>
+      <button class="btn btn-mini" data-accion="comparar-cursos">Comparar con otros cursos</button>
       <button class="btn btn-mini" data-accion="limpiar-marcas">Limpiar marcas</button>
     </div>
     <div class="fila fila-peligro">
@@ -3511,6 +3610,35 @@ function fichaDe(i) {
   };
 }
 
+/* Un mismo indicador puede repetirse en varias listas del curso.
+   Esto reúne cómo le fue al estudiante cada vez, en orden de fecha. */
+function trayectoriaIndicadores(i) {
+  const mapa = new Map();
+  S.datos.evaluaciones.forEach((ev) => {
+    if (ev.estado[i]) return;
+    ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
+      const clave = (ind.texto || "").trim();
+      if (!clave) return;
+      let logro = null;
+      if (esEscala(ev)) {
+        const v = nivelDe(ev, i, j, q);
+        if (v) logro = Math.round((puntosNivel(ev, v) / maxNivel(ev)) * 100);
+      } else {
+        const v = marcaDe(ev, i, j, q);
+        if (v) logro = v === 1 ? 100 : 0;
+      }
+      if (logro === null) return;
+      if (!mapa.has(clave)) mapa.set(clave, []);
+      mapa.get(clave).push({ fecha: ev.fecha, lista: ev.nombre, logro, oa: c.oa });
+    }));
+  });
+  // solo interesan los que se evaluaron más de una vez
+  return [...mapa.entries()]
+    .map(([texto, hitos]) => ({ texto, hitos: hitos.sort((a, b) => (a.fecha || "").localeCompare(b.fecha || "")) }))
+    .filter((x) => x.hitos.length > 1)
+    .map((x) => ({ ...x, avance: x.hitos[x.hitos.length - 1].logro - x.hitos[0].logro }));
+}
+
 function fichaHTML(i) {
   const f = fichaDe(i);
   return f.items.map((x) => `
@@ -3626,7 +3754,21 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v109</p>
+    ${(() => {
+      const p = leerPendientes(), cursos = Object.keys(p);
+      if (!cursos.length) return "";
+      const nombres = cursos.map((c) => (CURSOS.find((x) => x.id === c) || {}).nombre || c);
+      const desde = cursos.map((c) => p[c].desde).sort()[0];
+      return `<div class="aviso-pend">
+        <b>Sin subir al servidor</b>
+        <p>${esc(nombres.join(", "))}. Los datos están guardados en este equipo desde el ${fechaLarga((desde || "").slice(0, 10))},
+          pero no han llegado al servidor. Si abres la app en otro dispositivo, no los vas a ver.</p>
+        <div class="fila" style="margin-top:9px">
+          <button class="btn btn-mini btn-lleno" data-accion="reintentar">Intentar subir ahora</button>
+        </div>
+      </div>`;
+    })()}
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v111</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -3842,13 +3984,34 @@ document.addEventListener("click", async (evt) => {
       <p class="sub" style="margin:4px 0 10px">${f.items.length} listas · promedio ${num1(f.prom)} ·
         ${f.conObs ? `${f.conObs} con observación` : "sin observaciones escritas"}</p>
       <div class="caja-oas">${fichaHTML(i)}</div>
+      ${(() => {
+        const tr = trayectoriaIndicadores(i);
+        if (!tr.length) return "";
+        const mejoro = tr.filter((x) => x.avance > 0).length;
+        const bajo = tr.filter((x) => x.avance < 0).length;
+        return `<p class="rotulo-seccion">Indicadores evaluados más de una vez · ${tr.length}</p>
+          <p class="sub" style="margin:-2px 0 8px">${mejoro} mejoró${mejoro === 1 ? "" : "n"}${
+            bajo ? ` · ${bajo} retrocedió${bajo === 1 ? "" : "n"}` : ""}.</p>
+          <div class="caja-oas">${tr.sort((a, b) => a.avance - b.avance).map((x) => `
+            <div class="trayecto">
+              <p class="txt">${esc(x.texto)}</p>
+              <div class="hitos">
+                ${x.hitos.map((h) => `<span class="hito ${h.logro >= 70 ? "ok" : h.logro >= 50 ? "medio" : "bajo"}"
+                  title="${esc(h.lista)}">${fechaLarga(h.fecha).slice(0, 5)}<b>${h.logro}%</b></span>`).join("<i>→</i>")}
+                <em class="${x.avance > 0 ? "sube" : x.avance < 0 ? "baja" : ""}">${
+                  x.avance > 0 ? "+" : ""}${x.avance}</em>
+              </div>
+            </div>`).join("")}</div>`;
+      })()}
       <div class="fila" style="margin-top:10px">
-        <button class="btn btn-lleno" data-accion="imprimir-ficha" data-i="${i}">Imprimir o guardar PDF</button>
+        <button class="btn btn-lleno" data-accion="informe-alumno" data-i="${i}">Informe para el apoderado</button>
+        <button class="btn" data-accion="imprimir-ficha" data-i="${i}">Solo las notas</button>
         <button class="btn" data-accion="cerrar-modal">Cerrar</button>
       </div>`);
     return;
   }
   if (a === "imprimir-ficha") { const i = +btn.dataset.i; cerrarModal(); imprimirFicha(i); return; }
+  if (a === "informe-alumno") { const i = +btn.dataset.i; cerrarModal(); imprimirInformeAlumno(i); return; }
 
   /* --- observación --- */
   if (a === "obs") {
@@ -3962,22 +4125,30 @@ document.addEventListener("click", async (evt) => {
       <p class="sub" style="margin:4px 0 10px">Se copian los criterios, los indicadores y la escala.
         Las marcas no viajan. Los códigos de OA se traducen al nivel de destino cuando existe el mismo número.</p>
       <div class="rejilla-cursos">${CURSOS.filter((c) => c.id !== S.cursoId).map((c) => `
-        <button class="btn btn-ancho" data-accion="copiar-destino" data-c="${c.id}">${esc(c.nombre)}</button>`).join("")}</div>
-      <div class="fila" style="margin-top:10px"><button class="btn" data-accion="cerrar-modal">Cancelar</button></div>`);
+        <label class="ficha-curso"><input type="checkbox" class="dest-curso" value="${c.id}">
+          <span>${esc(c.nombre)}</span></label>`).join("")}</div>
+      <div class="fila" style="margin-top:12px">
+        <button class="btn btn-lleno" data-accion="copiar-destino">Copiar</button>
+        <button class="btn" data-accion="cerrar-modal">Cancelar</button>
+      </div>`);
     return;
   }
   if (a === "copiar-destino") {
-    const destino = btn.dataset.c;
-    const nombreDestino = CURSOS.find((c) => c.id === destino).nombre;
-    const copia = JSON.parse(JSON.stringify(ev));
-    copia.id = idNuevo(); copia.fecha = hoy();
+    const destinos = [...document.querySelectorAll(".dest-curso:checked")].map((x) => x.value);
+    if (!destinos.length) return;
+    const nombreDestino = destinos.map((d) => CURSOS.find((c) => c.id === d).nombre).join(", ");
     let traducidos = 0, sueltos = 0;
-    copia.criterios.forEach((c) => {
-      const eq = c.oa ? buscarOA(destino, c.oa.replace(/^EF\d\d/, CURRICULO[destino].sigla)) : null;
-      if (eq) { c.oa = eq.codigo; c.eje = eq.eje; c.texto = eq.texto; traducidos++; }
-      else if (c.oa) { c.oa = ""; sueltos++; }
+    const tareas = destinos.map((destino) => {
+      const copia = JSON.parse(JSON.stringify(ev));
+      copia.id = idNuevo(); copia.fecha = hoy();
+      copia.criterios.forEach((c) => {
+        const eq = c.oa ? buscarOA(destino, c.oa.replace(/^EF\d\d/, CURRICULO[destino].sigla)) : null;
+        if (eq) { c.oa = eq.codigo; c.eje = eq.eje; c.texto = eq.texto; traducidos++; }
+        else if (c.oa) { c.oa = ""; sueltos++; }
+      });
+      return copiarListaA(destino, copia);
     });
-    copiarListaA(destino, copia).then(() => {
+    Promise.all(tareas).then(() => {
       abrirModal(`
         <h3>Lista copiada a ${esc(nombreDestino)}</h3>
         <p class="sub" style="margin:6px 0 0">${traducidos} objetivo${traducidos === 1 ? "" : "s"} traducido${traducidos === 1 ? "" : "s"} al nivel de destino${
@@ -4400,7 +4571,10 @@ document.addEventListener("click", async (evt) => {
   if (a === "imprimir") { imprimir(); return; }
   if (a === "imprimir-blanco") { imprimir(true); return; }
   if (a === "informe-logro") { imprimirInforme(); return; }
+  if (a === "comparar-cursos") { compararEntreCursos(); return; }
   if (a === "excel") { await exportarExcel(); return; }
+  if (a === "comparar") { compararCursos(); return; }
+  if (a === "reintentar") { reintentarPendientes(); return; }
   if (a === "respaldo") { descargarRespaldo(); return; }
   if (a === "respaldo-todo") { descargarRespaldoTotal(); return; }
   if (a === "restaurar") { pedirRestaurar(); return; }
@@ -4648,6 +4822,63 @@ function imprimir(enBlanco) {
 }
 
 /* Informe de logro: qué indicadores costaron al curso y cómo le fue a cada estudiante. */
+/* ---- Comparar la misma unidad entre cursos ----
+   Busca en los ocho cursos las listas de nombre parecido y reúne su logro. */
+async function compararEntreCursos() {
+  const ev = evalActual();
+  const clave = (t) => (t || "").toLowerCase().replace(/[^a-záéíóúñ0-9 ]/gi, " ").replace(/\s+/g, " ").trim();
+  const buscada = clave(ev.nombre);
+  const hallados = [];
+  for (const c of CURSOS) {
+    let datos;
+    if (c.id === S.cursoId) datos = S.datos;
+    else { try { datos = await almacen.leer(c.id); } catch { datos = almacen.leerLocal(c.id); } }
+    if (!datos) continue;
+    datos.evaluaciones.forEach((e) => {
+      const k = clave(e.nombre);
+      if (!k || (k !== buscada && !k.includes(buscada) && !buscada.includes(k))) return;
+      const n = datos.roster.length;
+      let suma = 0, cont = 0, notas = [];
+      for (let i = 0; i < n; i++) {
+        if (e.estado[i]) continue;
+        const r = resultado(e, i);
+        if (r.total && r.marcados) { suma += r.puntaje / r.total; cont++; }
+        if (r.nota !== null) notas.push(r.nota);
+      }
+      hallados.push({
+        curso: c, lista: e, evaluados: cont,
+        pct: cont ? Math.round((suma / cont) * 100) : null,
+        prom: notas.length ? notas.reduce((a, b) => a + b, 0) / notas.length : null,
+        bajo4: notas.filter((x) => x < 4).length
+      });
+    });
+  }
+  if (hallados.length < 2) {
+    abrirModal(`<h3>Sin comparación posible</h3>
+      <p class="sub" style="margin:6px 0 0">No se encontraron listas con un nombre parecido a
+        <b>${esc(ev.nombre)}</b> en otros cursos. Para comparar, la lista debe llamarse igual en cada curso;
+        el botón <b>Copiar a otro curso</b> conserva el nombre.</p>
+      <div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
+    return;
+  }
+  const mejor = Math.max(...hallados.map((x) => x.pct === null ? -1 : x.pct));
+  abrirModal(`
+    <h3>${esc(ev.nombre)} en ${hallados.length} cursos</h3>
+    <p class="sub" style="margin:4px 0 12px">Logro promedio de cada curso en esta misma lista.</p>
+    ${hallados.sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1)).map((x) => `
+      <div class="logro-item">
+        <div class="rotulo">
+          <span><b>${esc(x.curso.nombre)}</b>${x.curso.id === S.cursoId ? " · este curso" : ""}</span>
+          <em>${x.pct === null ? "—" : x.pct + "%"}${x.pct === mejor && x.pct !== null ? " ★" : ""}</em>
+        </div>
+        <div class="pista"><i class="${x.pct === null ? "" : x.pct < 50 ? "critica" : x.pct < 70 ? "baja" : ""}"
+          style="width:${x.pct || 0}%"></i></div>
+        <p class="detalle-logro">${x.evaluados} evaluados · promedio ${num1(x.prom)}${
+          x.bajo4 ? ` · ${x.bajo4} bajo 4,0` : ""} · ${fechaLarga(x.lista.fecha)}</p>
+      </div>`).join("")}
+    <div class="fila" style="margin-top:10px"><button class="btn btn-ancho" data-accion="cerrar-modal">Cerrar</button></div>`);
+}
+
 function imprimirInforme() {
   const ev = evalActual();
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
@@ -4723,6 +4954,132 @@ function imprimirInforme() {
       <td class="c-pts">${x.est ? "" : `${x.r.puntaje}/${x.r.total}`}</td>
       <td class="c-nota">${x.est ? "" : num1(x.r.nota)}</td>
       <td class="izq">${x.est ? "" : esc((x.medidas || []).join("; "))}</td></tr>`).join("")}</tbody></table>`;
+  setTimeout(() => window.print(), 60);
+}
+
+/* Busca en todos los cursos las listas con nombre parecido al de la abierta,
+   para ver cómo resultó la misma unidad en cada nivel. */
+async function compararCursos() {
+  const ev = evalActual();
+  const clave = (ev.nombre || "").trim().toLowerCase();
+  if (!clave) return;
+  abrirModal(`<h3>Comparando…</h3><p class="sub" style="margin:6px 0 0">Revisando los ocho cursos.</p>`);
+
+  const hallados = [];
+  for (const c of CURSOS) {
+    let d;
+    if (c.id === S.cursoId) d = S.datos;
+    else { try { d = await almacen.leer(c.id); } catch { d = almacen.leerLocal(c.id); } }
+    if (!d) continue;
+    d.evaluaciones.forEach((e) => {
+      const nom = (e.nombre || "").trim().toLowerCase();
+      if (!nom || (!nom.includes(clave) && !clave.includes(nom))) return;
+      const notas = [], pcts = [];
+      d.roster.forEach((_, i) => {
+        if (e.estado[i]) return;
+        const r = resultado(e, i);
+        if (r.nota !== null) notas.push(r.nota);
+        if (r.total) pcts.push((r.puntaje / r.total) * 100);
+      });
+      if (!notas.length) return;
+      hallados.push({ curso: c, ev: e, n: notas.length,
+        prom: notas.reduce((a, b) => a + b, 0) / notas.length,
+        pct: Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length),
+        aprob: Math.round((notas.filter((x) => x >= 4).length / notas.length) * 100) });
+    });
+  }
+
+  if (hallados.length < 2) {
+    abrirModal(`<h3>Sin comparación posible</h3>
+      <p class="sub" style="margin:6px 0 0">No se encontraron listas con un nombre parecido a
+        <b>${esc(ev.nombre)}</b> en otros cursos. Para comparar, la lista debe llamarse igual en cada nivel;
+        el botón <b>Copiar a otro curso</b> conserva el nombre.</p>
+      <div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
+    return;
+  }
+
+  const orden = hallados.slice().sort((a, b) => b.pct - a.pct);
+  abrirModal(`
+    <h3>${esc(ev.nombre)}</h3>
+    <p class="sub" style="margin:4px 0 12px">Resultado en ${hallados.length} cursos, ordenados por logro.</p>
+    ${orden.map((x) => `<div class="fila-comp">
+      <div class="rotulo">
+        <span><b>${esc(x.curso.nombre)}</b> · ${x.n} estudiantes</span>
+        <em>${x.pct}%</em>
+      </div>
+      <div class="pista"><i class="${x.pct < 50 ? "critica" : x.pct < 70 ? "baja" : ""}" style="width:${x.pct}%"></i></div>
+      <p class="sub" style="margin:3px 0 0">Promedio ${num1(x.prom)} · ${x.aprob}% aprobados · ${fechaLarga(x.ev.fecha)}</p>
+    </div>`).join("")}
+    <p class="sub" style="margin:12px 0 0">Una diferencia grande entre cursos suele indicar que conviene revisar
+      cómo se presentó la tarea, no solo el desempeño del grupo.</p>
+    <div class="fila" style="margin-top:12px"><button class="btn btn-ancho" data-accion="cerrar-modal">Cerrar</button></div>`);
+}
+
+/* Informe de una página para la entrevista con el apoderado. */
+function imprimirInformeAlumno(i) {
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  const f = fichaDe(i);
+  const ade = adeCurso(i);
+  prepararImpresion(0);
+
+  // detalle indicador por indicador de cada lista evaluada
+  const detalle = f.items.filter((x) => !x.est).map((x) => {
+    const ev = x.ev;
+    const filas = [];
+    ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
+      let estado, ok;
+      if (esEscala(ev)) {
+        const v = nivelDe(ev, i, j, q);
+        ok = v ? puntosNivel(ev, v) / maxNivel(ev) >= 0.6 : null;
+        estado = v ? descriptorDe(ev, c, v - 1) : "sin marcar";
+      } else {
+        const v = marcaDe(ev, i, j, q);
+        ok = v === 1 ? true : v === 2 ? false : null;
+        estado = v === 1 ? "Logrado" : v === 2 ? "Por lograr" : "sin marcar";
+      }
+      filas.push({ rot: `${j + 1}.${q + 1}`, oa: c.oa, texto: ind.texto, estado, ok });
+    }));
+    const r = resultado(ev, i);
+    return { ev, filas, r, pct: r.total ? Math.round((r.puntaje / r.total) * 100) : null,
+      medidas: (ev.medidas && ev.medidas[i]) || [] };
+  });
+
+  const logrados = detalle.flatMap((d) => d.filas).filter((x) => x.ok === true);
+  const porLograr = detalle.flatMap((d) => d.filas).filter((x) => x.ok === false);
+
+  $("#impresion").innerHTML = `
+    <h1 class="titulo-hoja">Informe de aprendizaje · ${esc(f.nombre)}</h1>
+    <table class="ficha-hoja"><tbody>
+      <tr><th>Curso</th><td>${esc(curso.nombre)}</td>
+          <th>Asignatura</th><td>Educación Física y Salud</td>
+          <th>Promedio</th><td>${num1(f.prom)}</td></tr>
+      <tr><th>Evaluaciones</th><td>${f.items.length}</td>
+          <th>Fortalezas</th><td>${logrados.length} indicadores logrados</td>
+          <th>Por reforzar</th><td>${porLograr.length} indicadores</td></tr>
+    </tbody></table>
+    ${ade.length ? `<p class="nota-dua"><b>Adecuaciones curriculares · Decreto 83/2015.</b>
+      ${ade.map((t) => esc(t)).join("; ")}</p>` : ""}
+
+    <p class="rot-informe">Resultado de cada evaluación</p>
+    ${detalle.map((d) => `
+      <p class="eval-titulo"><b>${esc(d.ev.nombre)}</b> · ${fechaLarga(d.ev.fecha)} ·
+        nota ${num1(d.r.nota)} · ${d.pct === null ? "—" : d.pct + "%"} de logro</p>
+      <table><thead><tr><th class="c-n">N°</th><th class="izq">Indicador</th><th style="width:22%">Resultado</th></tr></thead>
+      <tbody>${d.filas.map((x) => `<tr>
+        <td class="c-n mono">${x.rot}</td>
+        <td class="izq">${esc(x.texto || "sin redactar")}</td>
+        <td class="${x.ok === true ? "res-ok" : x.ok === false ? "res-no" : ""}">${esc(x.estado)}</td></tr>`).join("")}</tbody></table>
+      ${d.medidas.length ? `<p class="nota-med"><b>Apoyo entregado:</b> ${d.medidas.map((t) => esc(t)).join("; ")}</p>` : ""}
+      ${(d.ev.obs[i] || "").trim() ? `<p class="obs-informe"><b>Observación:</b> ${esc(d.ev.obs[i])}</p>` : ""}`).join("")}
+
+    <p class="rot-informe">Compromisos</p>
+    <table class="tabla-firmas"><tbody>
+      <tr><th>Acuerdo con el estudiante</th><td class="linea"></td></tr>
+      <tr><th>Apoyo desde el hogar</th><td class="linea"></td></tr>
+    </tbody></table>
+    <table class="tabla-firmas" style="margin-top:14px"><tbody>
+      <tr><td class="firma">Profesor de Educación Física</td><td class="firma">Apoderado</td></tr>
+    </tbody></table>`;
   setTimeout(() => window.print(), 60);
 }
 
@@ -4870,6 +5227,7 @@ function pedirRestaurar() {
       .addEventListener("change", () => { if (temaGuardado() === "auto") { aplicarTema(); pintar(); } });
   }
   vigilarDeslizamiento();
+  window.addEventListener("online", () => { if (Object.keys(leerPendientes()).length) guardar(); });
   pintar();
   await sbListo;
   const u = await usuarioActual();
