@@ -640,12 +640,26 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .vacio strong{display:block; color:var(--ink); font-family:var(--display); font-size:16px; margin-bottom:4px}
 
 .hoja-impresion{display:none}
+.pie-hoja{display:none}
 @media print{
   :root{--bg:#fff; --surface:#fff; --surface-2:#edf4f8; --ink:#102b38; --soft:#5b7383; --line:#d5e2ea}
   body{background:#fff}
   .barra-sup,.cursos,.pestanas,.barra-inf,.no-imprimir,.solo-pantalla{display:none !important}
   .envoltura{padding:0; max-width:none}
   .hoja-impresion{display:block}
+  /* Pie propio, repetido en cada hoja. Para que no salga además la dirección
+     y la fecha del navegador, hay que desactivar sus encabezados al imprimir. */
+  .pie-hoja{display:block; position:fixed; bottom:0; left:0; right:0;
+    border-top:1px solid #b9cfdc; padding-top:2mm; font-size:8px; color:#3a4a54;
+    display:flex; justify-content:space-between; gap:10px}
+  .pie-hoja b{font-weight:700}
+  .pie-hoja .pie-izq{display:flex; align-items:center; gap:5px}
+  .pie-hoja img{height:9mm; width:auto}
+  .membrete{display:flex; align-items:center; gap:9px; margin-bottom:6px}
+  .membrete img{height:14mm; width:auto}
+  .membrete .txt{line-height:1.3}
+  .membrete .txt b{display:block; font-size:11px}
+  .membrete .txt span{font-size:8.5px; color:#3a4a54}
   .tarjeta{border:0; padding:0}
   .hoja-impresion table{width:100%; table-layout:auto; border-collapse:collapse}
   .hoja-impresion th,.hoja-impresion td{padding:2px 3px; border:1px solid #b9cfdc;
@@ -2749,6 +2763,15 @@ function devolverScroll(memoria) {
 }
 
 /* ---- Aspecto ---- */
+/* Escudo del establecimiento, incrustado para que la hoja se imprima
+   igual sin conexión. Se puede reemplazar desde la pestaña Nómina. */
+const LOGO_BASE = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUEBAQEAwUEBAQGBQUGCA0ICAcHCBALDAkNExAUExIQEhIUFx0ZFBYcFhISGiMaHB4fISEhFBkkJyQgJh0gISD/2wBDAQUGBggHCA8ICA8gFRIVICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICD/wAARCACWAJYDASIAAhEBAxEB/8QAHQAAAgIDAQEBAAAAAAAAAAAAAAcGCAEEBQMCCf/EAEYQAAEDAwMCBAMFBQMICwAAAAECAwQABREGEiEHMRNBUWEicYEUFUKRoRYjMlKxCMHRJDNDU2KC4fAmJzQ4ZZKTorKzwv/EABsBAAICAwEAAAAAAAAAAAAAAAAGAQUCBAcD/8QANBEAAQMCAgYJAwUBAQAAAAAAAQACAwQRBSEGEhMxQVEiYXGBkaHB4fAjsdEUMkJS8TNy/9oADAMBAAIRAxEAPwC5dBooNCFiiiihCKKKKEIorGRnFGcihC1p86JbLdIuE59LEaM2p11xRwEJSMkn6VWrpT1uXf8ArXfYd3eWza9QOg2xDpwGFNp2oR7FaBk/7Qrr/wBqHVkm36Tt+koS1Nm8qU5JWPNlsj4PkVKGfYVUhnx4sluTHdU062oLbWg4KFA5BB+dZtbcKF+n1ZqH9NdUOaw6bWPUMhITJksYfx5uJO1Z+pBP1qXbh65rBSvqiiihCKKKKEIrNYrNCEUUUUIRQaKDQhfJzjil1rnqexpG6xbbFgi4yVDe+gObS2j5+tSzU99jad05LushQ/co+BOf4leQqqkqTJudxkXGa4XJEpZccJ8j6Vf4RhwqnF8o6I8ylPSLGTh8YZCem7yCe0DrZpaRhM9iXb1diVt7k5+Y8qksTqHo2aAWb/F58lKKT+oqsexCQSopHzOKEIQXACBz7VdyaPU7jdjiEpxaZ1TR9Rgd4hNDrZ1yRoi1Q7fpJyLcL3cgpSHVHxGoraeCsgd1EnASfQk9ua3s9ber6Jv2sa1krVnPhLYaLZ9tu3Fe/Umz7pVuvYSPBDRivccIIOUk/ME/lWxYtARpNrYnXea+0p9AcRHjhKShJ7blEHKj3wO2QOaW34bJ+pdTxi9vtzTtHj1MKCOuqDqh3AZ58l2b3rl3rHppiBe4LETWNkQ5IjOsJIbuTGAXW0pJylwAbwnJB2nHpS7gWaTdbpGt8YtJcfVgLcVhCAOVLUfJIAKj7CpTetKq04qNerRMckLjPJcShwJS5uB4xjuD/CeOM14XSO3HTfhBSrY6UsNlCeQ0tRUoDHqAkfU1rzU76dxjkFirGjr4q2MTU5u09ylFy643PTmnoWjumaUQbRbkeCm5SGgt+Urnc4Eq4QCckZBPyqL2vr71Ys9zamOalXdG0qG+LNaQpt0Z5BIAKfmDXSt/T23v25ty4XF/xFpztiKRsQfTcQckf8iodq/SJ084wtEn7ZDkZDbikBKwoY+FQHBPIIIxnnjivWbDp4ots9uS1KXHaGqqDSxP6efAi9t9lePSvVLSupdIW/UH3nGhfa2gtcZ50eIyvspBHng5HvxXrL6p6LiZSboZCx+FhpSjVWtH2xdo0fEiTEYewpaknnaVKJx/Suu6UJHJSB71fU2ARPjbJI43IvZJ9bphNFO+GBgIaSAc87JxXTrgwhC02axuuqGcOSl7Ej04HJ/MVO9F6uY1fp9uehCWZKFeHIYBz4avb2PcVWAduORUk0PqU6U1WzJWoiFJIakp9s/xfMHn8/WvaswWEQHYDpDz6l4YbpTUPq2iqI1Dlutbr+cFaOs15NrStAWlW5J5BB4I9q9aSF1NFFFFCEUHtRXjKkIixXZDhwhtBWo+wGaOxQTbMpFdZL+Zt6j6ejrIZijxX8HhSz2H5Ut0oKtqUJJUTtAA5JPkPrXvcJzl3vc66PKJVJeUvPtnj9Kk2hbel28O3h5AUza0BxAI4U+rhsfTlX+7XSogzD6G54DxP+riNU5+M4rqNOTjYdQHtmpdb4CLBbG7Qhtl18jdMU40lwLdI5T8QPCR8P5nzr7NpscpOZmnLaoEbstsKZPpnLZGfnX0OeSSd3JyanNjgB6yxVKW28gIUjKe+xX8aPoeaQHVMpeZNY3PIrsLKGmbE2HUBa0WFwD90vn9F6MuMJ2HJtD4YeQUONIlq2kHywoGuXetLaWsGlble33buI1siqe8JpxtailAACQSnv2Gand2iKtyoKVICB4PhqI/EpCsE/UYrTdajzIr0SU0l6M+2pp1pYylaCMEEeYIrNlbUNdrNeb9q8H4TQvZs3RN1d9rZX5qrK7/AAdXQjDOnW4uoJDzcaE+2sr2NHJcKicHckDO4DGN3bFc8C3z131FqihSIrf2qGOf+zNrw6kD3QoLI9Eq9Ks3pnp5orTExyXabIhLzqfDUt5xTpSg8FKdxOAQSOPlUI6d9MXdM9TL9Ontb7fbyWbYtQyHW3BuCvmlB2EeoNeT5nyHWeblbcNNFAzZxCw5ZqDac1JpR7qFD09F069bdP3SSllp6O7l5Di8YWpJykpKuMDsCD5Yp1Sum+jpfgKlN3CV9mc3o3yUgbu3YJxRD6baCteokX636dajzW1FxratRbZUe5Qgnak8+QqTPu5AAyfIepr2/Wzlmprm3JagwqjEu22Y1ufHlv7Fxk6Y0cxjbYA8e2X5Di/6ECukzDtcF3ZHsUGG4O5TFSFfUqBNdq1WXxFWu4qcKg84VKbxxtCSR+oH51vP21Ml6+znEBbgPhtbuw2oSSfzryfUzPyc8nvK2IqGmizjjaOwBK3qFYkvxEalitJS43tZmJQAAQeEOY+m0/Slo61u4HBp/sNx5kZ6JNTvjSGyy8M/hUME/McH6UjLhBettxk22SD40V1TK+O+04z8iMH604YFV7WIwO3t3dnt6rmeluHCnnbVxiwfv7R+fQp8dJtQG86PREfWTKtx8BWTklH4CfpkfSmHVcuk11Nu16IZOGrg0po57bh8ST+hH1qxo5ANLWK0+wqnAbjn4p50frP1dAxxOYyPd7IoooqqTAiop1En/d/T67PA4Uprwkn3UcVK6W/WZ4t6CDQP+dkoHzHP+NbdEzaVDG9YWhiMmypJXjg0/ZIGOAlpAxyBj2NNHTkb7JoyGEjC57zktZP8oPhoH/tUfrSv4SyT/KDTqMYRkQoKU4EWGwyB7+GCf1P6036QSlsLIxxP2/1c30MgD6qSc/xH3PsVrnOeU5/vpl6eQE2WOvw2kqWhJJaOQrjv8/WlqiREflSY0eQlb8VWHE7FJwd204JACgFAgkedTfTsuPB0+9KkNux2GErdcdVnwykZJUPTAHOPSklzSMiF1JkjXDWabhdLUFsNztakIH75o72z6nzH1FQNLikKKVpKSDgg9wfSp9ZL9btQwFTrYtxTaXC0oOtKbUlQAOClQB7EH5GuTqaDawY7zyzEky30R2loQVJccVnaFAdu3eoAIOqRmpEjHN1wclHku8V9eJWu8xJgyFR5TZQ4nyPY+49q+W5LLkt+IhSy9HQhx392rYgLAKQV427iDnGc9/SsgL5hDnNba53rZWs10NOxH5V0blhkOR2VlKyT2OPTzx/fXKUN6gncEg91HskeZPsKlOi51mn2uQ7ZZTr7IdG/xm1IUCUAg4IHBSQR7GoINrhBe0ODScypGyy2wwhptG1KP4QfKvGYlDVvmLOAC2tR/wDL/wAK87ldYdpYbfmKUltx5uOkpSVfGtQSkce5rQ1NMSza1Rc/vJHw7c87c8msLFZ6wJtxUQhnCUg8ev5VAOpENLOpItxSkpRcIqSrH+sbOxR+oCanMadCNzXag/mY0jxCjw1YIwFEBWNpISpJIBJwa4XUyOF6atUsD4mJqms+gW3n/wDFXWEvdFWMB45ePulfSONlThshab6ufYQc/JLe0zPu3UdtuA/0Eltf0Cuf0zVuEkFIIOQRxVOHgSjg4ORird2l8yrJBknu7HbX+aQastI2dKN/aFSaFSkxyx8iCt2iiilJdERSv61j/ohEV6S0/wBKaFQDq7FMjp6+4Bn7O8h3+o/vFb+Hu1aqMnmFV4uwvoJmj+pVeVDLCwfQ0+ZoJvEkjsCjj/cTSFI3R1pPZSD/AEp+pUmZKjP5+GTHYdBHoptNMekYP0z2+iR9CSLzt/8APquXChT4jk1Dy4phLcdcYCBl1RW8XMqJSNoAOMZIzzXejhiZpS62NU7wJE1h5hIeV8CStBSCPz5FJ9PUm9r0/HuKocAPPa3/AGaUAhe0Rg7s3gb8+Jjzzj2qUao1FMsGt9DWhlmMuNfp0mPKU6klbaWmUrBQQQAck5yD9KUnSEu1uK6I2BrY9mNyZWh7Jc7LaZabqllMmRJ8Xw2HC4lKQ2hAGSBz8Oe3nXtqu2XK4xLaq2NsOPw5zUvw33C2lSUZ43AHB5HlS11Z1muFh6z2/T0OBHkaUjuxIl6uCkq3RZEsKLABBwBgJKuDwsdq+de9aJmgOt1u09dbahzSS7a3KmzmkKLkFS3lNpdUQceHkJSRj8Wc8AGNodfX4oEDRFshuTen21m5wQ3JSEPAZStPJQfPHqP60vPumbb9S3N99Dam32Y6EYeXuBQgBXwY2kHBIVnIxjzNdZrWVwf66M6NYVDesj2nPvhDyAVOKcL4QMKBwUFJz2qH651Nr5/q9O0hpNWmmI9v0+m8OOXhh1RUS6tJRvQsBA+EckcZNQ15bcDis3xh5aTwN/Ij1U2tFrNxZmuKO0BpbSCf5lJIz9M1s9P7DebBZ34t4ebWolpLSW3S4EpQyhBOSB3KSceWaUtw6z3tronpK+aKsEVep9Sl51q3SFFxCG2ErXIcGCkkAIG0k/iHcjmS636q3GP0j0lrPRr9ubXqOfCipduSFLZYS+DuKwlScFKhg88YNSJCGlvAqHQtdIJDvCYOsYjsy0MBpxtBYmx5KvEUQClDgUQMA5OBwPWo/MfeuE5cl4/Eo4CcZCU+QpVXbq1q6PozqJNuKbFc7no4Rvs1wtgcMCWXlJBTtKyd6ATuwvzT285hq/VrWj9BPanehKmvhDCWIiFbDIfeACEA8kAqUcnngedRfK3JZBgDi4byuixZZo1a9dnDHEJXiLQN5Lu9bTTe0jGAB4ZOcnOa1uonOhMkcicyR7fCuoreNR9V9D6e/bDU8XTV0s8UoVdLbbWHmn4TSlBKltOqWQ6Uk8gjnBxjvUj6lSWXNJW5EZ1LjUuYl5tQ/GgNFQP13pNWVA90lXEDwI8lR4vGyDDqgjiCe85JRu/wZ9CKtlptJRpO0IV3TDZB/wDTTVUC0p51thAytxQSke5PH61b+MymPEZYQMJbQlAHsBirvSN3/Nvb6JX0JYdWZ3Z6r1ooopPXSEVxdVQPvTSdzg4BLrCtuefiAyP1FdqsKAxzWTXFjg4cFhIwPYWHcclTtrIAQsYUklJHpTj0zPZOjbRPkSG2moSFx5DrqwlLQaVncpR4ACCO/pS61jafuPWtxghBDS1+K37oVyP613tBPsTIV603NZZlMSG/tKGHkBaHABtdSUnhQKCOD/LT1izRU0ImZwsVyfR9xoMXdTSfyu3v3j51qA2Wz3bUXSZ+5aeZbkyWtZvaltzLy/CTPaRIyAFK4TuGcE8cVMZTepdZdQtJXufpKbp61aaXKlrE6Uwt2Y842EJabS2o4SNvK1EDmp2lSUJQloJQhKQlKUgABI7AAeQ9KN5HI4NI1l1pLK3dF7zq/p7qVN81beLZqLUDjtyl2llcdUT7QSVMoJ2FR2BLYO1YxjjipbpPSeq791AiXvqBplTcWZolFmujclxtxDkkSMrSQlRJ3J+PI9e+RUhblOx3kvMr8NxB3JV25qdadvovDakOMKQ+0BvUlJ2HPbnyPtWJClJ3pp0v1ZoPrpKU889ctHRbGuDZ5by0lcdtT6XBGX+IlJ3YOMYx8h09TdJoOtv7Q0m96u00LnptOnmYzDq3ylP2kPrJThCgo/CrzGOaZ2r7hcbNo+53e0oirkQI7krw5QUULShBUU5SQQTjvz8jUB011B1jqHoMvqV9iszElcR2c1Cw6UeG3vylS853HaMEDA988QhclfS6+X/qvPvP3jctE2SwQmrRp9FnMdJdaI3Pr2qSsJSVbUjgHCfaoFP6Ya6tfTd/p81peTqaz2PVsa5W3xHWAZ9vO5bqCFKCQQokEEAHfwMU9ulWqrvrnp3bNXXaNCi/ejfjNRooWfCTuUn4lKPxE7R2Ax71OcJoQqnXXpbre5aO6mqsOhP2UgXyHEYt+mW5bKi6+h5CnH8IV4bZKU4wCM457CpJqO0au1voaRpl7R9w0lc4qI02DMuUyM6y5JYWnajDSlKAPxfERgYp53i/xbarwUJTIkHgoB4QPU/4VHrjcmrg6xIQnYvw9riD+EgnsamyhKrVkvqL1C0hK0WOnz+nF3YIZud1lzmHY0drcFOFgIUVOFWMJBAxnmtvqIpqK7Y7BGASzAhBQR3I3YSjn12IFMiNufeQ0k43HufLPc/lk/SklqO6pvWpp1zQQWXXSGj6Np+FH6AH60w4DBr1Wv8A1H3y/KTdL6oRUOxG95t3DM+i2dE2/wC9de2mLjcgPB5YPbaj4j/SrSDtST6L2fxJtwvriDsQn7M2SO6jgq/QJ/OnZXnjk4lqi0bmiy99FaQ0+Hhx3vJPoEUUUVQpsRWD2rNBoQlN1j08qTao2oo7ZU7C/du7R3bPY/Q/1pQ2i6O2e7Q7rGQCuOsObM/xj8SfqMj61a6bFYmwXoklHiMvJKFp9QeKqxqewSdM6hk2yQP3QO5lwj/OI8iP+eMU44JUtlidSSfAVzTSqgfBOzEIMt1+ojcU1pBjqCH4ai7EkID7DnfKFcj+8fMV4toffITHYcdJ/kQVf0qO9PL60t9rT1wT4uxzx4aVHG891s8/zY3JHqCPOncxdbQWAWpkdtvHCSoIx7YpdraZ1LKYz3did8Lr2V9M2dm/iOR4j8dShUDS90mupMtsw2AfiUsfER6Af41PoUOPAitxYyNjaB2Pc+5PrXMk6ps0YfBIL6v5Wkk/r2riSNZS1qKYUNtpP8zhKify4rRzKs11NeH/AKttTj/wqX/9K6U3TT/uSRx5mwTv6O1LLzKmaitL1rurqlwpCSh1pla2fESQQUlSFBWCCQRnmuJC0nZrfot7RsGK/HsDwKVQkTpG0JOdyAfEylKtxykHBzRYqV0+gD7Mb+zlo5191LTYgnKlHH+lXUku2pHpRVHt25lg8F3spfy9B+tROyaftmnrOxZrPHXFt8fPgsF9x1LWTkhO9StoyScDiuoG8HPNZAKF4tsjzOT617JQPIZr7AxzivRtKPicdWGWW0lxxxfZtAGSo/IVkoJsLlcbVt1+5tKuhpe2ZcN0VkeYRgeIv6JOB7qpOJbceUhhlBWtaglCU9yT2Artaovx1DfXJyUlEVpPgxWif4Gx6+6j8R9z7VL+k+l1XG8K1DMbzGiKwwFfjc75+n9cU807W4XQmST9xz7+A+da5JWyOx7FRFF+xuXcN57/AMJtaRsidPaYh2vu6hG51X8zh5V/h8hUgr4CQPyxX3SG9xe4udvK6zHG2NgY3cMkUUUVivRFBooNCF84B71D9e6OZ1XZdrQCJ8fK2F47nzSfY1MaPKvWKV8TxIw2IXhPBHURuilFwVT5aJUGaph1LjEqMvBHKVNqB/MEEU2LHeGtTQFPLKRdY6d0tpIx4w/1yR/8h5HnsakfUPp+nULKrra0JburQ+JPYPpHkff0NI+C7MtV4bdQ87AmRXOVgYU0fPI8+M8edObjDi9PcZPb88CuYtFTo5W7taJ/n7hN8RviPA+le7cYHBxn0qtFx6+60v8AeW4Om4sC2NTH0sRwWypSipQSkkk4TkkccgVw2r91U1C9JS5q0Qw3O+7AXpKYyHZRUoBlsgfEo7T6ADGSMik6zRvPgP8AF08OedzfE/i6t4GQByQMVkIbx/nUj6iqSXxWsrRAiTr7fn2nZbZeRGclqL4bBUCsp7Yykg4JIOAQM19M2jXErV0zS0WdJducPxfFQJh2gtjJwrODklKR6lQA71N4+Z+d6Pqch87ldsNg9lA/I1nwVeh/KqRxDrsMWj7HqR1qbeC2YFv+3ESX0rWUJWEeSSQf4iDgE4xzUmt946uw21z4WtIj9tYZW85O+1B6OkIcS2tJUElWQtaQRjsoHOOaPp8z4e6Pqch4+ytuhha3AhKSpSuAAO9LvXOp0PIXpy1OhcdCx9skIOQ+sHhCT/Kk+fmR6ClBpjrtq66ylaeur0fZMQpH2thG1wYBUUg+QUARkVMrNZZ9/uTdstbPiLWPiX2S2n1PoBTJg9JCQauVwIb5HmfRJOkuIVILcPp2EF+88xusLea2tNadmapvrdtjAobB3vvY4bR5n5+g8yas3arXCtFqjW6CyG47CAlI8/cn3J5NczSuloGlrMiBDG9w/E8+eFOq9T7egqQDtVXimImsk6P7Bu/KucCwZuGw9LN7t59Fms1is1TpjRRRRQhFBooNCFivkkivqsEjPvQhInqT1r1j00n7br01+1WtxRDFzYn5ZX7K+DKFeyvoTSM1R15Z1pJTjRTNvmPfug63KKlK3cc4A3d6nfX3rVdZCZuhtE2uY4wQWrhczBWtKh2LbQKSD7r59vWqtxLFqCY8lmJY7gp5Rwn/ACdaOc8HJAA9cmt2N8kTtaMWK0JYYZ2Fk3SHWuzYrTfWZsGdDt6g7GcaebLuEIJQoKT3IyMp5xU4bkagZkvunTmnm0uT03UMuSnXEIlpKj4ow8o/iwUE7DgfDxVsY3TPTd90XbkybehD4jISFIGNqgkD4fTn86V2o+nd10u4pSYxmQvJ1CeUj/aFb9HT0Ux1JHEO7rHyVNidbidM3aQxhzeq9x2i/mEk12/V9+06vTTLUBbcuUJTq/tDpU+/8eVJStRbbJLiiQ2lO44z2qTqtfVUX243e16ft1ru09aH5UqN4qlqKFhzgOlaWwVBJO0DsO1SFDjIRtCU4HdPrXYk6hu8q2ot8m6Snobf8LC3SU+2eeR7HNXEmAAkbN2XXdLUOmTgCJ4zfhYjzuMu3PsS3cvuu4sh0Nx7FGlFbKvHZU4oANP+M2gJKi2QlRKQSkq2HbkitGNJ1Za51ul2qw2ZhFrU47DZjTnm0suOLStxZ/fha92xCSlRKNqQNvqwQA6oNoZDi/JKRUx050rn39aX57H2eGeSFDj/AI141WF0VK28jz6+C2sPx/E69+rDCLczew78lVWO3drTqNF2m25xKkKefV8AShR2LKsEcY58uBmnLpj+08zpi3IgQenzbilK+Nz7aQ46fL8Jz8hTP65dOGIfQ2VF0tZlSZceUy854KMuFAJCikfI8gdxVPLQ5qrTl+jXa2W2czNiq3IKoK3B7ggp5B7f4UvbQ6uzjvqE35+Kc2xAuEswG0AtcZdeXev0K6b6z1TrO3KuV80b+zUZQy0h6V4rrnuU7RtHzOfamAOQDSu6Q9Uo3UPT/hybW9Zr3EQBKhuMrQg+W9oqAyg+ncfrTRHatV4sbEWW5Gbt33WazWKzWC9EUUUUIRQaKKELFYIzRRQhaT9qgSXC5IituLPmoc14/s/Zircq2RyfdOaKKlQuklIQnakAJHYAYwK+XGkvNlDiEqSfI80UVClQHUvSuwXlK5McG3ysE+IxwCfcdqgELo/c3LmuNJvbBjj+RBClfOiirGHEKmJhYx5sqipwmiqJGySxAn54ppWDp7YLAhJQwJD4HK3BkflUtSkJAAAAAwAPKiitBz3PdrPNyrRkbI2hjBYDgFhxtDqChxKVpPcEd65v7P2YHItzIJ9BRRULJbMe2QYayuLGbaURglIrbAwMCiioQFms0UUKUUUUUIX/2Q==";
+const CLAVE_LOGO = PREFIJO + "logo";
+const logoColegio = () => localStorage.getItem(CLAVE_LOGO) || LOGO_BASE;
+
+const CLAVE_COLEGIO = PREFIJO + "colegio";
+const colegio = () => localStorage.getItem(CLAVE_COLEGIO) || "Colegio Juan Pablo Segundo";
+
 const CLAVE_TEMA = PREFIJO + "tema";
 const temaGuardado = () => localStorage.getItem(CLAVE_TEMA) || "auto";
 
@@ -2866,6 +2889,7 @@ function vistaApp() {
       : S.pestana === "consolidado" ? vistaConsolidado() : vistaCurso()}</div>
     `}
     <div class="hoja-impresion" id="impresion"></div>
+    <div class="pie-hoja" id="pie-hoja"></div>
   </div>
   <nav class="barra-inf no-imprimir">
     ${[["evaluar", "Evaluar", "M4 12h4l3-8 4 16 3-8h4"],
@@ -3763,7 +3787,15 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v111</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v113</p>
+    <label class="campo"><span>Establecimiento</span>
+      <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
+      <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
+    <div class="fila" style="margin:-4px 0 12px">
+      <img src="${logoColegio()}" alt="" style="height:38px;width:auto;border-radius:6px">
+      <button class="btn btn-mini" data-accion="cambiar-logo">Cambiar escudo</button>
+      ${localStorage.getItem(CLAVE_LOGO) ? `<button class="btn btn-mini" data-accion="quitar-logo">Volver al original</button>` : ""}
+    </div>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -4568,6 +4600,8 @@ document.addEventListener("click", async (evt) => {
   if (a === "informe-logro") { imprimirInforme(); return; }
   if (a === "comparar-cursos") { compararEntreCursos(); return; }
   if (a === "excel") { await exportarExcel(); return; }
+  if (a === "cambiar-logo") { pedirLogo(); return; }
+  if (a === "quitar-logo") { localStorage.removeItem(CLAVE_LOGO); pintar(); return; }
   if (a === "reintentar") { reintentarPendientes(); return; }
   if (a === "respaldo") { descargarRespaldo(); return; }
   if (a === "respaldo-todo") { descargarRespaldoTotal(); return; }
@@ -4591,6 +4625,7 @@ document.addEventListener("input", (evt) => {
   else if (campo === "pts") ev.criterios[+el.dataset.j].indicadores[+el.dataset.q].pts = Math.max(0, +el.value || 0);
   else if (campo === "alumno") S.datos.roster[+el.dataset.i] = el.value;
   else if (campo === "docente") { localStorage.setItem(CLAVE_DOCENTE, el.value); return; }
+  else if (campo === "colegio") { try { localStorage.setItem(CLAVE_COLEGIO, el.value); } catch {} return; }
   else if (campo === "objeval") {
     ev.criterios[+el.dataset.j].objEval = el.value;
     ajustarAlto(el);
@@ -4678,10 +4713,56 @@ function planImpresion(nMarcas) {
     fuenteLey };
 }
 
+/* Escribe el pie que se repite en cada hoja impresa. */
+/* Membrete con el escudo, para encabezar cada documento. */
+/* Toma una imagen del equipo, la reduce y la guarda como escudo. */
+function pedirLogo() {
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = "image/*";
+  inp.onchange = () => {
+    const f = inp.files[0]; if (!f) return;
+    const lector = new FileReader();
+    lector.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const lado = 150;
+        const c = document.createElement("canvas");
+        c.width = lado; c.height = lado;
+        const g = c.getContext("2d");
+        g.fillStyle = "#fff"; g.fillRect(0, 0, lado, lado);
+        const escala = Math.min(lado / img.width, lado / img.height);
+        const w = img.width * escala, h = img.height * escala;
+        g.drawImage(img, (lado - w) / 2, (lado - h) / 2, w, h);
+        try { localStorage.setItem(CLAVE_LOGO, c.toDataURL("image/jpeg", 0.85)); } catch {}
+        pintar();
+      };
+      img.src = lector.result;
+    };
+    lector.readAsDataURL(f);
+  };
+  inp.click();
+}
+
+function membreteHTML() {
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  return `<div class="membrete"><img src="${logoColegio()}" alt="">
+    <span class="txt"><b>${esc(colegio())}</b>
+    <span>Educación Física y Salud · ${esc(curso.nombre)}</span></span></div>`;
+}
+
+function ponerPie() {
+  const el = $("#pie-hoja");
+  if (!el) return;
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  el.innerHTML = `<span class="pie-izq"><img src="${logoColegio()}" alt="">
+      <b>${esc(colegio())}</b> · Educación Física y Salud · ${esc(curso.nombre)}</span>
+    <span>${fechaLarga(hoy())}</span>`;
+}
+
 function prepararImpresion(nMarcas) {
   const { orientacion, fuente, cajas, fuenteLey } = planImpresion(nMarcas);
   const css = `
-    @page{size:A4 ${orientacion}; margin:9mm}
+    @page{size:A4 ${orientacion}; margin:9mm 9mm 14mm}
     .hoja-impresion table{font-size:${fuente}px}
     .leyenda-oa{font-size:${fuenteLey}px}
     .leyenda-oa .rejilla-ind{grid-template-columns:repeat(${cajas}, 1fr)}
@@ -4735,10 +4816,12 @@ function filasDeEvaluacion(ev) {
 }
 
 function imprimirConsolidado() {
+  ponerPie();
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const { evs, filas, promCurso } = datosConsolidado();
   prepararImpresion(evs.length + 1);
   $("#impresion").innerHTML = `
+    ${membreteHTML()}
     <h1 style="font-size:15px">Consolidado · ${esc(curso.nombre)}</h1>
     <p style="font-size:11px;margin:2px 0 6px">${evs.length} listas de cotejo · promedio del curso ${num1(promCurso)}</p>
     <table class="tabla-consolidado"><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
@@ -4751,6 +4834,7 @@ function imprimirConsolidado() {
 }
 
 function imprimir(enBlanco) {
+  ponerPie();
   if (S.pestana === "consolidado") return imprimirConsolidado();
   const ev = evalActual();
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
@@ -4771,6 +4855,7 @@ function imprimir(enBlanco) {
   const e = estadisticas(ev);
   prepararImpresion(columnasPlanilla(ev).length * (esEscala(ev) ? 1 : 1));
   $("#impresion").innerHTML = `
+    ${membreteHTML()}
     <h1 class="titulo-hoja">${esc(ev.nombre)}</h1>
     <table class="ficha-hoja"><tbody>
       <tr>
@@ -4874,6 +4959,7 @@ async function compararEntreCursos() {
 }
 
 function imprimirInforme() {
+  ponerPie();
   const ev = evalActual();
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const n = S.datos.roster.length;
@@ -4914,6 +5000,7 @@ function imprimirInforme() {
     background:${pct === null ? "#d5e2ea" : pct < 50 ? "#b8392e" : pct < 70 ? "#d99a10" : "#1e8a5f"}"></i></span>`;
 
   $("#impresion").innerHTML = `
+    ${membreteHTML()}
     <h1 class="titulo-hoja">Informe de logro · ${esc(ev.nombre)}</h1>
     <table class="ficha-hoja"><tbody>
       <tr><th>Curso</th><td>${esc(curso.nombre)}</td>
@@ -4954,6 +5041,7 @@ function imprimirInforme() {
 /* Busca en todos los cursos las listas con nombre parecido al de la abierta,
    para ver cómo resultó la misma unidad en cada nivel. */
 function imprimirInformeAlumno(i) {
+  ponerPie();
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const f = fichaDe(i);
   const ade = adeCurso(i);
@@ -4985,6 +5073,7 @@ function imprimirInformeAlumno(i) {
   const porLograr = detalle.flatMap((d) => d.filas).filter((x) => x.ok === false);
 
   $("#impresion").innerHTML = `
+    ${membreteHTML()}
     <h1 class="titulo-hoja">Informe de aprendizaje · ${esc(f.nombre)}</h1>
     <table class="ficha-hoja"><tbody>
       <tr><th>Curso</th><td>${esc(curso.nombre)}</td>
@@ -5021,10 +5110,12 @@ function imprimirInformeAlumno(i) {
 }
 
 function imprimirFicha(i) {
+  ponerPie();
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const f = fichaDe(i);
   prepararImpresion(0);
   $("#impresion").innerHTML = `
+    ${membreteHTML()}
     <h1 style="font-size:15px">${esc(f.nombre)} · ${esc(curso.nombre)}</h1>
     <p style="font-size:11px;margin:2px 0 8px">Educación Física y Salud · ${f.items.length} listas · promedio ${num1(f.prom)}</p>
     <table><thead><tr><th class="c-nom izq">Lista</th><th class="c-asis">Fecha</th>
