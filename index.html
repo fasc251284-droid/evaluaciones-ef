@@ -418,9 +418,6 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .hitos em{font-style:normal; margin-left:auto; font-family:var(--mono); font-size:12px; font-weight:700; color:var(--soft)}
 .hitos em.sube{color:var(--logro)} .hitos em.baja{color:var(--falta)}
 
-.fila-comp{margin-bottom:13px}
-.fila-comp .rotulo{display:flex; justify-content:space-between; gap:10px; font-size:13px; margin-bottom:4px}
-.fila-comp .rotulo em{font-style:normal; font-family:var(--mono); font-weight:700; color:var(--verde-oscuro)}
 
 .aviso-pend{border:1px solid #e8c9c5; border-left:3px solid var(--falta); border-radius:var(--r-s);
   background:#fdf3f2; padding:11px 13px; margin:0 0 12px}
@@ -569,7 +566,6 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .titulo-criterio{font-family:var(--body); font-size:15px; font-weight:600;
   letter-spacing:0; line-height:1.4; color:var(--ink); text-wrap:pretty}
 .cifra b{font-family:var(--display)}
-.titulo-app{font-family:var(--display); font-weight:700}
 .tiras{display:flex; gap:7px; overflow-x:auto; margin-top:12px; padding:9px; border:1px solid var(--line); border-radius:var(--r-s); background:var(--surface-2); scrollbar-width:none}
 .tiras::-webkit-scrollbar{display:none}
 .tira{
@@ -2923,7 +2919,6 @@ function cabeceraEvaluacion() {
     <div class="fila" style="margin-top:11px">
       <button class="btn" data-accion="pestana" data-v="resumen">Ver resumen</button>
       <button class="btn" data-accion="excel">Exportar curso (Excel)</button>
-      <button class="btn" data-accion="comparar">Comparar entre cursos</button>
       <button class="btn" data-accion="ayuda">¿Cómo funciona?</button>
     </div>
 
@@ -4573,7 +4568,6 @@ document.addEventListener("click", async (evt) => {
   if (a === "informe-logro") { imprimirInforme(); return; }
   if (a === "comparar-cursos") { compararEntreCursos(); return; }
   if (a === "excel") { await exportarExcel(); return; }
-  if (a === "comparar") { compararCursos(); return; }
   if (a === "reintentar") { reintentarPendientes(); return; }
   if (a === "respaldo") { descargarRespaldo(); return; }
   if (a === "respaldo-todo") { descargarRespaldoTotal(); return; }
@@ -4959,63 +4953,6 @@ function imprimirInforme() {
 
 /* Busca en todos los cursos las listas con nombre parecido al de la abierta,
    para ver cómo resultó la misma unidad en cada nivel. */
-async function compararCursos() {
-  const ev = evalActual();
-  const clave = (ev.nombre || "").trim().toLowerCase();
-  if (!clave) return;
-  abrirModal(`<h3>Comparando…</h3><p class="sub" style="margin:6px 0 0">Revisando los ocho cursos.</p>`);
-
-  const hallados = [];
-  for (const c of CURSOS) {
-    let d;
-    if (c.id === S.cursoId) d = S.datos;
-    else { try { d = await almacen.leer(c.id); } catch { d = almacen.leerLocal(c.id); } }
-    if (!d) continue;
-    d.evaluaciones.forEach((e) => {
-      const nom = (e.nombre || "").trim().toLowerCase();
-      if (!nom || (!nom.includes(clave) && !clave.includes(nom))) return;
-      const notas = [], pcts = [];
-      d.roster.forEach((_, i) => {
-        if (e.estado[i]) return;
-        const r = resultado(e, i);
-        if (r.nota !== null) notas.push(r.nota);
-        if (r.total) pcts.push((r.puntaje / r.total) * 100);
-      });
-      if (!notas.length) return;
-      hallados.push({ curso: c, ev: e, n: notas.length,
-        prom: notas.reduce((a, b) => a + b, 0) / notas.length,
-        pct: Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length),
-        aprob: Math.round((notas.filter((x) => x >= 4).length / notas.length) * 100) });
-    });
-  }
-
-  if (hallados.length < 2) {
-    abrirModal(`<h3>Sin comparación posible</h3>
-      <p class="sub" style="margin:6px 0 0">No se encontraron listas con un nombre parecido a
-        <b>${esc(ev.nombre)}</b> en otros cursos. Para comparar, la lista debe llamarse igual en cada nivel;
-        el botón <b>Copiar a otro curso</b> conserva el nombre.</p>
-      <div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
-    return;
-  }
-
-  const orden = hallados.slice().sort((a, b) => b.pct - a.pct);
-  abrirModal(`
-    <h3>${esc(ev.nombre)}</h3>
-    <p class="sub" style="margin:4px 0 12px">Resultado en ${hallados.length} cursos, ordenados por logro.</p>
-    ${orden.map((x) => `<div class="fila-comp">
-      <div class="rotulo">
-        <span><b>${esc(x.curso.nombre)}</b> · ${x.n} estudiantes</span>
-        <em>${x.pct}%</em>
-      </div>
-      <div class="pista"><i class="${x.pct < 50 ? "critica" : x.pct < 70 ? "baja" : ""}" style="width:${x.pct}%"></i></div>
-      <p class="sub" style="margin:3px 0 0">Promedio ${num1(x.prom)} · ${x.aprob}% aprobados · ${fechaLarga(x.ev.fecha)}</p>
-    </div>`).join("")}
-    <p class="sub" style="margin:12px 0 0">Una diferencia grande entre cursos suele indicar que conviene revisar
-      cómo se presentó la tarea, no solo el desempeño del grupo.</p>
-    <div class="fila" style="margin-top:12px"><button class="btn btn-ancho" data-accion="cerrar-modal">Cerrar</button></div>`);
-}
-
-/* Informe de una página para la entrevista con el apoderado. */
 function imprimirInformeAlumno(i) {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const f = fichaDe(i);
