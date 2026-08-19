@@ -281,6 +281,16 @@ th.col-fija{background:var(--surface-2); z-index:3}
   white-space:nowrap}
 .det-apoyo summary em::after{content:" ▸"; opacity:.6}
 .det-apoyo[open] summary em::after{content:" ▾"}
+.caja-medidas{display:flex; flex-direction:column; gap:5px}
+.rem-item{display:flex; align-items:flex-start; gap:9px; width:100%; text-align:left;
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--r-s);
+  padding:9px 11px; font-size:13px; line-height:1.4; color:var(--ink); min-height:44px;
+  transition:background .14s var(--curva), border-color .14s var(--curva)}
+.rem-item i{flex:0 0 18px; font-style:normal; font-weight:700; color:var(--soft); text-align:center}
+.rem-item.puesta{background:var(--verde-claro); border-color:#bcd9ec; color:var(--verde-oscuro)}
+.rem-item.puesta i{color:var(--logro)}
+.rem-item:active{background:var(--surface-2)}
+
 .lista-rem{margin:0; padding-left:18px; font-size:13px; line-height:1.45}
 .lista-rem li{margin-bottom:5px}
 
@@ -633,6 +643,8 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .leyenda-escala{margin:0 0 4px; font-size:9px}
   .nota-dua{font-size:8px; line-height:1.4; margin:0 0 6px; padding:4px 7px;
     border-left:2px solid #a86c00; background:#f7f3ea}
+  .nota-med{font-size:8px; line-height:1.4; margin:0 0 6px; padding:4px 7px;
+    border-left:2px solid #175f85; background:#eef4f8}
   .titulo-hoja{font-size:15px; margin:0 0 5px}
   .hoja-impresion table.ficha-hoja{width:100%; table-layout:auto; margin:0 0 9px; font-size:9px}
   .ficha-hoja th{width:1%; white-space:nowrap; text-align:left; vertical-align:middle;
@@ -2267,6 +2279,14 @@ function pedirNominaPlanillas() {
   inp.click();
 }
 
+/* Medidas remediales aplicadas a un estudiante en esta lista. */
+function medidasDe(i) {
+  const ev = evalActual();
+  ev.medidas = ev.medidas || [];
+  if (!Array.isArray(ev.medidas[i])) ev.medidas[i] = [];
+  return ev.medidas[i];
+}
+
 /* Adecuaciones del curso: valen para todas sus listas. */
 function adeCurso(i) {
   S.datos.adecuaciones = S.datos.adecuaciones || [];
@@ -2413,6 +2433,7 @@ function nuevaEvaluacion(nAlumnos, oaCodigos, nombre, cursoId) {
     fecha: hoy(),
     oa: "",
     tipo: "docente",
+    medidas: [],
     adeModo: "curso",
     ade: null,
     exigencia: EXIGENCIA,
@@ -2455,6 +2476,9 @@ function normalizar(d) {
         oa: e.oa || "",
         tipo: TIPOS[e.tipo] !== undefined ? e.tipo : "docente",
         adeModo: MODOS_ADE.includes(e.adeModo) ? e.adeModo : "curso",
+        medidas: Array.from({ length: n }, (_, i) =>
+          Array.isArray(e.medidas) && Array.isArray(e.medidas[i])
+            ? e.medidas[i].map((x) => String(x || "")).filter(Boolean) : []),
         ade: Array.isArray(e.ade) ? Array.from({ length: n }, (_, i) =>
           Array.isArray(e.ade[i]) ? e.ade[i].map((x) => String(x || "")).filter(Boolean) : []) : null,
         exigencia: exigenciaValida(e.exigencia),
@@ -3349,10 +3373,20 @@ function vistaResumen() {
         </summary>
         ${falla.fallidos.length ? `<p class="rotulo-seccion" style="margin:8px 0 5px">No logró · ${falla.fallidos.length}</p>
           <ul class="lista-rem">${falla.fallidos.slice(0, 6).map((f) => `<li><b class="mono">${f.rot}</b> ${esc(f.texto || "sin redactar")}</li>`).join("")}</ul>` : ""}
-        ${falla.tareas.map((t) => `<p class="rotulo-seccion" style="margin:12px 0 5px">Para ${esc(t.replace(" · pauta formativa", ""))}</p>
-          <ul class="lista-rem">${(REMEDIALES_TAREA[t] || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`).join("")}
-        ${rem ? `<p class="rotulo-seccion" style="margin:12px 0 5px">${esc(rem[0])}</p>
-          <ul class="lista-rem">${rem[3].map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+        ${(() => {
+          const puestas = new Set(medidasDe(i));
+          const opcion = (t) => `<button class="rem-item ${puestas.has(t) ? "puesta" : ""}"
+            data-accion="marcar-medida" data-i="${i}" data-t="${esc(t)}">
+            <i>${puestas.has(t) ? "✓" : "+"}</i><span>${esc(t)}</span></button>`;
+          return `
+          ${puestas.size ? `<p class="rotulo-seccion" style="margin:12px 0 5px">Medidas tomadas · ${puestas.size}</p>
+            <div class="caja-medidas">${medidasDe(i).map((t) => `<button class="rem-item puesta"
+              data-accion="marcar-medida" data-i="${i}" data-t="${esc(t)}"><i>✓</i><span>${esc(t)}</span></button>`).join("")}</div>` : ""}
+          ${falla.tareas.map((t) => `<p class="rotulo-seccion" style="margin:12px 0 5px">Para ${esc(t.replace(" · pauta formativa", ""))}</p>
+            <div class="caja-medidas">${(REMEDIALES_TAREA[t] || []).filter((x) => !puestas.has(x)).map(opcion).join("")}</div>`).join("")}
+          ${rem ? `<p class="rotulo-seccion" style="margin:12px 0 5px">${esc(rem[0])}</p>
+            <div class="caja-medidas">${rem[3].filter((x) => !puestas.has(x)).map(opcion).join("")}</div>` : ""}`;
+        })()}
         ${flojos.length > 1 ? `<p class="sub" style="margin:8px 0 0">Otros objetivos bajo 60%:
           ${flojos.slice(1).filter((x) => x.pct < 60).map((x) => `${esc(x.c.oa || "C" + (x.j + 1))} ${x.pct}%`).join(" · ") || "ninguno"}</p>` : ""}
       </details>`;
@@ -3586,7 +3620,7 @@ function vistaCurso() {
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v107</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v108</p>
     <label class="campo" style="max-width:230px"><span>Aspecto</span>
       <select data-accion="tema">
         ${[["auto", "Según el sistema"], ["claro", "Claro"], ["oscuro", "Oscuro"], ["sol", "Alto contraste (sol)"]]
@@ -4266,6 +4300,13 @@ document.addEventListener("click", async (evt) => {
       <div class="fila" style="margin-top:12px"><button class="btn btn-lleno btn-ancho" data-accion="cerrar-modal">Listo</button></div>`);
     return;
   }
+  if (a === "marcar-medida") {
+    const i = +btn.dataset.i, t = btn.dataset.t;
+    const lista = medidasDe(i);
+    const k = lista.indexOf(t);
+    if (k >= 0) lista.splice(k, 1); else lista.push(t);
+    marcarCambio(); pintar(); return;
+  }
   if (a === "quitar-todas-ade") {
     const i = +btn.dataset.i;
     confirmar(`Se quitarán todas las adecuaciones de ${esc(S.datos.roster[i] || "ese estudiante")}.`, () => {
@@ -4496,7 +4537,7 @@ function filasDeEvaluacion(ev) {
   const total = puntajeTotal(ev);
   const cab = ["N°", "Estudiante", "Adecuaciones", "Asis.",
     ...cols.map((c) => (c.ind && c.ind.texto.trim()) || `${c.j + 1}.${c.q + 1}`),
-    "Puntaje", "% logro", "Nota", "Observación"];
+    "Puntaje", "% logro", "Nota", "Observación", "Medidas remediales"];
   const filas = S.datos.roster.map((n, i) => {
     const r = resultado(ev, i);
     const est = ev.estado[i] || 0;
@@ -4511,7 +4552,8 @@ function filasDeEvaluacion(ev) {
       est ? "" : `${r.puntaje}/${total}`,
       est || !total ? "" : Math.round((r.puntaje / total) * 100) + "%",
       est ? "" : (r.nota === null ? "" : num1(r.nota)),
-      ev.obs[i] || ""
+      ev.obs[i] || "",
+      (ev.medidas && ev.medidas[i] ? ev.medidas[i] : []).join("; ")
     ];
   });
   return { cab, filas, total, cols };
@@ -4541,11 +4583,16 @@ function imprimir(enBlanco) {
   // En la hoja, las adecuaciones no ocupan columna: van marcadas con * y detalladas al pie.
   const filas = filasBrutas.map((f, i) => {
     const copia = f.slice();
-    copia.splice(2, 1);
+    copia.pop();          // las medidas van en la nota al pie
+    copia.splice(2, 1);   // las adecuaciones también
     if (adeDe(i).length) copia[1] = (copia[1] || "—") + " *";
     return copia;
   });
   const conAde = S.datos.roster.map((n, i) => adeDe(i).length ? { n: n || `N° ${i + 1}`, lista: adeDe(i) } : null).filter(Boolean);
+  const conMed = S.datos.roster.map((n, i) => {
+    const m = ev.medidas && ev.medidas[i] ? ev.medidas[i] : [];
+    return m.length ? { n: n || `N° ${i + 1}`, lista: m } : null;
+  }).filter(Boolean);
   const e = estadisticas(ev);
   prepararImpresion(columnasPlanilla(ev).length * (esEscala(ev) ? 1 : 1));
   $("#impresion").innerHTML = `
@@ -4576,6 +4623,8 @@ function imprimir(enBlanco) {
           <i>${esEscala(ev) ? `1–${nNiveles(ev)}` : `${ind.pts} pts`}</i></div>`).join("")}</div>`).join("")}</div>
     ${conAde.length ? `<p class="nota-dua"><b>* Adecuaciones curriculares · Decreto 83/2015.</b>
       ${conAde.map((x) => `${esc(x.n)}: ${x.lista.map((t) => esc(t)).join("; ")}`).join(" — ")}</p>` : ""}
+    ${conMed.length ? `<p class="nota-med"><b>Medidas remediales aplicadas.</b>
+      ${conMed.map((x) => `${esc(x.n)}: ${x.lista.map((t) => esc(t)).join("; ")}`).join(" — ")}</p>` : ""}
     <table>
       <thead><tr>
         <th class="c-n">N°</th><th class="c-nom izq">Estudiante</th><th class="c-asis">As.</th>
