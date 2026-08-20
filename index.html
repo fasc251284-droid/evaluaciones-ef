@@ -93,6 +93,19 @@ button,select,a{-webkit-tap-highlight-color:transparent}
 :root[data-tema="sol"] .sub,:root[data-tema="sol"] .cifra span{color:var(--soft)}
 
 /* Navegación inferior: al alcance del pulgar. */
+/* Barra de deshacer: flota sobre la navegación durante 30 segundos. */
+.barra-deshacer{
+  position:fixed; left:12px; right:12px; z-index:45;
+  bottom:calc(70px + env(safe-area-inset-bottom));
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  background:var(--ink); color:#fff; border-radius:12px; padding:10px 12px;
+  box-shadow:0 8px 24px rgba(16,43,56,.3); font-size:13px;
+  animation:subir .22s var(--curva);
+}
+.barra-deshacer .btn{background:transparent; border-color:rgba(255,255,255,.4); color:#fff;
+  padding:6px 12px; font-weight:700}
+.barra-deshacer .btn:active{background:rgba(255,255,255,.15)}
+
 .barra-inf{
   position:fixed; left:0; right:0; bottom:0; z-index:40;
   display:grid; grid-template-columns:repeat(4,1fr);
@@ -2594,10 +2607,11 @@ const almacen = {
   async leer(cursoId) {
     const u = await usuarioActual();
     if (u) {
-      const { data, error } = await sb.from(TABLA).select("contenido")
+      const { data, error } = await sb.from(TABLA).select("contenido, actualizado")
         .eq("user_id", u.id).eq("curso_id", cursoId).maybeSingle();
       if (!error && data && data.contenido) {
         try { localStorage.setItem(PREFIJO + cursoId, JSON.stringify(data.contenido)); } catch {}
+        anotarVersion(cursoId, data.actualizado);
         return normalizar(data.contenido);
       }
       if (error) throw new Error(error.message);
@@ -2612,15 +2626,31 @@ const almacen = {
     if (!local) return null;
     try { return normalizar(JSON.parse(local)); } catch { return null; }
   },
-  async escribir(cursoId, obj) {
+  async escribir(cursoId, obj, forzar) {
     try { localStorage.setItem(PREFIJO + cursoId, JSON.stringify(obj)); } catch {}
     const u = await usuarioActual();
     if (!u) throw new Error("sin-sesion");
+
+    // Si el servidor cambió después de la última vez que leímos, otro
+    // dispositivo escribió en medio: no se pisa sin preguntar.
+    if (!forzar) {
+      const { data } = await sb.from(TABLA).select("actualizado")
+        .eq("user_id", u.id).eq("curso_id", cursoId).maybeSingle();
+      const visto = versionVista(cursoId);
+      if (data && data.actualizado && visto && data.actualizado > visto) {
+        const e = new Error("conflicto");
+        e.cursoId = cursoId; e.enServidor = data.actualizado;
+        throw e;
+      }
+    }
+
+    const sello = new Date().toISOString();
     const { error } = await sb.from(TABLA).upsert(
-      { user_id: u.id, curso_id: cursoId, contenido: obj, actualizado: new Date().toISOString() },
+      { user_id: u.id, curso_id: cursoId, contenido: obj, actualizado: sello },
       { onConflict: "user_id,curso_id" }
     );
     if (error) throw new Error(error.message);
+    anotarVersion(cursoId, sello);
   }
 };
 
@@ -2637,6 +2667,32 @@ const evalActual = () => (S.datos ? S.datos.evaluaciones[Math.min(S.evalIdx, S.d
 
 /* ===== Guardado ===== */
 let temporizador = null, cursoPendiente = null, datosPendientes = null;
+/* Guarda cómo estaba el curso antes de una acción que borra cosas,
+   para poder volver atrás durante un rato. */
+let deshacer = null;
+let relojDeshacer = null;
+
+function anotarDeshacer(descripcion) {
+  deshacer = {
+    descripcion,
+    curso: S.cursoId,
+    datos: JSON.parse(JSON.stringify(S.datos)),
+    idx: S.evalIdx
+  };
+  clearTimeout(relojDeshacer);
+  relojDeshacer = setTimeout(() => { deshacer = null; pintar(); }, 30000);
+  pintar();
+}
+
+function aplicarDeshacer() {
+  if (!deshacer || deshacer.curso !== S.cursoId) return;
+  S.datos = normalizar(deshacer.datos);
+  S.evalIdx = Math.min(deshacer.idx, S.datos.evaluaciones.length - 1);
+  deshacer = null;
+  clearTimeout(relojDeshacer);
+  marcarCambio(); pintar();
+}
+
 function marcarCambio() {
   /* Se recuerda a qué curso pertenece el cambio: si se cambia de curso antes de
      que alcance a guardar, los datos igual van a donde corresponden. */
@@ -2658,6 +2714,13 @@ async function guardar() {
     S.guardado = "ok";
     marcarSubido(curso);
   } catch (e) {
+    if (e.message === "conflicto") {
+      S.guardado = "conflicto";
+      marcarSinSubir(curso, "conflicto");
+      avisarConflicto(curso);
+      pintarEstado();
+      return;
+    }
     S.guardado = e.message === "sin-sesion" ? "local" : "error";
     S.detalleError = e.message === "sin-sesion" ? "" : e.message;
     marcarSinSubir(curso, e.message);
@@ -2668,6 +2731,22 @@ async function guardar() {
 /* ---- Qué quedó sin llegar al servidor ----
    Si el gimnasio no tiene señal, la app guarda en el equipo. Este registro
    deja constancia de qué cursos faltan por subir y desde cuándo. */
+/* Última versión del servidor que este equipo alcanzó a ver, por curso. */
+const CLAVE_VER = PREFIJO + "versiones";
+
+function versionesVistas() {
+  try { const j = JSON.parse(localStorage.getItem(CLAVE_VER) || "{}"); return j && typeof j === "object" ? j : {}; }
+  catch { return {}; }
+}
+const versionVista = (cursoId) => versionesVistas()[cursoId] || null;
+
+function anotarVersion(cursoId, sello) {
+  if (!sello) return;
+  const v = versionesVistas();
+  v[cursoId] = sello;
+  try { localStorage.setItem(CLAVE_VER, JSON.stringify(v)); } catch {}
+}
+
 const CLAVE_PEND = PREFIJO + "pendientes";
 
 function leerPendientes() {
@@ -2687,6 +2766,23 @@ function marcarSubido(curso) {
   if (!p[curso]) return;
   delete p[curso];
   try { localStorage.setItem(CLAVE_PEND, JSON.stringify(p)); } catch {}
+}
+
+/* Cuando otro dispositivo escribió en medio, se pregunta con cuál quedarse. */
+function avisarConflicto(cursoId) {
+  const nombre = (CURSOS.find((c) => c.id === cursoId) || {}).nombre || cursoId;
+  abrirModal(`
+    <h3>Hay otra versión de ${esc(nombre)}</h3>
+    <p class="sub" style="margin:6px 0 10px">Este curso se modificó en otro dispositivo después de la última vez
+      que se abrió aquí. Para no borrar trabajo sin querer, no se guardó nada todavía.</p>
+    <div class="fila" style="flex-direction:column;gap:8px;align-items:stretch">
+      <button class="btn btn-ancho" data-accion="conflicto-traer" data-c="${cursoId}">Traer la del servidor</button>
+      <span class="sub">Se descartan los cambios hechos en este equipo.</span>
+      <button class="btn btn-ancho" data-accion="conflicto-respaldo" data-c="${cursoId}">Descargar lo de este equipo</button>
+      <span class="sub">Guarda una copia antes de decidir.</span>
+      <button class="btn btn-ancho btn-peligro" data-accion="conflicto-forzar" data-c="${cursoId}">Conservar la de este equipo</button>
+      <span class="sub">Reemplaza lo que hay en el servidor.</span>
+    </div>`);
 }
 
 /* Reintenta subir todo lo que quedó pendiente. */
@@ -2717,6 +2813,7 @@ function pintarEstado() {
   if (!c) return;
   const mapa = {
     ok: ["", "Guardado automático"], guardando: ["trabajando", "Guardando…"],
+    conflicto: ["error", "Hay otra versión"],
     pendiente: ["trabajando", "Guardando…"], local: ["error", "Solo en este equipo"],
     error: ["error", "No se pudo guardar"]
   };
@@ -2891,6 +2988,10 @@ function vistaApp() {
     <div class="hoja-impresion" id="impresion"></div>
     <div class="pie-hoja" id="pie-hoja"></div>
   </div>
+  ${deshacer && deshacer.curso === S.cursoId ? `<div class="barra-deshacer no-imprimir">
+    <span>${esc(deshacer.descripcion)}</span>
+    <button class="btn btn-mini" data-accion="deshacer">Deshacer</button>
+  </div>` : ""}
   <nav class="barra-inf no-imprimir">
     ${[["evaluar", "Evaluar", "M4 12h4l3-8 4 16 3-8h4"],
        ["resumen", "Resumen", "M5 19V9M12 19V4M19 19v-7"],
@@ -3787,7 +3888,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v113</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v114</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
@@ -3986,6 +4087,7 @@ document.addEventListener("click", async (evt) => {
   }
   if (a === "limpiar-marcas") {
     confirmar("Se borrarán todas las marcas de esta lista. La nómina y los indicadores se conservan.", () => {
+      anotarDeshacer("Marcas borradas");
       ev.marcas = ev.marcas.map((f) => f.map((g) => g.map(() => 0)));
       ev.datos = ev.datos.map(() => ev.criterios.map(filaNiveles));
       ev.estado = ev.estado.map(() => 0);
@@ -4203,12 +4305,14 @@ document.addEventListener("click", async (evt) => {
   if (a === "borrar-eval") {
     if (S.datos.evaluaciones.length === 1) {
       confirmar("Es la única lista del curso: se vaciarán sus marcas.", () => {
+      anotarDeshacer("Lista vaciada");
         S.datos.evaluaciones = [nuevaEvaluacion(S.datos.roster.length, [], "", S.cursoId)];
         S.evalIdx = 0; marcarCambio(); pintar();
       });
       return;
     }
     confirmar(`Se eliminará "${ev.nombre}" con todas sus marcas.`, () => {
+      anotarDeshacer(`Lista eliminada: ${ev.nombre}`);
       S.datos.evaluaciones.splice(S.evalIdx, 1);
       S.evalIdx = Math.max(0, S.evalIdx - 1); marcarCambio(); pintar();
     });
@@ -4429,7 +4533,7 @@ document.addEventListener("click", async (evt) => {
       : `Se reemplazarán las nóminas de ${cursos.length} cursos. Las marcas ya puestas en esos cursos se pierden.`,
       async () => {
         for (const [cursoId, nombres] of cursos) {
-          if (cursoId === S.cursoId) { ponerNomina(S.datos, nombres); marcarCambio(); }
+          if (cursoId === S.cursoId) { anotarDeshacer("Nómina reemplazada"); ponerNomina(S.datos, nombres); marcarCambio(); }
           else {
             try {
               const d = await almacen.leer(cursoId);
@@ -4444,6 +4548,7 @@ document.addEventListener("click", async (evt) => {
   }
   if (a === "ordenar-nomina") {
     confirmar("Se ordenará la nómina de la A a la Z. Las marcas, notas y observaciones viajan con cada estudiante.", () => {
+      anotarDeshacer("Nómina ordenada");
       const orden = S.datos.roster.map((n, i) => i).sort((a1, b1) => {
         const x = (S.datos.roster[a1] || "").trim(), y = (S.datos.roster[b1] || "").trim();
         if (!x) return 1;                       // los casilleros en blanco quedan al final
@@ -4534,6 +4639,7 @@ document.addEventListener("click", async (evt) => {
   if (a === "borrar-alumno") {
     const i = +btn.dataset.i;
     confirmar(`Se quitará a ${S.datos.roster[i] || "ese estudiante"} de la nómina y de todas las listas del curso.`, () => {
+      anotarDeshacer(`Estudiante quitado: ${S.datos.roster[i] || "sin nombre"}`);
       S.datos.roster.splice(i, 1);
       (S.datos.adecuaciones || []).splice(i, 1);
       S.datos.evaluaciones.forEach((e) => { e.marcas.splice(i, 1); e.datos.splice(i, 1); e.estado.splice(i, 1); e.obs.splice(i, 1); });
@@ -4602,6 +4708,25 @@ document.addEventListener("click", async (evt) => {
   if (a === "excel") { await exportarExcel(); return; }
   if (a === "cambiar-logo") { pedirLogo(); return; }
   if (a === "quitar-logo") { localStorage.removeItem(CLAVE_LOGO); pintar(); return; }
+  if (a === "conflicto-traer") {
+    const c = btn.dataset.c;
+    cerrarModal(); marcarSubido(c);
+    S.guardado = "ok";
+    await cargarCurso(c);
+    return;
+  }
+  if (a === "conflicto-respaldo") { descargarRespaldo(); return; }
+  if (a === "conflicto-forzar") {
+    const c = btn.dataset.c;
+    cerrarModal();
+    try {
+      await almacen.escribir(c, c === S.cursoId ? S.datos : almacen.leerLocal(c), true);
+      marcarSubido(c); S.guardado = "ok";
+    } catch (e) { S.guardado = "error"; S.detalleError = e.message; }
+    pintar();
+    return;
+  }
+  if (a === "deshacer") { aplicarDeshacer(); return; }
   if (a === "reintentar") { reintentarPendientes(); return; }
   if (a === "respaldo") { descargarRespaldo(); return; }
   if (a === "respaldo-todo") { descargarRespaldoTotal(); return; }
