@@ -552,14 +552,41 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .pastilla b{color:var(--verde); font-weight:700}
 
 /* Cifras de la lista: lo que se mira de reojo antes de entrar a marcar. */
-.panel-cifras{display:grid; grid-template-columns:repeat(4, 1fr); gap:1px; margin-top:13px;
-  background:var(--line); border:1px solid var(--line); border-radius:var(--r-s); overflow:hidden}
-.cifra{background:var(--surface); padding:9px 6px; text-align:center}
-.cifra b{display:block; font-size:20px; line-height:1.1; color:var(--verde-oscuro);
-  font-variant-numeric:tabular-nums; transition:color .2s var(--curva)}
-.cifra b.baja{color:var(--falta)}
-.cifra b.pend{color:var(--oro)}
-.cifra span{display:block; font-size:10.5px; color:var(--soft); margin-top:3px; letter-spacing:.02em}
+/* Cada cifra se pinta según cómo va: verde bien, ámbar atención, rojo problema.
+   El color de fondo es tenue; el peso lo lleva la barra superior. */
+.panel-cifras{display:grid; grid-template-columns:repeat(4, 1fr); gap:7px; margin-top:13px}
+.cifra{background:var(--surface); border:1px solid var(--line); border-radius:var(--r-s);
+  padding:10px 6px 9px; text-align:center; position:relative; overflow:hidden;
+  transition:background .2s var(--curva), border-color .2s var(--curva)}
+.cifra::before{content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--line)}
+.cifra b{display:block; font-family:var(--display); font-size:21px; font-weight:800; line-height:1.1;
+  letter-spacing:-.02em; color:var(--soft); font-variant-numeric:tabular-nums;
+  transition:color .2s var(--curva)}
+.cifra span{display:block; font-size:10.5px; color:var(--soft); margin-top:4px; letter-spacing:.02em}
+
+/* Cada cifra tiene su color fijo, para reconocerla de un vistazo.
+   El rojo queda reservado para avisar de un valor que requiere atención. */
+.cifra.c-prom{background:#eaf3f9; border-color:#c2ddec}
+.cifra.c-prom::before{background:var(--verde)}
+.cifra.c-prom b{color:var(--verde-oscuro)}
+
+.cifra.c-logro{background:#eef7f2; border-color:#c3e2d3}
+.cifra.c-logro::before{background:var(--logro)}
+.cifra.c-logro b{color:#166b49}
+
+.cifra.c-pend{background:#fdf6e8; border-color:#f0dcae}
+.cifra.c-pend::before{background:var(--oro)}
+.cifra.c-pend b{color:#8a6300}
+
+.cifra.c-aus{background:#f2f0f5; border-color:#d9d4e0}
+.cifra.c-aus::before{background:#8a7fa3}
+.cifra.c-aus b{color:#5c5170}
+
+.cifra.alerta{background:#fbf0ef; border-color:#e8c9c5}
+.cifra.alerta::before{background:var(--falta)}
+.cifra.alerta b{color:var(--falta)}
+.cifra.gris::before{background:var(--soft)}
+.cifra.gris b{color:var(--ink)}
 
 .tira-oa{display:flex; flex-wrap:wrap; gap:5px; margin-top:8px}
 
@@ -3060,10 +3087,14 @@ function cabeceraEvaluacion() {
     ${codigosOA(ev).length ? `<div class="tira-oa">${codigosOA(ev).map((x) => `<span class="oa-chip">${esc(x)}</span>`).join("")}</div>` : ""}
 
     <div class="panel-cifras">
-      <div class="cifra"><b class="${e.prom !== null && e.prom < 4 ? "baja" : ""}">${num1(e.prom)}</b><span>promedio</span></div>
-      <div class="cifra"><b>${e.logro === null ? "—" : e.logro + "%"}</b><span>logro</span></div>
-      <div class="cifra"><b class="${e.sinEvaluar ? "pend" : ""}">${e.sinEvaluar}</b><span>sin completar</span></div>
-      <div class="cifra"><b>${e.ausentes}</b><span>ausentes</span></div>
+      <div class="cifra c-prom ${e.prom !== null && e.prom < 4 ? "alerta" : ""}">
+        <b>${num1(e.prom)}</b><span>promedio</span></div>
+      <div class="cifra c-logro ${e.logro !== null && e.logro < 50 ? "alerta" : ""}">
+        <b>${e.logro === null ? "—" : e.logro + "%"}</b><span>logro</span></div>
+      <div class="cifra c-pend ${e.sinEvaluar ? "alerta" : ""}">
+        <b>${e.sinEvaluar}</b><span>sin completar</span></div>
+      <div class="cifra c-aus">
+        <b>${e.ausentes}</b><span>ausentes</span></div>
     </div>
     <p class="sub" style="margin:7px 0 0">${e.puntaje} de ${e.maximo} puntos marcados</p>
 
@@ -3888,7 +3919,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v114</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v116</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
