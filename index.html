@@ -80,6 +80,23 @@ button,select,a{-webkit-tap-highlight-color:transparent}
 }
 :root[data-tema="oscuro"] .planilla thead th{background:#123344; color:#e6eff3}
 :root[data-tema="oscuro"] .cas{border-color:#3d5a68}
+/* En oscuro, las sombras no se ven: la jerarquía la dan los bordes. */
+:root[data-tema="oscuro"] .tarjeta.principal{border-color:#2f5f7a; box-shadow:none}
+:root[data-tema="oscuro"] .tarjeta.apoyo{background:#12212a; border-color:#243842}
+:root[data-tema="oscuro"] .modal,
+:root[data-tema="oscuro"] .menu-curso{box-shadow:0 14px 34px rgba(0,0,0,.5)}
+:root[data-tema="oscuro"] .barra-deshacer{background:#25404e; box-shadow:0 8px 24px rgba(0,0,0,.45)}
+:root[data-tema="oscuro"] .cifra.c-prom,:root[data-tema="oscuro"] .cifra.c-logro,
+:root[data-tema="oscuro"] .cifra.c-pend,:root[data-tema="oscuro"] .cifra.c-aus{
+  background:#17313f; border-color:#2b4b5c}
+:root[data-tema="oscuro"] .cifra b{color:#8fd0f0}
+:root[data-tema="oscuro"] .oa-chip,:root[data-tema="oscuro"] .btn-sugerencia,
+:root[data-tema="oscuro"] .rem-item.puesta,:root[data-tema="oscuro"] .quitar-ade{
+  background:#17313f; border-color:#2b4b5c; color:#8fd0f0}
+:root[data-tema="oscuro"] .hueso{
+  background:linear-gradient(90deg,#1d3038,#2b414c,#1d3038); background-size:200% 100%}
+:root[data-tema="oscuro"] .aviso-pend{background:#33201e; border-color:#5c332f}
+:root[data-tema="oscuro"] .aviso-dua{background:#1d3038}
 
 /* Sol: para la cancha al mediodía. Más contraste y bordes más gruesos. */
 :root[data-tema="sol"]{
@@ -188,7 +205,13 @@ button,select,a{-webkit-tap-highlight-color:transparent}
 .pestana[aria-pressed="true"]{background:var(--verde-claro); color:var(--verde-oscuro); font-weight:600}
 
 /* ---------- Tarjetas ---------- */
-.tarjeta{background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:16px; margin-bottom:14px}
+/* Tres pesos de tarjeta: la principal manda, la de apoyo acompaña,
+   la de trabajo aloja la tabla y va al ras. */
+.tarjeta{background:var(--surface); border:1px solid var(--line); border-radius:var(--r);
+  padding:16px; margin-bottom:14px}
+.tarjeta.principal{border-color:#bcdcef; box-shadow:0 2px 10px rgba(16,43,56,.06)}
+.tarjeta.apoyo{background:var(--surface-2); border-color:transparent; padding:14px}
+.tarjeta.trabajo{padding:12px 12px 4px}
 .tarjeta > h2{font-size:16px; margin-bottom:2px}
 .sub{color:var(--soft); font-size:12.5px; line-height:1.45}
 .fila{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
@@ -566,21 +589,13 @@ th.col-fija{background:var(--surface-2); z-index:3}
 
 /* Cada cifra tiene su color fijo, para reconocerla de un vistazo.
    El rojo queda reservado para avisar de un valor que requiere atención. */
-.cifra.c-prom{background:#eaf3f9; border-color:#c2ddec}
-.cifra.c-prom::before{background:var(--verde)}
-.cifra.c-prom b{color:var(--verde-oscuro)}
-
-.cifra.c-logro{background:#eef7f2; border-color:#c3e2d3}
-.cifra.c-logro::before{background:var(--logro)}
-.cifra.c-logro b{color:#166b49}
-
-.cifra.c-pend{background:#fdf6e8; border-color:#f0dcae}
-.cifra.c-pend::before{background:var(--oro)}
-.cifra.c-pend b{color:#8a6300}
-
-.cifra.c-aus{background:#f2f0f5; border-color:#d9d4e0}
-.cifra.c-aus::before{background:#8a7fa3}
-.cifra.c-aus b{color:#5c5170}
+/* Las cuatro cifras comparten el celeste de la app. */
+.cifra.c-prom,.cifra.c-logro,.cifra.c-pend,.cifra.c-aus{
+  background:#e8f3fa; border-color:#bcdcef;
+}
+.cifra.c-prom::before,.cifra.c-logro::before,
+.cifra.c-pend::before,.cifra.c-aus::before{background:#4aa3d4}
+.cifra.c-prom b,.cifra.c-logro b,.cifra.c-pend b,.cifra.c-aus b{color:var(--verde-oscuro)}
 
 .cifra.alerta{background:#fbf0ef; border-color:#e8c9c5}
 .cifra.alerta::before{background:var(--falta)}
@@ -676,8 +691,20 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .ingreso h1{font-size:23px; line-height:1.15; margin-bottom:6px}
 .aviso{background:#FCF2F1; border:1px solid #EBC9C5; color:var(--alerta); border-radius:var(--r-s); padding:9px 11px; font-size:13px; margin-bottom:10px}
 
+/* Huesos del esqueleto: bloques grises que laten mientras se espera. */
+.hueso{display:block; height:13px; border-radius:7px; margin-bottom:9px;
+  background:linear-gradient(90deg, var(--surface-2), var(--line), var(--surface-2));
+  background-size:200% 100%; animation:latir 1.3s ease-in-out infinite}
+.hueso.alto{height:34px; margin:0}
+.fila-hueso{display:flex; justify-content:space-between; gap:12px; padding:9px 0;
+  border-bottom:1px solid var(--line)}
+.fila-hueso .hueso{margin:0}
+@keyframes latir{0%{background-position:200% 0} 100%{background-position:-200% 0}}
+
 .vacio{text-align:center; padding:26px 14px; color:var(--soft); font-size:14px}
-.vacio strong{display:block; color:var(--ink); font-family:var(--display); font-size:16px; margin-bottom:4px}
+.vacio strong{display:block; color:var(--ink); font-family:var(--display); font-size:16px;
+  margin-bottom:5px; letter-spacing:-.015em}
+.vacio{max-width:340px; margin:0 auto; line-height:1.5}
 
 .hoja-impresion{display:none}
 .pie-hoja{display:none}
@@ -2950,6 +2977,62 @@ function ajustarTodos() {
   document.querySelectorAll(".auto-alto").forEach(ajustarAlto);
 }
 
+/* Silueta del contenido mientras llega el curso: se siente más rápido
+   que una pantalla en blanco, aunque demore lo mismo. */
+function esqueletoHTML(nombre) {
+  const barra = (ancho) => `<span class="hueso" style="width:${ancho}"></span>`;
+  return `<div class="tarjeta principal">
+      ${barra("42%")}${barra("68%")}
+      <div class="panel-cifras" style="margin-top:13px">
+        ${[0, 1, 2, 3].map(() => `<div class="cifra"><span class="hueso alto"></span></div>`).join("")}
+      </div>
+    </div>
+    <div class="tarjeta trabajo">
+      ${[0, 1, 2, 3, 4].map(() => `<div class="fila-hueso">${barra("34%")}${barra("18%")}</div>`).join("")}
+    </div>
+    <p class="sub" style="text-align:center">Cargando ${esc(nombre)}…</p>`;
+}
+
+/* Al marcar, solo cambia esa casilla y los totales de su fila.
+   Redibujar la app completa en cada toque se siente lento con 25 estudiantes. */
+let relojResumen = null;
+
+function refrescarMarca(ev, i, j, q) {
+  const esc2 = (x) => String(x).replace(/"/g, "&quot;");
+  // la casilla o el nivel que se acaba de tocar
+  if (esEscala(ev)) {
+    const v = nivelDe(ev, i, j, q);
+    document.querySelectorAll(`[data-accion="ciclo-nivel"][data-i="${i}"][data-j="${j}"][data-q="${q}"]`).forEach((b) => {
+      b.textContent = v || "";
+      b.style.cssText = v ? `background:${colorNivel(v, nNiveles(ev))};color:#fff;border-color:transparent` : "";
+    });
+    document.querySelectorAll(`[data-accion="poner-nivel"][data-i="${i}"][data-j="${j}"][data-q="${q}"]`).forEach((b) => {
+      b.setAttribute("aria-pressed", String(+b.dataset.k === v));
+    });
+  } else {
+    const v = marcaDe(ev, i, j, q);
+    [["marca-l", 1, "✓"], ["marca-nl", 2, "✗"]].forEach(([acc, val, signo]) => {
+      document.querySelectorAll(`[data-accion="${acc}"][data-i="${i}"][data-j="${j}"][data-q="${q}"]`).forEach((b) => {
+        b.classList.toggle("si", v === val);
+        b.textContent = v === val ? signo : "";
+        b.setAttribute("aria-pressed", String(v === val));
+      });
+    });
+  }
+  // los totales de ese estudiante
+  const r = resultado(ev, i);
+  const fila = document.querySelector(`tr[data-fila="${i}"]`);
+  if (fila) {
+    const pts = fila.querySelector("[data-cel=pts]");
+    const nota = fila.querySelector("[data-cel=nota]");
+    if (pts) pts.textContent = `${r.puntaje}/${r.total}`;
+    if (nota) { nota.textContent = num1(r.nota); nota.className = `nota ${r.nota === null ? "" : r.nota < 4 ? "roja" : "azul"}`; }
+  }
+  // el resumen de arriba se recalcula al soltar, no en cada toque
+  clearTimeout(relojResumen);
+  relojResumen = setTimeout(pintar, 700);
+}
+
 function pintar() {
   const raiz = $("#raiz");
   if (S.verificando) { raiz.innerHTML = `<div class="vacio" style="padding-top:60px">Verificando sesión…</div>`; return; }
@@ -3007,7 +3090,7 @@ function vistaApp() {
     </div>
   </header>
   <div class="envoltura">
-    ${S.cargando ? `<div class="tarjeta"><div class="vacio">Cargando ${esc(curso.nombre)}…</div></div>` : `
+    ${S.cargando ? esqueletoHTML(curso.nombre) : `
     ${S.errorCarga ? `<div class="aviso">No se pudieron traer los datos guardados. ${esc(S.errorCarga)}</div>` : ""}
     <div class="solo-pantalla">${S.pestana === "evaluar" ? vistaEvaluar() : S.pestana === "resumen" ? vistaResumen()
       : S.pestana === "consolidado" ? vistaConsolidado() : vistaCurso()}</div>
@@ -3394,7 +3477,7 @@ function vistaPlanilla(ev) {
         ${S.datos.roster.map((nom, i) => {
           const r = resultado(ev, i);
           const est = ev.estado[i] || 0;
-          return `<tr class="${est ? "fila-ausente" : ""}">
+          return `<tr class="${est ? "fila-ausente" : ""}" data-fila="${i}">
             <td class="izq col-fija"><span class="n-orden">${String(i + 1).padStart(2, "0")}</span> ${esc(nom || "—")}</td>
             <td>${botonAsistencia(ev, i)}</td>
             ${cols.map((col) => {
@@ -3415,8 +3498,8 @@ function vistaPlanilla(ev) {
                   data-i="${i}" data-j="${col.j}" data-q="${col.q}" aria-pressed="${v === 2}"
                   aria-label="No logrado">${v === 2 ? "✗" : ""}</button></td>`;
             }).join("")}
-            <td class="mono">${est ? "—" : r.puntaje + "/" + total}</td>
-            <td>${est ? "—" : `<span class="nota ${r.nota === null ? "" : r.nota < 4 ? "roja" : "azul"}">${num1(r.nota)}</span>`}</td>
+            <td class="mono" data-cel="pts">${est ? "—" : r.puntaje + "/" + total}</td>
+            <td>${est ? "—" : `<span class="nota ${r.nota === null ? "" : r.nota < 4 ? "roja" : "azul"}" data-cel="nota">${num1(r.nota)}</span>`}</td>
             <td><button class="btn-obs" data-accion="fila-completa" data-i="${i}" title="Marcar todo logrado a este estudiante">✓</button>
               <button class="btn-obs ${ev.obs[i] ? "con-texto" : ""}" data-accion="obs" data-i="${i}" title="Observación">✎</button></td>
           </tr>`;
@@ -3540,7 +3623,11 @@ function vistaPorAlumno(ev) {
 function vistaResumen() {
   const ev = evalActual();
   const n = S.datos.roster.length;
-  if (!n) return `<div class="tarjeta"><div class="vacio"><strong>Sin datos</strong>Carga la nómina del curso.</div></div>`;
+  if (!n) return `<div class="tarjeta"><div class="vacio">
+    <strong>Todavía no hay resumen</strong>
+    El resumen se arma con las marcas del curso. Primero carga la nómina y evalúa a tus estudiantes.
+    <div style="margin-top:14px"><button class="btn btn-lleno" data-accion="pestana" data-v="curso">Cargar la nómina</button></div>
+  </div></div>`;
 
   const e = estadisticas(ev);
   const notas = [];
@@ -3806,7 +3893,11 @@ function fichaHTML(i) {
 
 function vistaConsolidado() {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
-  if (!S.datos.roster.length) return `<div class="tarjeta"><div class="vacio"><strong>Sin datos</strong>Carga la nómina del curso.</div></div>`;
+  if (!S.datos.roster.length) return `<div class="tarjeta"><div class="vacio">
+    <strong>Todavía no hay consolidado</strong>
+    Aquí verás el promedio de cada estudiante cuando tengas listas evaluadas en este curso.
+    <div style="margin-top:14px"><button class="btn btn-lleno" data-accion="pestana" data-v="curso">Cargar la nómina</button></div>
+  </div></div>`;
   const { evs, filas, promCurso, aprob, conNota } = datosConsolidado();
   const corto = (f) => (f ? f.slice(8, 10) + "/" + f.slice(5, 7) : "—");
   return `
@@ -3919,7 +4010,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v116</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v118</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
@@ -4031,21 +4122,21 @@ document.addEventListener("click", async (evt) => {
     const objetivo = a === "marca-l" ? 1 : 2;
     const fila = ev.marcas[i][j];
     fila[q] = fila[q] === objetivo ? 0 : objetivo;
-    marcarCambio(); pintar(); return;
+    marcarCambio(); refrescarMarca(ev, i, j, q); return;
   }
   if (a === "ciclo-nivel") {
     const i = +btn.dataset.i, j = +btn.dataset.j;
     const q0 = +btn.dataset.q || 0;
     if (!Array.isArray(ev.datos[i][j])) ev.datos[i][j] = filaNiveles(ev.criterios[j]);
     ev.datos[i][j][q0] = ((ev.datos[i][j][q0] || 0) + 1) % (nNiveles(ev) + 1);
-    marcarCambio(); pintar(); return;
+    marcarCambio(); refrescarMarca(ev, i, j, q0); return;
   }
   if (a === "poner-nivel") {
     const i = +btn.dataset.i, j = +btn.dataset.j, k = +btn.dataset.k;
     const q1 = +btn.dataset.q || 0;
     if (!Array.isArray(ev.datos[i][j])) ev.datos[i][j] = filaNiveles(ev.criterios[j]);
     ev.datos[i][j][q1] = ev.datos[i][j][q1] === k ? 0 : k;
-    marcarCambio(); pintar(); return;
+    marcarCambio(); refrescarMarca(ev, i, j, q1); return;
   }
   if (a === "todos-nivel") {
     const j = +btn.dataset.j, k = +btn.dataset.k;
