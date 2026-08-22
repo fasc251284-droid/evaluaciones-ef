@@ -577,6 +577,15 @@ th.col-fija{background:var(--surface-2); z-index:3}
 /* Cifras de la lista: lo que se mira de reojo antes de entrar a marcar. */
 /* Cada cifra se pinta según cómo va: verde bien, ámbar atención, rojo problema.
    El color de fondo es tenue; el peso lo lleva la barra superior. */
+/* Foco sugerido: el indicador que más costó al curso. */
+.foco{margin-top:11px; padding:11px 13px; border:1px solid var(--line);
+  border-left:3px solid var(--oro); border-radius:var(--r-s); background:var(--surface-2)}
+.foco b{display:block; font-family:var(--display); font-size:10.5px; font-weight:700;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--soft); margin-bottom:4px}
+.foco p{margin:0; font-size:14px; line-height:1.4}
+.foco .mono{font-size:11.5px; color:var(--verde-oscuro); margin-right:4px}
+.foco-pct{display:block; margin-top:5px; font-size:12px; color:var(--falta); font-weight:600}
+
 .panel-cifras{display:grid; grid-template-columns:repeat(4, 1fr); gap:7px; margin-top:13px}
 .cifra{background:var(--surface); border:1px solid var(--line); border-radius:var(--r-s);
   padding:10px 6px 9px; text-align:center; position:relative; overflow:hidden;
@@ -3113,6 +3122,31 @@ function vistaApp() {
 }
 
 /* --- Cabecera de la evaluación --- */
+/* El indicador con menor logro del curso: por dónde conviene partir
+   la próxima clase. Solo se propone si de verdad está descendido. */
+function focoDelCurso(ev) {
+  const n = S.datos.roster.length;
+  if (!n) return null;
+  let peor = null;
+  ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
+    let suma = 0, cont = 0;
+    for (let i = 0; i < n; i++) {
+      if (ev.estado[i]) continue;
+      if (esEscala(ev)) {
+        const v = nivelDe(ev, i, j, q);
+        if (v) { suma += puntosNivel(ev, v) / maxNivel(ev); cont++; }
+      } else {
+        const v = marcaDe(ev, i, j, q);
+        if (v) { suma += v === 1 ? 1 : 0; cont++; }
+      }
+    }
+    if (!cont) return;
+    const pct = Math.round((suma / cont) * 100);
+    if (!peor || pct < peor.pct) peor = { rot: `${j + 1}.${q + 1}`, texto: ind.texto, oa: c.oa, pct };
+  }));
+  return peor && peor.pct < 80 ? peor : null;
+}
+
 function estadisticas(ev) {
   const n = S.datos.roster.length;
   let puntaje = 0, maximo = 0, sinEvaluar = 0, ausentes = 0;
@@ -3154,6 +3188,7 @@ function cabeceraEvaluacion() {
     <div class="fila" style="margin-top:11px">
       <button class="btn" data-accion="pestana" data-v="resumen">Ver resumen</button>
       <button class="btn" data-accion="excel">Exportar curso (Excel)</button>
+      <button class="btn" data-accion="notas-curso">Informe de notas (PDF)</button>
       <button class="btn" data-accion="ayuda">¿Cómo funciona?</button>
     </div>
 
@@ -3179,7 +3214,13 @@ function cabeceraEvaluacion() {
       <div class="cifra c-aus">
         <b>${e.ausentes}</b><span>ausentes</span></div>
     </div>
-    <p class="sub" style="margin:7px 0 0">${e.puntaje} de ${e.maximo} puntos marcados</p>
+    ${(() => {
+      const f = focoDelCurso(ev);
+      if (!f) return "";
+      return `<div class="foco"><b>Foco sugerido</b>
+        <p><span class="mono">${esc(f.rot)}</span> ${esc(f.texto || "sin redactar")}</p>
+        <span class="foco-pct">${f.pct}% de logro en el curso${f.oa ? ` · ${esc(f.oa)}` : ""}</span></div>`;
+    })()}
 
     <div class="barra-acciones">
       <label class="campo-fecha"><span>Fecha de la clase</span>
@@ -4010,7 +4051,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v118</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v119</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
@@ -4826,6 +4867,7 @@ document.addEventListener("click", async (evt) => {
   if (a === "imprimir") { imprimir(); return; }
   if (a === "imprimir-blanco") { imprimir(true); return; }
   if (a === "informe-logro") { imprimirInforme(); return; }
+  if (a === "notas-curso") { imprimirNotasCurso(); return; }
   if (a === "comparar-cursos") { compararEntreCursos(); return; }
   if (a === "excel") { await exportarExcel(); return; }
   if (a === "cambiar-logo") { pedirLogo(); return; }
@@ -5060,6 +5102,71 @@ function filasDeEvaluacion(ev) {
     ];
   });
   return { cab, filas, total, cols };
+}
+
+/* Informe de notas del curso: el acta con su distribución y los casos
+   que conviene revisar, para entregar o archivar. */
+function imprimirNotasCurso() {
+  ponerPie();
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  const { evs, filas, promCurso } = datosConsolidado();
+  prepararImpresion(evs.length + 1);
+
+  const proms = filas.map((f) => f.prom).filter((x) => x !== null);
+  const aprob = proms.filter((x) => x >= 4).length;
+  const tramos = [
+    ["7,0 a 6,0", (x) => x >= 6],
+    ["5,9 a 5,0", (x) => x >= 5 && x < 6],
+    ["4,9 a 4,0", (x) => x >= 4 && x < 5],
+    ["3,9 a 3,0", (x) => x >= 3 && x < 4],
+    ["2,9 a 2,0", (x) => x < 3]
+  ].map(([r, f]) => ({ rango: r, n: proms.filter(f).length }));
+  const bajos = filas.map((f, i) => ({ ...f, i })).filter((f) => f.prom !== null && f.prom < 4)
+    .sort((a, b) => a.prom - b.prom);
+  const sinNota = filas.filter((f) => f.prom === null).length;
+
+  $("#impresion").innerHTML = `
+    ${membreteHTML()}
+    <h1 class="titulo-hoja">Informe de notas · ${esc(curso.nombre)}</h1>
+    <table class="ficha-hoja"><tbody>
+      <tr><th>Asignatura</th><td>Educación Física y Salud</td>
+          <th>Evaluaciones</th><td>${evs.length}</td>
+          <th>Fecha</th><td>${fechaLarga(hoy())}</td></tr>
+      <tr><th>Estudiantes</th><td>${filas.length}${sinNota ? ` · ${sinNota} sin nota` : ""}</td>
+          <th>Promedio del curso</th><td>${num1(promCurso)}</td>
+          <th>Aprobación</th><td>${aprob} de ${proms.length}${proms.length ? ` · ${Math.round((aprob / proms.length) * 100)}%` : ""}</td></tr>
+    </tbody></table>
+
+    <p class="rot-informe">Distribución de promedios</p>
+    <table><thead><tr><th class="izq">Rango</th><th class="c-pct">Estudiantes</th>
+      <th style="width:46%">Proporción</th></tr></thead>
+    <tbody>${tramos.map((t) => `<tr>
+      <td class="izq">${t.rango}</td>
+      <td class="c-pct">${t.n}</td>
+      <td><span class="barra-pdf"><i style="width:${proms.length ? Math.round((t.n / proms.length) * 100) : 0}%;
+        background:${t.rango.startsWith("3") || t.rango.startsWith("2") ? "#b8392e" : t.rango.startsWith("4") ? "#d99a10" : "#1e8a5f"}"></i></span></td>
+    </tr>`).join("")}</tbody></table>
+
+    <p class="rot-informe">Notas por estudiante</p>
+    <table class="tabla-consolidado"><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
+      ${evs.map((ev, k) => `<th class="c-nota">${k + 1}</th>`).join("")}<th class="c-nota">Prom.</th></tr></thead>
+    <tbody>${filas.map((f, i) => `<tr><td class="c-n">${i + 1}</td><td class="c-nom izq">${esc(f.nom || "—")}</td>
+      ${f.notas.map((x) => `<td class="c-nota">${x === null ? "—" : num1(x)}</td>`).join("")}
+      <td class="c-nota"><b>${num1(f.prom)}</b></td></tr>`).join("")}</tbody></table>
+    <ol class="leyenda-oa" style="margin-top:6px">${evs.map((ev, k) => `<li><b>${k + 1}</b> ${esc(ev.nombre)} · ${fechaLarga(ev.fecha)}${
+      pesoDe(ev) !== 1 ? ` · peso ${pesoDe(ev)}` : ""}${rotuloTipo(ev) ? ` · ${rotuloTipo(ev)}` : ""}</li>`).join("")}</ol>
+
+    ${bajos.length ? `<p class="rot-informe">Requieren apoyo · ${bajos.length}</p>
+      <table><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
+        <th class="c-nota">Prom.</th><th class="izq">Adecuaciones y medidas registradas</th></tr></thead>
+      <tbody>${bajos.map((f) => {
+        const med = evs.flatMap((ev) => (ev.medidas && ev.medidas[f.i]) || []);
+        const ade = adeDe(f.i);
+        return `<tr><td class="c-n">${f.i + 1}</td><td class="c-nom izq">${esc(f.nom || "—")}</td>
+          <td class="c-nota">${num1(f.prom)}</td>
+          <td class="izq">${esc([...ade, ...med].join("; ")) || "—"}</td></tr>`;
+      }).join("")}</tbody></table>` : ""}`;
+  setTimeout(() => window.print(), 60);
 }
 
 function imprimirConsolidado() {
