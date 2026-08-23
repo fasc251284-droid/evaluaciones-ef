@@ -4055,7 +4055,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v121</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v122</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
@@ -5005,6 +5005,14 @@ function planImpresion(nMarcas) {
   const fuenteLey = n <= 6 ? 9.5 : n <= 12 ? 8.5 : n <= 20 ? 7.5 : 7;
   return { orientacion, fuente: n <= 14 ? 9 : 8, cajas: orientacion === "landscape" ? cajas + 1 : cajas,
     fuenteLey };
+}
+
+/* Membrete con el escudo, para encabezar cada documento impreso. */
+function membreteHTML() {
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  return `<div class="membrete"><img src="${logoColegio()}" alt="">
+    <span class="txt"><b>${esc(colegio())}</b>
+    <span>Educación Física y Salud · ${esc(curso.nombre)}</span></span></div>`;
 }
 
 /* Los informes son de texto, no de casillas: van en vertical, con anchos
