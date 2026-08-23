@@ -716,21 +716,12 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .vacio{max-width:340px; margin:0 auto; line-height:1.5}
 
 .hoja-impresion{display:none}
-.pie-hoja{display:none}
 @media print{
   :root{--bg:#fff; --surface:#fff; --surface-2:#edf4f8; --ink:#102b38; --soft:#5b7383; --line:#d5e2ea}
   body{background:#fff}
   .barra-sup,.cursos,.pestanas,.barra-inf,.no-imprimir,.solo-pantalla{display:none !important}
   .envoltura{padding:0; max-width:none}
   .hoja-impresion{display:block}
-  /* Pie propio, repetido en cada hoja. Para que no salga además la dirección
-     y la fecha del navegador, hay que desactivar sus encabezados al imprimir. */
-  .pie-hoja{display:block; position:fixed; bottom:0; left:0; right:0;
-    border-top:1px solid #b9cfdc; padding-top:2mm; font-size:8px; color:#3a4a54;
-    display:flex; justify-content:space-between; gap:10px}
-  .pie-hoja b{font-weight:700}
-  .pie-hoja .pie-izq{display:flex; align-items:center; gap:5px}
-  .pie-hoja img{height:9mm; width:auto}
   .membrete{display:flex; align-items:center; gap:9px; margin-bottom:6px}
   .membrete img{height:14mm; width:auto}
   .membrete .txt{line-height:1.3}
@@ -3119,7 +3110,6 @@ function vistaApp() {
       : S.pestana === "consolidado" ? vistaConsolidado() : vistaCurso()}</div>
     `}
     <div class="hoja-impresion" id="impresion"></div>
-    <div class="pie-hoja" id="pie-hoja"></div>
   </div>
   ${deshacer && deshacer.curso === S.cursoId ? `<div class="barra-deshacer no-imprimir">
     <span>${esc(deshacer.descripcion)}</span>
@@ -4065,7 +4055,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v120</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v121</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
@@ -5017,56 +5007,42 @@ function planImpresion(nMarcas) {
     fuenteLey };
 }
 
-/* Escribe el pie que se repite en cada hoja impresa. */
-/* Membrete con el escudo, para encabezar cada documento. */
-/* Toma una imagen del equipo, la reduce y la guarda como escudo. */
-function pedirLogo() {
-  const inp = document.createElement("input");
-  inp.type = "file"; inp.accept = "image/*";
-  inp.onchange = () => {
-    const f = inp.files[0]; if (!f) return;
-    const lector = new FileReader();
-    lector.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const lado = 150;
-        const c = document.createElement("canvas");
-        c.width = lado; c.height = lado;
-        const g = c.getContext("2d");
-        g.fillStyle = "#fff"; g.fillRect(0, 0, lado, lado);
-        const escala = Math.min(lado / img.width, lado / img.height);
-        const w = img.width * escala, h = img.height * escala;
-        g.drawImage(img, (lado - w) / 2, (lado - h) / 2, w, h);
-        try { localStorage.setItem(CLAVE_LOGO, c.toDataURL("image/jpeg", 0.85)); } catch {}
-        pintar();
-      };
-      img.src = lector.result;
-    };
-    lector.readAsDataURL(f);
-  };
-  inp.click();
+/* Los informes son de texto, no de casillas: van en vertical, con anchos
+   fijos para que ninguna columna empuje la tabla fuera de la hoja. */
+function hojaInforme() {
+  const css = `
+    @page{size:A4 portrait; margin:10mm}
+    .hoja-impresion table{width:100%; table-layout:fixed; font-size:9px}
+    .hoja-impresion th,.hoja-impresion td{overflow-wrap:anywhere; word-break:break-word}
+    .hoja-impresion .c-n{width:7mm}
+    .hoja-impresion .c-nom{width:34mm}
+    .hoja-impresion .c-pct{width:12mm}
+    .hoja-impresion .c-pts{width:14mm}
+    .hoja-impresion .c-nota{width:12mm}
+    .hoja-impresion .c-asis{width:14mm}
+    .hoja-impresion .col-barra{width:22mm}
+    .hoja-impresion .col-barra-ancha{width:56mm}
+    .leyenda-oa{font-size:9px}`;
+  let tag = $("#css-informe");
+  if (!tag) {
+    tag = document.createElement("style");
+    tag.id = "css-informe"; tag.media = "print";
+    document.head.appendChild(tag);
+  }
+  tag.textContent = css;
 }
 
-function membreteHTML() {
-  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
-  return `<div class="membrete"><img src="${logoColegio()}" alt="">
-    <span class="txt"><b>${esc(colegio())}</b>
-    <span>Educación Física y Salud · ${esc(curso.nombre)}</span></span></div>`;
-}
-
-function ponerPie() {
-  const el = $("#pie-hoja");
-  if (!el) return;
-  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
-  el.innerHTML = `<span class="pie-izq"><img src="${logoColegio()}" alt="">
-      <b>${esc(colegio())}</b> · Educación Física y Salud · ${esc(curso.nombre)}</span>
-    <span>${fechaLarga(hoy())}</span>`;
+/* Se retira al imprimir cualquier otra cosa. */
+function quitarHojaInforme() {
+  const tag = $("#css-informe");
+  if (tag) tag.textContent = "";
 }
 
 function prepararImpresion(nMarcas) {
+  quitarHojaInforme();
   const { orientacion, fuente, cajas, fuenteLey } = planImpresion(nMarcas);
   const css = `
-    @page{size:A4 ${orientacion}; margin:9mm 9mm 14mm}
+    @page{size:A4 ${orientacion}; margin:9mm}
     .hoja-impresion table{font-size:${fuente}px}
     .leyenda-oa{font-size:${fuenteLey}px}
     .leyenda-oa .rejilla-ind{grid-template-columns:repeat(${cajas}, 1fr)}
@@ -5122,10 +5098,10 @@ function filasDeEvaluacion(ev) {
 /* Informe de notas del curso: el acta con su distribución y los casos
    que conviene revisar, para entregar o archivar. */
 function imprimirNotasCurso() {
-  ponerPie();
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const { evs, filas, promCurso } = datosConsolidado();
   prepararImpresion(evs.length + 1);
+  hojaInforme();
 
   const proms = filas.map((f) => f.prom).filter((x) => x !== null);
   const aprob = proms.filter((x) => x >= 4).length;
@@ -5154,7 +5130,7 @@ function imprimirNotasCurso() {
 
     <p class="rot-informe">Distribución de promedios</p>
     <table><thead><tr><th class="izq">Rango</th><th class="c-pct">Estudiantes</th>
-      <th style="width:46%">Proporción</th></tr></thead>
+      <th class="col-barra-ancha">Proporción</th></tr></thead>
     <tbody>${tramos.map((t) => `<tr>
       <td class="izq">${t.rango}</td>
       <td class="c-pct">${t.n}</td>
@@ -5188,7 +5164,6 @@ function imprimirNotasCurso() {
 }
 
 function imprimirConsolidado() {
-  ponerPie();
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const { evs, filas, promCurso } = datosConsolidado();
   prepararImpresion(evs.length + 1);
@@ -5206,7 +5181,6 @@ function imprimirConsolidado() {
 }
 
 function imprimir(enBlanco) {
-  ponerPie();
   if (S.pestana === "consolidado") return imprimirConsolidado();
   const ev = evalActual();
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
@@ -5339,8 +5313,8 @@ async function compararEntreCursos() {
 function imprimirComparacion() {
   const c = S.comparacion;
   if (!c || !c.hallados || c.hallados.length < 2) return;
-  ponerPie();
   prepararImpresion(0);
+  hojaInforme();
   const orden = [...c.hallados].sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1));
   const mejor = orden[0], peor = orden[orden.length - 1];
 
@@ -5386,7 +5360,7 @@ function imprimirComparacion() {
 
     <p class="rot-informe">Logro por curso</p>
     <table><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Curso</th>
-      <th style="width:26%">Logro</th><th class="c-pct">%</th><th class="c-nota">Prom.</th>
+      <th class="col-barra">Logro</th><th class="c-pct">%</th><th class="c-nota">Prom.</th>
       <th class="c-asis">Evaluados</th><th class="c-asis">Bajo 4,0</th><th class="izq">Fecha</th></tr></thead>
     <tbody>${orden.map((x, k) => `<tr>
       <td class="c-n">${k + 1}</td>
@@ -5416,13 +5390,13 @@ function imprimirComparacion() {
 }
 
 function imprimirInforme() {
-  ponerPie();
   const ev = evalActual();
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const n = S.datos.roster.length;
   const e = estadisticas(ev);
   const total = puntajeTotal(ev);
   prepararImpresion(0);
+  hojaInforme();
 
   // logro de cada indicador en el curso
   const porInd = [];
@@ -5470,7 +5444,7 @@ function imprimirInforme() {
 
     <p class="rot-informe">Logro por indicador</p>
     <table><thead><tr><th class="c-n">N°</th><th class="izq">Indicador</th>
-      <th style="width:14%">Logro</th><th class="c-pct">%</th><th class="c-asis">Sin marcar</th></tr></thead>
+      <th class="col-barra">Logro</th><th class="c-pct">%</th><th class="c-asis">Sin marcar</th></tr></thead>
     <tbody>${porInd.map((x) => `<tr>
       <td class="c-n mono">${x.rot}</td>
       <td class="izq">${esc(x.texto || "sin redactar")}${x.oa ? ` <span class="oa-min">${esc(x.oa)}</span>` : ""}</td>
@@ -5482,7 +5456,7 @@ function imprimirInforme() {
 
     <p class="rot-informe">Logro por estudiante</p>
     <table><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
-      <th style="width:14%">Logro</th><th class="c-pct">%</th><th class="c-pts">Pts</th>
+      <th class="col-barra">Logro</th><th class="c-pct">%</th><th class="c-pts">Pts</th>
       <th class="c-nota">Nota</th><th class="izq">Medidas remediales</th></tr></thead>
     <tbody>${porAlu.map((x, k) => `<tr>
       <td class="c-n">${k + 1}</td>
@@ -5498,11 +5472,11 @@ function imprimirInforme() {
 /* Busca en todos los cursos las listas con nombre parecido al de la abierta,
    para ver cómo resultó la misma unidad en cada nivel. */
 function imprimirInformeAlumno(i) {
-  ponerPie();
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const f = fichaDe(i);
   const ade = adeCurso(i);
   prepararImpresion(0);
+  hojaInforme();
 
   // detalle indicador por indicador de cada lista evaluada
   const detalle = f.items.filter((x) => !x.est).map((x) => {
@@ -5567,7 +5541,6 @@ function imprimirInformeAlumno(i) {
 }
 
 function imprimirFicha(i) {
-  ponerPie();
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const f = fichaDe(i);
   prepararImpresion(0);
