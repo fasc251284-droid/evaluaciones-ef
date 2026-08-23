@@ -753,8 +753,22 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .hoja-impresion .tabla-consolidado .c-nota{width:11mm}
   .hoja-impresion .c-obs{width:100%}
   .hoja-impresion .izq{text-align:left}
+  /* Con cursos grandes la tabla pasa de hoja: el encabezado se repite,
+     ninguna fila se parte y los títulos no quedan solos al pie. */
   .hoja-impresion thead{display:table-header-group}
-  .hoja-impresion tr{break-inside:avoid}
+  .hoja-impresion tfoot{display:table-footer-group}
+  .hoja-impresion tr,.hoja-impresion td,.hoja-impresion th{break-inside:avoid; page-break-inside:avoid}
+  .hoja-impresion table{break-inside:auto}
+  .rot-informe{break-after:avoid; page-break-after:avoid; break-inside:avoid}
+  .rot-informe + table{break-before:avoid; page-break-before:avoid}
+  .titulo-hoja,.membrete{break-after:avoid; page-break-after:avoid}
+  .ficha-hoja{break-inside:avoid; page-break-inside:avoid}
+  .leyenda-oa{break-inside:avoid}
+  .leyenda-oa .oa-titulo{break-after:avoid}
+  .nota-dua,.nota-med{break-inside:avoid}
+  .hoja-impresion .tabla-leyenda{width:auto; margin:0 0 6px}
+  .hoja-impresion .tabla-leyenda td{border:0; padding:1px 10px 1px 0; vertical-align:top}
+  .hoja-impresion .tabla-leyenda .c-n{text-align:right; color:#3a4a54}
 
   .leyenda-escala{margin:0 0 4px; font-size:9px}
   .nota-dua{font-size:8px; line-height:1.4; margin:0 0 6px; padding:4px 7px;
@@ -4051,7 +4065,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v119</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v120</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
@@ -4867,6 +4881,7 @@ document.addEventListener("click", async (evt) => {
   if (a === "imprimir") { imprimir(); return; }
   if (a === "imprimir-blanco") { imprimir(true); return; }
   if (a === "informe-logro") { imprimirInforme(); return; }
+  if (a === "informe-comparacion") { cerrarModal(); imprimirComparacion(); return; }
   if (a === "notas-curso") { imprimirNotasCurso(); return; }
   if (a === "comparar-cursos") { compararEntreCursos(); return; }
   if (a === "excel") { await exportarExcel(); return; }
@@ -5148,13 +5163,16 @@ function imprimirNotasCurso() {
     </tr>`).join("")}</tbody></table>
 
     <p class="rot-informe">Notas por estudiante</p>
+    <table class="tabla-leyenda"><tbody>${evs.map((ev, k) => `<tr>
+      <td class="c-n mono">${k + 1}</td>
+      <td class="izq"><b>${esc(ev.nombre)}</b></td>
+      <td class="izq">${fechaLarga(ev.fecha)}${pesoDe(ev) !== 1 ? ` · peso ${pesoDe(ev)}` : ""}${
+        rotuloTipo(ev) ? ` · ${rotuloTipo(ev)}` : ""}</td></tr>`).join("")}</tbody></table>
     <table class="tabla-consolidado"><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
       ${evs.map((ev, k) => `<th class="c-nota">${k + 1}</th>`).join("")}<th class="c-nota">Prom.</th></tr></thead>
     <tbody>${filas.map((f, i) => `<tr><td class="c-n">${i + 1}</td><td class="c-nom izq">${esc(f.nom || "—")}</td>
       ${f.notas.map((x) => `<td class="c-nota">${x === null ? "—" : num1(x)}</td>`).join("")}
       <td class="c-nota"><b>${num1(f.prom)}</b></td></tr>`).join("")}</tbody></table>
-    <ol class="leyenda-oa" style="margin-top:6px">${evs.map((ev, k) => `<li><b>${k + 1}</b> ${esc(ev.nombre)} · ${fechaLarga(ev.fecha)}${
-      pesoDe(ev) !== 1 ? ` · peso ${pesoDe(ev)}` : ""}${rotuloTipo(ev) ? ` · ${rotuloTipo(ev)}` : ""}</li>`).join("")}</ol>
 
     ${bajos.length ? `<p class="rot-informe">Requieren apoyo · ${bajos.length}</p>
       <table><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
@@ -5279,7 +5297,7 @@ async function compararEntreCursos() {
         if (r.nota !== null) notas.push(r.nota);
       }
       hallados.push({
-        curso: c, lista: e, evaluados: cont,
+        curso: c, lista: e, roster: datos.roster, evaluados: cont,
         pct: cont ? Math.round((suma / cont) * 100) : null,
         prom: notas.length ? notas.reduce((a, b) => a + b, 0) / notas.length : null,
         bajo4: notas.filter((x) => x < 4).length
@@ -5309,7 +5327,92 @@ async function compararEntreCursos() {
         <p class="detalle-logro">${x.evaluados} evaluados · promedio ${num1(x.prom)}${
           x.bajo4 ? ` · ${x.bajo4} bajo 4,0` : ""} · ${fechaLarga(x.lista.fecha)}</p>
       </div>`).join("")}
-    <div class="fila" style="margin-top:10px"><button class="btn btn-ancho" data-accion="cerrar-modal">Cerrar</button></div>`);
+    <div class="fila" style="margin-top:10px">
+      <button class="btn btn-lleno" data-accion="informe-comparacion">Informe en PDF</button>
+      <button class="btn" data-accion="cerrar-modal">Cerrar</button>
+    </div>`);
+  S.comparacion = { nombre: ev.nombre, hallados };
+}
+
+/* Informe impreso de la comparación entre cursos: qué curso logró más
+   y en qué indicadores se separaron. */
+function imprimirComparacion() {
+  const c = S.comparacion;
+  if (!c || !c.hallados || c.hallados.length < 2) return;
+  ponerPie();
+  prepararImpresion(0);
+  const orden = [...c.hallados].sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1));
+  const mejor = orden[0], peor = orden[orden.length - 1];
+
+  // logro de cada indicador, curso por curso, usando la lista con más indicadores
+  const base = orden.reduce((a, b) =>
+    totalIndicadores(b.lista) > totalIndicadores(a.lista) ? b : a, orden[0]).lista;
+  const filasInd = [];
+  base.criterios.forEach((cr, j) => cr.indicadores.forEach((ind, q) => {
+    const porCurso = orden.map((x) => {
+      const c2 = x.lista.criterios[j];
+      if (!c2 || !c2.indicadores[q]) return null;
+      let suma = 0, cont = 0;
+      x.roster.forEach((_, i) => {
+        if (x.lista.estado[i]) return;
+        if (esEscala(x.lista)) {
+          const v = (x.lista.datos[i] || [])[j];
+          const nv = Array.isArray(v) ? v[q] : 0;
+          if (nv) { suma += puntosNivel(x.lista, nv) / maxNivel(x.lista); cont++; }
+        } else {
+          const v = ((x.lista.marcas[i] || [])[j] || [])[q];
+          if (v) { suma += v === 1 ? 1 : 0; cont++; }
+        }
+      });
+      return cont ? Math.round((suma / cont) * 100) : null;
+    });
+    const validos = porCurso.filter((x) => x !== null);
+    filasInd.push({ rot: `${j + 1}.${q + 1}`, texto: ind.texto, porCurso,
+      brecha: validos.length > 1 ? Math.max(...validos) - Math.min(...validos) : null });
+  }));
+  const mayorBrecha = filasInd.filter((f) => f.brecha !== null).sort((a, b) => b.brecha - a.brecha)[0];
+
+  $("#impresion").innerHTML = `
+    ${membreteHTML()}
+    <h1 class="titulo-hoja">Comparación entre cursos · ${esc(c.nombre)}</h1>
+    <table class="ficha-hoja"><tbody>
+      <tr><th>Cursos comparados</th><td>${orden.length}</td>
+          <th>Mayor logro</th><td>${esc(mejor.curso.nombre)} · ${mejor.pct}%</td>
+          <th>Menor logro</th><td>${esc(peor.curso.nombre)} · ${peor.pct === null ? "—" : peor.pct + "%"}</td></tr>
+      <tr><th>Fecha del informe</th><td>${fechaLarga(hoy())}</td>
+          <th>Diferencia</th><td>${mejor.pct !== null && peor.pct !== null ? (mejor.pct - peor.pct) + " puntos" : "—"}</td>
+          <th>Asignatura</th><td>Educación Física y Salud</td></tr>
+    </tbody></table>
+
+    <p class="rot-informe">Logro por curso</p>
+    <table><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Curso</th>
+      <th style="width:26%">Logro</th><th class="c-pct">%</th><th class="c-nota">Prom.</th>
+      <th class="c-asis">Evaluados</th><th class="c-asis">Bajo 4,0</th><th class="izq">Fecha</th></tr></thead>
+    <tbody>${orden.map((x, k) => `<tr>
+      <td class="c-n">${k + 1}</td>
+      <td class="c-nom izq">${esc(x.curso.nombre)}${x.curso.id === S.cursoId ? " ·" : ""}</td>
+      <td><span class="barra-pdf"><i style="width:${x.pct || 0}%;
+        background:${x.pct === null ? "#d5e2ea" : x.pct < 50 ? "#b8392e" : x.pct < 70 ? "#d99a10" : "#1e8a5f"}"></i></span></td>
+      <td class="c-pct">${x.pct === null ? "—" : x.pct + "%"}</td>
+      <td class="c-nota">${num1(x.prom)}</td>
+      <td class="c-asis">${x.evaluados}</td>
+      <td class="c-asis">${x.bajo4 || ""}</td>
+      <td class="izq">${fechaLarga(x.lista.fecha)}</td></tr>`).join("")}</tbody></table>
+    <p class="nota-med">El curso marcado con · es desde el que se generó este informe.</p>
+
+    <p class="rot-informe">Logro por indicador en cada curso</p>
+    <table><thead><tr><th class="c-n">N°</th><th class="izq">Indicador</th>
+      ${orden.map((x) => `<th class="c-pct">${esc(x.curso.label)}</th>`).join("")}
+      <th class="c-pct">Brecha</th></tr></thead>
+    <tbody>${filasInd.map((f) => `<tr>
+      <td class="c-n mono">${f.rot}</td>
+      <td class="izq">${esc(f.texto || "sin redactar")}</td>
+      ${f.porCurso.map((v) => `<td class="c-pct">${v === null ? "—" : v + "%"}</td>`).join("")}
+      <td class="c-pct">${f.brecha === null ? "—" : f.brecha}</td></tr>`).join("")}</tbody></table>
+    ${mayorBrecha && mayorBrecha.brecha >= 20 ? `<p class="nota-dua"><b>Mayor diferencia entre cursos:</b>
+      indicador ${mayorBrecha.rot} · ${esc(mayorBrecha.texto || "")} · ${mayorBrecha.brecha} puntos de diferencia.
+      Conviene revisar cómo se trabajó en cada curso.</p>` : ""}`;
+  setTimeout(() => window.print(), 60);
 }
 
 function imprimirInforme() {
