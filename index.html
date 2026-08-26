@@ -4055,7 +4055,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v122</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v123</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
@@ -5160,14 +5160,17 @@ function imprimirNotasCurso() {
 
     ${bajos.length ? `<p class="rot-informe">Requieren apoyo · ${bajos.length}</p>
       <table><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
-        <th class="c-nota">Prom.</th><th class="izq">Adecuaciones y medidas registradas</th></tr></thead>
+        <th class="c-nota">Prom.</th><th class="c-asis">Con DUA</th>
+        <th class="c-asis">Medidas</th></tr></thead>
       <tbody>${bajos.map((f) => {
         const med = evs.flatMap((ev) => (ev.medidas && ev.medidas[f.i]) || []);
         const ade = adeDe(f.i);
         return `<tr><td class="c-n">${f.i + 1}</td><td class="c-nom izq">${esc(f.nom || "—")}</td>
           <td class="c-nota">${num1(f.prom)}</td>
-          <td class="izq">${esc([...ade, ...med].join("; ")) || "—"}</td></tr>`;
-      }).join("")}</tbody></table>` : ""}`;
+          <td class="c-asis">${ade.length || "—"}</td>
+          <td class="c-asis">${med.length || "—"}</td></tr>`;
+      }).join("")}</tbody></table>
+      <p class="nota-med">El detalle de adecuaciones y medidas de cada estudiante está en su informe de aprendizaje.</p>` : ""}`;
   setTimeout(() => window.print(), 60);
 }
 
