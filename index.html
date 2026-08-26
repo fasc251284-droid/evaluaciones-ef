@@ -5017,10 +5017,16 @@ function membreteHTML() {
 
 /* Los informes son de texto, no de casillas: van en vertical, con anchos
    fijos para que ninguna columna empuje la tabla fuera de la hoja. */
-function hojaInforme() {
+function hojaInforme(nFilas) {
+  // Con cursos grandes se aprieta la letra para que quepan en una hoja;
+  // con pocos estudiantes se agranda, para no dejar la hoja despoblada.
+  const n = nFilas || S.datos.roster.length || 0;
+  const fuente = n <= 12 ? 11 : n <= 20 ? 10 : n <= 28 ? 9 : n <= 36 ? 8 : 7.5;
+  const alto = n <= 12 ? 4 : n <= 20 ? 3 : n <= 28 ? 2 : 1.5;
   const css = `
     @page{size:A4 portrait; margin:10mm}
-    .hoja-impresion table{width:100%; table-layout:fixed; font-size:9px}
+    .hoja-impresion table{width:100%; table-layout:fixed; font-size:${fuente}px}
+    .hoja-impresion td{padding-top:${alto}px; padding-bottom:${alto}px}
     .hoja-impresion th,.hoja-impresion td{overflow-wrap:anywhere; word-break:break-word}
     .hoja-impresion .c-n{width:7mm}
     .hoja-impresion .c-nom{width:34mm}
@@ -5109,7 +5115,7 @@ function imprimirNotasCurso() {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const { evs, filas, promCurso } = datosConsolidado();
   prepararImpresion(evs.length + 1);
-  hojaInforme();
+  hojaInforme(filas.length);
 
   const proms = filas.map((f) => f.prom).filter((x) => x !== null);
   const aprob = proms.filter((x) => x >= 4).length;
@@ -5325,7 +5331,6 @@ function imprimirComparacion() {
   const c = S.comparacion;
   if (!c || !c.hallados || c.hallados.length < 2) return;
   prepararImpresion(0);
-  hojaInforme();
   const orden = [...c.hallados].sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1));
   const mejor = orden[0], peor = orden[orden.length - 1];
 
@@ -5356,6 +5361,7 @@ function imprimirComparacion() {
       brecha: validos.length > 1 ? Math.max(...validos) - Math.min(...validos) : null });
   }));
   const mayorBrecha = filasInd.filter((f) => f.brecha !== null).sort((a, b) => b.brecha - a.brecha)[0];
+  hojaInforme(filasInd.length + orden.length);
 
   $("#impresion").innerHTML = `
     ${membreteHTML()}
@@ -5407,7 +5413,6 @@ function imprimirInforme() {
   const e = estadisticas(ev);
   const total = puntajeTotal(ev);
   prepararImpresion(0);
-  hojaInforme();
 
   // logro de cada indicador en el curso
   const porInd = [];
@@ -5438,6 +5443,7 @@ function imprimirInforme() {
       medidas: (ev.medidas && ev.medidas[i]) || [] };
   });
 
+  hojaInforme(Math.max(porAlu.length, porInd.length));
   const barra = (pct) => `<span class="barra-pdf"><i style="width:${pct || 0}%;
     background:${pct === null ? "#d5e2ea" : pct < 50 ? "#b8392e" : pct < 70 ? "#d99a10" : "#1e8a5f"}"></i></span>`;
 
@@ -5487,7 +5493,7 @@ function imprimirInformeAlumno(i) {
   const f = fichaDe(i);
   const ade = adeCurso(i);
   prepararImpresion(0);
-  hojaInforme();
+  hojaInforme(f.items.length);
 
   // detalle indicador por indicador de cada lista evaluada
   const detalle = f.items.filter((x) => !x.est).map((x) => {
@@ -5555,17 +5561,20 @@ function imprimirFicha(i) {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const f = fichaDe(i);
   prepararImpresion(0);
+  hojaInforme(f.items.length);
   $("#impresion").innerHTML = `
     ${membreteHTML()}
     <h1 style="font-size:15px">${esc(f.nombre)} · ${esc(curso.nombre)}</h1>
     <p style="font-size:11px;margin:2px 0 8px">Educación Física y Salud · ${f.items.length} listas · promedio ${num1(f.prom)}</p>
-    <table><thead><tr><th class="c-nom izq">Lista</th><th class="c-asis">Fecha</th>
-      <th class="c-nota">Nota</th><th class="c-obs izq">Obs.</th></tr></thead>
-    <tbody>${f.items.map((x) => `<tr>
+    <table><thead><tr><th class="c-n">N°</th><th class="izq">Lista</th>
+      <th class="c-asis">Fecha</th><th class="c-nota">Nota</th></tr></thead>
+    <tbody>${f.items.map((x, k) => `<tr>
+      <td class="c-n">${k + 1}</td>
       <td class="izq">${esc(x.ev.nombre)}</td>
       <td class="c-asis">${fechaLarga(x.ev.fecha)}</td>
-      <td class="c-nota">${x.est ? (x.est === 1 ? "A" : "J") : esc(num1(x.nota))}</td>
-      <td class="izq">${esc(x.obs)}</td></tr>`).join("")}</tbody></table>`;
+      <td class="c-nota">${x.est ? (x.est === 1 ? "A" : "J") : esc(num1(x.nota))}</td></tr>`).join("")}</tbody></table>
+    ${f.conObs ? `<p class="nota-med">Este documento muestra solo las notas.
+      Las observaciones de ${esc(f.nombre)} están en su informe de aprendizaje.</p>` : ""}`;
   setTimeout(() => window.print(), 60);
 }
 
