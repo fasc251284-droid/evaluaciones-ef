@@ -633,7 +633,7 @@ th.col-fija{background:var(--surface-2); z-index:3}
 
 
 /* ===== Panel pedagógico v128 ===== */
-.acciones-principales{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;margin-top:13px;align-items:stretch}
+.acciones-principales{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:8px;margin-top:13px;align-items:stretch}
 .accion-continuar{min-height:46px;font-weight:800;letter-spacing:-.01em}
 .menu-acciones{position:relative}
 .menu-acciones>summary{list-style:none;height:100%;min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:var(--r-s);padding:10px 13px;background:var(--surface);color:var(--verde-oscuro);font-weight:700;cursor:pointer;user-select:none;white-space:nowrap}
@@ -3250,9 +3250,11 @@ function cabeceraEvaluacion() {
     <div class="acciones-principales">
       <button class="btn btn-lleno accion-continuar" data-accion="ir-evaluacion">Continuar evaluación</button>
       <button class="btn" data-accion="pestana" data-v="resumen">Ver resumen</button>
+      <button class="btn" data-accion="informe-estudiante">Informe por estudiante</button>
       <details class="menu-acciones"><summary>Más opciones</summary><div class="menu-acciones-panel">
         <button class="btn btn-mini" data-accion="excel">Exportar curso a Excel</button>
         <button class="btn btn-mini" data-accion="notas-curso">Informe de notas (PDF)</button>
+        <button class="btn btn-mini" data-accion="informe-estudiante">Informe por estudiante (PDF)</button>
         <button class="btn btn-mini" data-accion="imprimir">PDF con marcas</button>
         <button class="btn btn-mini" data-accion="imprimir-blanco">PDF en blanco</button>
         <button class="btn btn-mini" data-accion="informe-logro">Informe de logro (PDF)</button>
@@ -4203,6 +4205,26 @@ document.addEventListener("click", async (evt) => {
     const f = focoDelCurso(ev), estudiantes = estudiantesDelFoco(ev, f);
     if (!f || !estudiantes.length) { abrirModal(`<h3>Sin estudiantes para mostrar</h3><p class="sub" style="margin:6px 0 0">No hay estudiantes marcados actualmente como requerimiento de refuerzo en este indicador.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return; }
     abrirModal(`<h3>Estudiantes para reforzar</h3><p class="sub" style="margin:5px 0 10px"><b>${esc(f.rot)}</b> · ${esc(f.texto||"Indicador")}</p><div class="caja-oas">${estudiantes.map(x=>`<button class="oa-item" data-accion="ficha" data-i="${x.i}"><span><b>${esc(x.nombre)}</b>${x.nivel?`<br><span class="sub">${esc(x.nivel)}</span>`:""}</span></button>`).join("")}</div><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return;
+  }
+  if (a === "informe-estudiante") {
+    if (!S.datos.roster.length) {
+      abrirModal(`<h3>Informe por estudiante</h3><p class="sub" style="margin:6px 0 0">Primero debes agregar estudiantes a la nómina del curso.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
+      return;
+    }
+    const filas = S.datos.roster.map((nom, i) => {
+      const f = fichaDe(i);
+      const conDatos = f.items.filter((x) => x.nota !== null).length;
+      return `<button class="oa-item" data-accion="informe-alumno" data-i="${i}">
+        <span><b>${esc(nom || `Estudiante ${i + 1}`)}</b><br>
+        <span class="sub">${conDatos} evaluación${conDatos === 1 ? "" : "es"} con resultado · promedio ${num1(f.prom)}</span></span>
+        <span aria-hidden="true">›</span>
+      </button>`;
+    }).join("");
+    abrirModal(`<h3>Informe por estudiante</h3>
+      <p class="sub" style="margin:5px 0 10px">Selecciona un estudiante. Se generará su informe de aprendizaje con resultados, indicadores, observaciones, apoyos y adecuaciones registradas.</p>
+      <div class="caja-oas">${filas}</div>
+      <div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
+    return;
   }
   if (a === "alumno-mover") {
     S.alumnoActivo = Math.max(0, Math.min(S.datos.roster.length - 1, S.alumnoActivo + +btn.dataset.d));
