@@ -630,6 +630,24 @@ th.col-fija{background:var(--surface-2); z-index:3}
   padding-bottom:2px; border-top:1px solid var(--line); padding-top:11px}
 .acciones-menores::-webkit-scrollbar{display:none}
 .acciones-menores .btn{flex:0 0 auto}
+
+
+/* ===== Panel pedagógico v128 ===== */
+.acciones-principales{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;margin-top:13px;align-items:stretch}
+.accion-continuar{min-height:46px;font-weight:800;letter-spacing:-.01em}
+.menu-acciones{position:relative}
+.menu-acciones>summary{list-style:none;height:100%;min-height:46px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:var(--r-s);padding:10px 13px;background:var(--surface);color:var(--verde-oscuro);font-weight:700;cursor:pointer;user-select:none;white-space:nowrap}
+.menu-acciones>summary::-webkit-details-marker{display:none}.menu-acciones[open]>summary{background:var(--verde-claro);border-color:#aacfe4}
+.menu-acciones-panel{position:absolute;right:0;top:calc(100% + 7px);z-index:28;width:min(330px,calc(100vw - 40px));background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px;box-shadow:0 14px 32px rgba(16,43,56,.18);display:grid;gap:5px}
+.menu-acciones-panel .btn{width:100%;text-align:left;justify-content:flex-start}
+.tiras.v2{padding:8px;gap:8px}.tiras.v2 .tira{min-width:116px;text-align:left;padding:8px 10px}.tiras.v2 .tira b{font-size:12px;color:inherit;text-transform:uppercase;letter-spacing:.05em}.tiras.v2 .tira small{font-size:10px;margin-top:1px}.tiras.v2 .tira .tira-nombre{display:block;max-width:145px;margin-top:5px;font-size:12px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tiras.v2 .tira.activa .tira-nombre{color:#fff}.tiras.v2 .tira.nueva{min-width:52px;text-align:center}
+.cab-lista{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:18px}.estado-lista{display:inline-flex;align-items:center;gap:6px;border:1px solid #b8dfcf;background:#eaf7f1;color:#176b4c;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:800;white-space:nowrap}.estado-lista::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--logro)}:root[data-tema="oscuro"] .estado-lista{background:#18392f;border-color:#285f4d;color:#82d4b3}
+.meta-eval{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}.meta-eval .pastilla{padding:4px 9px;font-size:11px;background:var(--surface-2)}
+.panel-cifras.v2{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.panel-cifras.v2 .cifra{padding:11px 5px 10px}.panel-cifras.v2 .cifra span{font-size:10px}
+.panorama{margin-top:11px;border:1px solid var(--line);border-radius:var(--r-s);background:var(--surface);padding:11px 12px}.panorama-cab{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}.panorama-cab b{font-family:var(--display);font-size:13px;color:var(--ink)}.panorama-cab span{font-size:10.5px;color:var(--soft);text-align:right}.panorama-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.nivel-aprendizaje{border-radius:8px;padding:8px 6px;text-align:center;border:1px solid var(--line);background:var(--surface-2)}.nivel-aprendizaje strong{display:block;font-family:var(--display);font-size:20px;line-height:1.1}.nivel-aprendizaje span{display:block;margin-top:3px;font-size:10px;color:var(--soft)}.nivel-aprendizaje.logrado{border-top:3px solid var(--logro)}.nivel-aprendizaje.proceso{border-top:3px solid var(--oro)}.nivel-aprendizaje.apoyo{border-top:3px solid var(--falta)}
+.foco.v2{padding:12px 13px;border-left-width:4px;background:linear-gradient(135deg,var(--surface-2),var(--surface))}.foco.v2 .foco-titulo{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}.foco.v2 .foco-titulo b{margin:0}.foco.v2 .foco-etiqueta{font-size:10px;font-weight:800;color:#7b5900;background:#fff5d9;border:1px solid #ecd9a2;border-radius:999px;padding:3px 7px;white-space:nowrap}.foco.v2 .foco-pct{color:var(--soft);font-weight:600}.foco-acciones{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.fecha-compacta{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:11px;padding-top:10px;border-top:1px solid var(--line)}.fecha-compacta .campo-fecha{flex:0 0 160px}.estado-guardado-mini{font-size:11px;color:var(--soft);padding-bottom:9px;text-align:right}.administrar-lista{margin-top:8px;border-top:1px solid var(--line);padding-top:8px}.administrar-lista>summary{cursor:pointer;color:var(--soft);font-size:11px;font-weight:700;width:max-content}.administrar-lista .fila{margin-top:8px}
+@media(max-width:560px){.acciones-principales{grid-template-columns:1fr auto}.acciones-principales .accion-continuar{grid-column:1/-1}.acciones-principales>.btn:not(.accion-continuar){min-height:42px}.menu-acciones>summary{min-height:42px}.panel-cifras.v2{grid-template-columns:repeat(2,1fr)}.panorama-cab{display:block}.panorama-cab span{display:block;text-align:left;margin-top:2px}.fecha-compacta{align-items:flex-start}.estado-guardado-mini{padding-top:22px}}
 .titulo-eval{font-family:var(--display); font-size:19px; font-weight:800; letter-spacing:-.028em;
   line-height:1.2; color:var(--verde-oscuro); text-wrap:balance}
 .titulo-criterio{font-family:var(--body); font-size:15px; font-weight:600;
@@ -3139,42 +3157,78 @@ function focoDelCurso(ev) {
   if (!n) return null;
   let peor = null;
   ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
-    let suma = 0, cont = 0;
+    let suma = 0, cont = 0, apoyo = 0;
     for (let i = 0; i < n; i++) {
       if (ev.estado[i]) continue;
       if (esEscala(ev)) {
         const v = nivelDe(ev, i, j, q);
-        if (v) { suma += puntosNivel(ev, v) / maxNivel(ev); cont++; }
+        if (v) { const ratio = puntosNivel(ev, v) / maxNivel(ev); suma += ratio; cont++; if (ratio < .75) apoyo++; }
       } else {
         const v = marcaDe(ev, i, j, q);
-        if (v) { suma += v === 1 ? 1 : 0; cont++; }
+        if (v) { suma += v === 1 ? 1 : 0; cont++; if (v === 2) apoyo++; }
       }
     }
     if (!cont) return;
     const pct = Math.round((suma / cont) * 100);
-    if (!peor || pct < peor.pct) peor = { rot: `${j + 1}.${q + 1}`, texto: ind.texto, oa: c.oa, pct };
+    if (!peor || pct < peor.pct) peor = { rot: `${j + 1}.${q + 1}`, texto: ind.texto, oa: c.oa, pct, j, q, apoyo, observados: cont };
   }));
   return peor && peor.pct < 80 ? peor : null;
 }
 
+function panoramaAprendizaje(ev) {
+  const r = { logrado: 0, proceso: 0, apoyo: 0, sinDatos: 0 };
+  for (let i = 0; i < S.datos.roster.length; i++) {
+    if (ev.estado[i]) continue;
+    let suma = 0, maximo = 0;
+    ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
+      if (esEscala(ev)) {
+        const v = nivelDe(ev, i, j, q);
+        if (v) { suma += puntosNivel(ev, v); maximo += maxNivel(ev); }
+      } else {
+        const v = marcaDe(ev, i, j, q);
+        if (v) { maximo += Number(ind.pts) || 0; if (v === 1) suma += Number(ind.pts) || 0; }
+      }
+    }));
+    if (!maximo) { r.sinDatos++; continue; }
+    const pct = (suma / maximo) * 100;
+    if (pct >= 80) r.logrado++; else if (pct >= 60) r.proceso++; else r.apoyo++;
+  }
+  return r;
+}
+
+function estudiantesDelFoco(ev, f) {
+  if (!f) return [];
+  const lista = [];
+  for (let i = 0; i < S.datos.roster.length; i++) {
+    if (ev.estado[i]) continue;
+    let requiere = false, nivel = "";
+    if (esEscala(ev)) {
+      const v = nivelDe(ev, i, f.j, f.q);
+      if (v) { const ratio = puntosNivel(ev, v) / maxNivel(ev); requiere = ratio < .75; nivel = descriptorDe(ev, ev.criterios[f.j], Math.max(0, v - 1)); }
+    } else {
+      const v = marcaDe(ev, i, f.j, f.q); requiere = v === 2; nivel = v === 2 ? "No logrado" : v === 1 ? "Logrado" : "";
+    }
+    if (requiere) lista.push({ i, nombre: S.datos.roster[i] || `Estudiante ${i + 1}`, nivel });
+  }
+  return lista;
+}
+
 function estadisticas(ev) {
   const n = S.datos.roster.length;
-  let puntaje = 0, maximo = 0, sinEvaluar = 0, ausentes = 0;
+  let puntaje = 0, maximo = 0, sinEvaluar = 0, ausentes = 0, evaluados = 0;
   const notas = [];
   const total = puntajeTotal(ev);
   for (let i = 0; i < n; i++) {
     if (ev.estado[i]) { ausentes++; continue; }
     const r = resultado(ev, i);
-    puntaje += r.puntaje;
-    maximo += total;
+    puntaje += r.puntaje; maximo += total;
     if (r.sinMarca > 0) sinEvaluar++;
+    if (r.marcados > 0 && r.sinMarca === 0) evaluados++;
     if (r.nota !== null) notas.push(r.nota);
   }
-  return {
-    puntaje, maximo, sinEvaluar, ausentes,
+  return { puntaje, maximo, sinEvaluar, ausentes, evaluados, presentes: Math.max(0, n - ausentes),
     logro: maximo ? Math.round((puntaje / maximo) * 100) : null,
-    prom: notas.length ? notas.reduce((a, b) => a + b, 0) / notas.length : null
-  };
+    prom: notas.length ? notas.reduce((a, b) => a + b, 0) / notas.length : null };
 }
 
 function codigosOA(ev) {
@@ -3182,73 +3236,48 @@ function codigosOA(ev) {
 }
 
 function cabeceraEvaluacion() {
-  const ev = evalActual();
-  const lista = S.datos.evaluaciones;
+  const ev = evalActual(), lista = S.datos.evaluaciones;
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
-  const e = estadisticas(ev);
-  const total = puntajeTotal(ev);
+  const e = estadisticas(ev), p = panoramaAprendizaje(ev), f = focoDelCurso(ev), total = puntajeTotal(ev);
   const corto = (f) => (f ? f.slice(8, 10) + "/" + f.slice(5, 7) : "—");
   return `
   <div class="tarjeta no-imprimir">
     <div class="fila" style="gap:9px">
       <h2 class="titulo-curso">${esc(curso.nombre.toUpperCase())}</h2>
       <span class="pastilla"><b>${S.datos.roster.length}</b> estudiantes</span>
-      <span class="pastilla"><b>${lista.length}</b> listas</span>
+      <span class="pastilla"><b>${lista.length}</b> ${lista.length === 1 ? "lista" : "listas"}</span>
     </div>
-    <div class="fila" style="margin-top:11px">
+    <div class="acciones-principales">
+      <button class="btn btn-lleno accion-continuar" data-accion="ir-evaluacion">Continuar evaluación</button>
       <button class="btn" data-accion="pestana" data-v="resumen">Ver resumen</button>
-      <button class="btn" data-accion="excel">Exportar curso (Excel)</button>
-      <button class="btn" data-accion="notas-curso">Informe de notas (PDF)</button>
-      <button class="btn" data-accion="ayuda">¿Cómo funciona?</button>
+      <details class="menu-acciones"><summary>Más opciones</summary><div class="menu-acciones-panel">
+        <button class="btn btn-mini" data-accion="excel">Exportar curso a Excel</button>
+        <button class="btn btn-mini" data-accion="notas-curso">Informe de notas (PDF)</button>
+        <button class="btn btn-mini" data-accion="imprimir">PDF con marcas</button>
+        <button class="btn btn-mini" data-accion="imprimir-blanco">PDF en blanco</button>
+        <button class="btn btn-mini" data-accion="informe-logro">Informe de logro (PDF)</button>
+        <button class="btn btn-mini" data-accion="comparar-cursos">Comparar con otros cursos</button>
+        <button class="btn btn-mini" data-accion="duplicar-eval">Duplicar esta lista</button>
+        <button class="btn btn-mini" data-accion="ajustes">${S.ajustes ? "Cerrar ajustes" : "Ajustes de la lista"}</button>
+        <button class="btn btn-mini" data-accion="ayuda">¿Cómo funciona?</button>
+      </div></details>
     </div>
-
     <span class="rotulo-seccion">Listas del curso</span>
-    <div class="tiras">
-      ${lista.map((x, i) => `<button class="tira ${i === S.evalIdx ? "activa" : ""}" data-accion="abrir-eval" data-i="${i}">
-        <b>${i + 1}</b><small>${corto(x.fecha)}</small></button>`).join("")}
-      <button class="tira nueva" data-accion="nueva-eval" title="Nueva lista de cotejo">+</button>
+    <div class="tiras v2">${lista.map((x,i)=>`<button class="tira ${i===S.evalIdx?"activa":""}" data-accion="abrir-eval" data-i="${i}" title="${esc(x.nombre||`Lista ${i+1}`)}"><b>Lista ${i+1}</b><small>${corto(x.fecha)}</small><span class="tira-nombre">${esc(x.nombre||"Sin nombre")}</span></button>`).join("")}<button class="tira nueva" data-accion="nueva-eval" title="Nueva lista de cotejo">+</button></div>
+    <div class="cab-lista"><span class="rotulo-seccion" style="margin-top:0">Evaluación seleccionada</span><span class="estado-lista">En evaluación</span></div>
+    <h3 class="titulo-eval">${esc(ev.nombre||"Sin nombre")}${rotuloTipo(ev)?` <span class="etiqueta-tipo">${rotuloTipo(ev)}</span>`:""}</h3>
+    <div class="meta-eval"><span class="pastilla">${totalIndicadores(ev)} indicadores</span>${esEscala(ev)?`<span class="pastilla">Escala 1–${nNiveles(ev)}</span>`:""}<span class="pastilla">${total} pts</span><span class="pastilla">Nota 2,0–7,0</span>${codigosOA(ev).map(x=>`<span class="oa-chip">${esc(x)}</span>`).join("")}</div>
+    <div class="panel-cifras v2">
+      <div class="cifra c-prom ${e.prom!==null&&e.prom<4?"alerta":""}"><b>${num1(e.prom)}</b><span>promedio</span></div>
+      <div class="cifra c-logro ${e.logro!==null&&e.logro<50?"alerta":""}"><b>${e.logro===null?"—":e.logro+"%"}</b><span>logro del curso</span></div>
+      <div class="cifra c-pend ${e.sinEvaluar?"alerta":""}"><b>${e.evaluados}/${e.presentes}</b><span>evaluados</span></div>
+      <div class="cifra c-aus"><b>${e.ausentes}</b><span>ausentes</span></div>
     </div>
-
-    <span class="rotulo-seccion">Lista abierta</span>
-    <h3 class="titulo-eval">${esc(ev.nombre || "Sin nombre")}${rotuloTipo(ev) ? ` <span class="etiqueta-tipo">${rotuloTipo(ev)}</span>` : ""}</h3>
-    <p class="sub" style="margin:3px 0 0">${totalIndicadores(ev)} indicadores${esEscala(ev) ? ` · escala 1–${nNiveles(ev)}` : ""} · ${total} pts · nota de 2,0 a 7,0</p>
-    ${codigosOA(ev).length ? `<div class="tira-oa">${codigosOA(ev).map((x) => `<span class="oa-chip">${esc(x)}</span>`).join("")}</div>` : ""}
-
-    <div class="panel-cifras">
-      <div class="cifra c-prom ${e.prom !== null && e.prom < 4 ? "alerta" : ""}">
-        <b>${num1(e.prom)}</b><span>promedio</span></div>
-      <div class="cifra c-logro ${e.logro !== null && e.logro < 50 ? "alerta" : ""}">
-        <b>${e.logro === null ? "—" : e.logro + "%"}</b><span>logro</span></div>
-      <div class="cifra c-pend ${e.sinEvaluar ? "alerta" : ""}">
-        <b>${e.sinEvaluar}</b><span>sin completar</span></div>
-      <div class="cifra c-aus">
-        <b>${e.ausentes}</b><span>ausentes</span></div>
-    </div>
-    ${(() => {
-      const f = focoDelCurso(ev);
-      if (!f) return "";
-      return `<div class="foco"><b>Foco sugerido</b>
-        <p><span class="mono">${esc(f.rot)}</span> ${esc(f.texto || "sin redactar")}</p>
-        <span class="foco-pct">${f.pct}% de logro en el curso${f.oa ? ` · ${esc(f.oa)}` : ""}</span></div>`;
-    })()}
-
-    <div class="barra-acciones">
-      <label class="campo-fecha"><span>Fecha de la clase</span>
-        <input type="date" data-campo="fecha" value="${esc(ev.fecha)}"></label>
-      <button class="btn btn-lleno" data-accion="ajustes">${S.ajustes ? "Cerrar ajustes" : "Ajustes de la lista"}</button>
-    </div>
-
-    <div class="fila acciones-menores">
-      <button class="btn btn-mini" data-accion="imprimir">PDF con marcas</button>
-      <button class="btn btn-mini" data-accion="imprimir-blanco">PDF en blanco</button>
-      <button class="btn btn-mini" data-accion="informe-logro">Informe de logro (PDF)</button>
-      <button class="btn btn-mini" data-accion="comparar-cursos">Comparar con otros cursos</button>
-      <button class="btn btn-mini" data-accion="limpiar-marcas">Limpiar marcas</button>
-    </div>
-    <div class="fila fila-peligro">
-      <button class="btn btn-mini btn-peligro" data-accion="borrar-eval">Eliminar esta lista</button>
-    </div>
-    ${S.ajustes ? panelAjustes(ev) : ""}
+    <div class="panorama"><div class="panorama-cab"><b>Panorama de aprendizaje</b><span>Solo considera indicadores que ya tienen una marca</span></div><div class="panorama-grid"><div class="nivel-aprendizaje logrado"><strong>${p.logrado}</strong><span>Logrado · 80% o más</span></div><div class="nivel-aprendizaje proceso"><strong>${p.proceso}</strong><span>En proceso · 60–79%</span></div><div class="nivel-aprendizaje apoyo"><strong>${p.apoyo}</strong><span>Requiere apoyo · menos de 60%</span></div></div>${p.sinDatos?`<p class="sub" style="margin:7px 0 0">${p.sinDatos} estudiante${p.sinDatos===1?"":"s"} todavía sin datos suficientes.</p>`:""}</div>
+    ${f?`<div class="foco v2"><div class="foco-titulo"><b>Foco para la próxima clase</b><span class="foco-etiqueta">Indicador con menor logro</span></div><p><span class="mono">${esc(f.rot)}</span> ${esc(f.texto||"sin redactar")}</p><span class="foco-pct">${f.pct}% de logro${f.oa?` · ${esc(f.oa)}`:""}${f.apoyo?` · ${f.apoyo} estudiante${f.apoyo===1?"":"s"} requieren refuerzo`:""}</span><div class="foco-acciones">${f.apoyo?`<button class="btn btn-mini" data-accion="ver-foco-estudiantes">Ver estudiantes</button>`:""}<button class="btn btn-mini" data-accion="pestana" data-v="resumen">Analizar resultados</button></div></div>`:""}
+    <div class="fecha-compacta"><label class="campo-fecha"><span>Fecha de la clase</span><input type="date" data-campo="fecha" value="${esc(ev.fecha)}"></label><span class="estado-guardado-mini">Los cambios se guardan automáticamente</span></div>
+    <details class="administrar-lista"><summary>Administrar esta lista</summary><div class="fila"><button class="btn btn-mini" data-accion="limpiar-marcas">Limpiar marcas</button><button class="btn btn-mini btn-peligro" data-accion="borrar-eval">Eliminar esta lista</button></div></details>
+    ${S.ajustes?panelAjustes(ev):""}
   </div>`;
 }
 
@@ -4165,6 +4194,16 @@ document.addEventListener("click", async (evt) => {
   if (a === "criterio") { S.criterioActivo = +btn.dataset.j; pintar(); return; }
   if (a === "ajustes") { S.ajustes = !S.ajustes; pintar(); return; }
   if (a === "abrir-eval") { S.evalIdx = +btn.dataset.i; S.pestana = "evaluar"; S.criterioActivo = 0; pintar(); return; }
+  if (a === "ir-evaluacion") {
+    S.pestana = "evaluar"; S.modo = "planilla"; pintar();
+    requestAnimationFrame(() => document.querySelector(".pestanas.no-imprimir")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    return;
+  }
+  if (a === "ver-foco-estudiantes") {
+    const f = focoDelCurso(ev), estudiantes = estudiantesDelFoco(ev, f);
+    if (!f || !estudiantes.length) { abrirModal(`<h3>Sin estudiantes para mostrar</h3><p class="sub" style="margin:6px 0 0">No hay estudiantes marcados actualmente como requerimiento de refuerzo en este indicador.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return; }
+    abrirModal(`<h3>Estudiantes para reforzar</h3><p class="sub" style="margin:5px 0 10px"><b>${esc(f.rot)}</b> · ${esc(f.texto||"Indicador")}</p><div class="caja-oas">${estudiantes.map(x=>`<button class="oa-item" data-accion="ficha" data-i="${x.i}"><span><b>${esc(x.nombre)}</b>${x.nivel?`<br><span class="sub">${esc(x.nivel)}</span>`:""}</span></button>`).join("")}</div><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return;
+  }
   if (a === "alumno-mover") {
     S.alumnoActivo = Math.max(0, Math.min(S.datos.roster.length - 1, S.alumnoActivo + +btn.dataset.d));
     pintar(); return;
