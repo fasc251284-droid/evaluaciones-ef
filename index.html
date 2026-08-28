@@ -896,6 +896,14 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .dashboard-v130 .foco-v130.foco-ok{border-color:#b9dec5;border-left-color:#24a459;background:linear-gradient(135deg,#eefaf2,#fff)}
 .dashboard-v130 .foco-v130.foco-ok .foco-ico{background:#24a459}.dashboard-v130 .foco-v130.foco-ok small{color:#197d42}.dashboard-v130 .foco-v130.foco-ok p{font-size:14px}.dashboard-v130 .foco-v130.foco-ok .foco-pct{color:#397256}
 .dashboard-v130 .tools-v130{margin-top:10px;display:flex;gap:8px;align-items:flex-start}.dashboard-v130 .selector-listas-v130{flex:1}.dashboard-v130 .selector-listas-v130>summary{cursor:pointer;list-style:none;border:1px solid #d9e3e9;background:#fff;border-radius:10px;padding:9px 11px;font-size:11.5px;font-weight:800;color:#536b7a}.dashboard-v130 .selector-listas-v130>summary::-webkit-details-marker{display:none}.dashboard-v130 .selector-listas-v130 .tiras{margin-top:7px}.dashboard-v130 .fecha-compacta{margin-top:10px}.dashboard-v130 .administrar-lista{margin-top:7px}
+
+/* v135 · Más opciones en modal: fiable en móvil/tablet y sin recortes */
+.mas-opciones-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px}
+.mas-opciones-grid .btn{width:100%;min-height:46px;justify-content:flex-start;text-align:left;padding:10px 12px}
+.mas-opciones-grid .btn::after{content:"›";margin-left:auto;color:#7a94a6;font-size:18px;font-weight:900}
+.mas-opciones-seccion{margin:14px 0 4px;font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#718896}
+@media(min-width:700px){.mas-opciones-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
 :root[data-tema="oscuro"] .dashboard-v130 .eval-hero,:root[data-tema="oscuro"] .dashboard-v130 .quick-action,:root[data-tema="oscuro"] .dashboard-v130 .panorama-v130,:root[data-tema="oscuro"] .dashboard-v130 .menu-acciones>summary{background:#16262f;border-color:#2b414c;color:#e6eff3}
 :root[data-tema="oscuro"] .dashboard-v130 .hero-title,:root[data-tema="oscuro"] .dashboard-v130 .panorama-v130 h4,:root[data-tema="oscuro"] .dashboard-v130 .foco-v130 p{color:#e6eff3}
 :root[data-tema="oscuro"] .dashboard-v130 .foco-v130{background:#25251c;border-color:#6f5b24}
@@ -3525,15 +3533,7 @@ function cabeceraEvaluacion() {
         <button class="quick-action" data-accion="informe-estudiante"><span class="qicon">ID</span><span>Informe por estudiante</span></button>
         <button class="quick-action qexcel" data-accion="excel"><span class="qicon">X</span><span>Exportar<br>(Excel)</span></button>
         <button class="quick-action qpdf" data-accion="notas-curso"><span class="qicon">PDF</span><span>Informe<br>PDF</span></button>
-        <details class="menu-acciones qmore"><summary>Más opciones</summary><div class="menu-acciones-panel">
-          <button class="btn btn-mini" data-accion="imprimir">PDF con marcas</button>
-          <button class="btn btn-mini" data-accion="imprimir-blanco">PDF en blanco</button>
-          <button class="btn btn-mini" data-accion="informe-logro">Informe de logro (PDF)</button>
-          <button class="btn btn-mini" data-accion="comparar-cursos">Comparar con otros cursos</button>
-          <button class="btn btn-mini" data-accion="duplicar-eval">Duplicar esta lista</button>
-          <button class="btn btn-mini" data-accion="ajustes">${S.ajustes ? "Cerrar ajustes" : "Ajustes de la lista"}</button>
-          <button class="btn btn-mini" data-accion="ayuda">¿Cómo funciona?</button>
-        </div></details>
+        <button class="quick-action qmore" data-accion="mas-opciones"><span class="qicon">•••</span><span>Más opciones</span></button>
       </div>
     </section>
 
@@ -4567,6 +4567,25 @@ document.addEventListener("click", async (evt) => {
   if (a === "criterio") { S.criterioActivo = +btn.dataset.j; pintar(); return; }
   if (a === "ajustes") { S.ajustes = !S.ajustes; pintar(); return; }
   if (a === "abrir-eval") { S.evalIdx = +btn.dataset.i; S.pestana = "evaluar"; S.criterioActivo = 0; pintar(); return; }
+  if (a === "mas-opciones") {
+    abrirModal(`<h3>Más opciones</h3>
+      <p class="sub" style="margin:5px 0 0">Informes, exportaciones y administración de la evaluación.</p>
+      <div class="mas-opciones-seccion">Informes y exportación</div>
+      <div class="mas-opciones-grid">
+        <button class="btn" data-accion="imprimir">PDF con marcas</button>
+        <button class="btn" data-accion="imprimir-blanco">PDF en blanco</button>
+        <button class="btn" data-accion="informe-logro">Informe de logro (PDF)</button>
+        <button class="btn" data-accion="comparar-cursos">Comparar con otros cursos</button>
+      </div>
+      <div class="mas-opciones-seccion">Lista y ayuda</div>
+      <div class="mas-opciones-grid">
+        <button class="btn" data-accion="duplicar-eval">Duplicar esta lista</button>
+        <button class="btn" data-accion="ajustes">${S.ajustes ? "Cerrar ajustes" : "Ajustes de la lista"}</button>
+        <button class="btn" data-accion="ayuda">¿Cómo funciona?</button>
+      </div>
+      <div class="fila" style="margin-top:14px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
+    return;
+  }
   if (a === "modo-cancha") {
     if (!S.datos.roster.length) { abrirModal(`<h3>Modo cancha</h3><p class="sub">Primero debes cargar la nómina del curso.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return; }
     S.modoCancha = true; S.pestana = "evaluar"; S.modo = "alumno"; S.alumnoActivo = Math.min(S.alumnoActivo, S.datos.roster.length - 1); pintar(); window.scrollTo({top:0,behavior:'smooth'}); return;
