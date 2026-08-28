@@ -1153,6 +1153,34 @@ html,body,#raiz{max-width:100%;overflow-x:hidden}
   .dashboard-v130 .foco-v130 .btn{grid-column:1/-1;width:100%}
 }
 
+/* ===== v143 · Cambiar lista estable en tablet/celular ===== */
+@media(max-width:1024px){
+  .dashboard-v130 .tools-v130{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:10px;
+    align-items:stretch;
+  }
+  .dashboard-v130 .selector-listas-v130,
+  .dashboard-v130 .seccion-importar-v140{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    box-sizing:border-box;
+  }
+  .dashboard-v130 .seccion-importar-v140{margin-top:0}
+  .dashboard-v130 .selector-listas-v130 .tiras{width:100%;max-width:100%;box-sizing:border-box}
+  .dashboard-v130 .seccion-importar-v140 .seccion-importar-texto span{max-width:none}
+}
+@media(max-width:620px){
+  .dashboard-v130 .seccion-importar-v140{
+    flex-direction:column;
+    align-items:stretch;
+    gap:9px;
+  }
+  .dashboard-v130 .seccion-importar-v140 .importar-boton-v140{width:100%}
+}
+
 /* ===== v142 · Foco pedagógico compacto ===== */
 .dashboard-v130 .foco-v130{
   grid-template-columns:52px minmax(0,1fr);
