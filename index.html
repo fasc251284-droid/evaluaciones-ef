@@ -825,6 +825,98 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .col-fija{position:static; box-shadow:none}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
+
+
+/* ===== Apariencia v130 · Dashboard docente + móvil premium + modo cancha ===== */
+:root{
+  --dash-blue:#075f9f;
+  --dash-blue-dark:#063f70;
+  --dash-blue-soft:#eaf5fd;
+  --dash-green:#169447;
+  --dash-green-soft:#eef9f1;
+  --dash-purple:#6d3db2;
+  --dash-purple-soft:#f4effb;
+  --dash-orange:#ed5a15;
+  --dash-orange-soft:#fff4ec;
+  --dash-gold:#e49a00;
+  --dash-red:#e83932;
+}
+.barra-sup{background:linear-gradient(135deg,#073f70 0%,#0868a8 100%);border-bottom-color:#e8a400}
+.dashboard-v130{padding:0;border:0;background:transparent;box-shadow:none;overflow:visible}
+.dashboard-v130 .dash-topline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;padding:0 2px}
+.dashboard-v130 .dash-pills{display:flex;flex-wrap:wrap;gap:7px}
+.dashboard-v130 .dash-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1px solid #bdd8e8;background:#fff;border-radius:999px;color:#31556d;font-size:12px;font-weight:750}
+.dashboard-v130 .dash-pill strong{font-size:14px;color:#163f59}
+.dashboard-v130 .eval-hero{position:relative;background:linear-gradient(145deg,#fff 0%,#fbfdff 100%);border:1px solid #d7e3ea;border-radius:18px;padding:18px;box-shadow:0 8px 24px rgba(21,63,89,.08)}
+.dashboard-v130 .hero-status{display:inline-flex;align-items:center;gap:7px;background:#ebf8ef;border:1px solid #b9e3c6;color:#177d3d;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:800}
+.dashboard-v130 .hero-status::before{content:"";width:8px;height:8px;border-radius:50%;background:#25a75a;box-shadow:0 0 0 3px rgba(37,167,90,.12)}
+.dashboard-v130 .hero-title-row{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-top:9px}
+.dashboard-v130 .hero-title{margin:0;font-family:var(--display);font-size:28px;line-height:1.08;letter-spacing:-.035em;color:#082d4d;min-width:0}
+.dashboard-v130 .hero-date{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:0 0 auto}
+.dashboard-v130 .hero-date span{font-size:9px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;color:#78909e}
+.dashboard-v130 .hero-date input{width:132px;min-height:34px;padding:5px 7px;border-radius:9px;border:1px solid #d2e0e8;background:#f8fbfd;color:#34576c;font-size:11px;font-weight:750;text-align:center}
+.dashboard-v130 .hero-sub{margin:3px 0 0;color:#5e7382;font-size:13px;font-weight:550}
+.dashboard-v130 .hero-oa{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.dashboard-v130 .hero-oa .oa-chip{font-size:11px;padding:5px 9px;border-radius:7px;background:#eef7fd;border-color:#b8d9ef;color:#0c639e;font-weight:800}
+.dashboard-v130 .hero-primary{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:10px;margin-top:16px}
+.dashboard-v130 .hero-primary .btn{min-height:52px;border-radius:12px;font-weight:850;font-size:14px;display:flex;align-items:center;justify-content:center;gap:9px}
+.dashboard-v130 .hero-primary .btn-lleno{background:linear-gradient(135deg,#087bc2,#07569a);border-color:#07569a;box-shadow:0 6px 14px rgba(7,86,154,.18)}
+.dashboard-v130 .hero-primary .btn-lleno::before{content:"▶";display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#fff;color:#0874b9;font-size:11px}
+.dashboard-v130 .hero-primary .btn-resumen::before{content:"▥";font-size:19px;color:#547182}
+.dashboard-v130 .quick-actions-v130{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:11px}
+.dashboard-v130 .quick-action{min-height:92px;border:1px solid #d9e3e9;background:#fff;border-radius:13px;padding:10px 7px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;text-align:center;font-size:11.5px;font-weight:800;color:#294c64;transition:transform .12s var(--curva),border-color .15s var(--curva),background .15s var(--curva)}
+.dashboard-v130 button.quick-action{cursor:pointer}
+.dashboard-v130 button.quick-action:active{transform:scale(.97);background:#f7fbfd}
+.dashboard-v130 .qicon{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#eef7fd;color:#0875b9;font-size:14px;font-weight:900;border:1px solid #d4eaf7}
+.dashboard-v130 .qexcel .qicon{background:#edf8f0;color:#158745;border-color:#cce9d6;font-size:20px}
+.dashboard-v130 .qpdf .qicon{background:#fff0f1;color:#cc2936;border-color:#f1d1d4;font-size:10px}
+.dashboard-v130 .qmore .qicon{background:#f3f5f7;color:#617889;border-color:#dfe5e9;font-size:18px;letter-spacing:2px}
+.dashboard-v130 .menu-acciones{width:100%}
+.dashboard-v130 .menu-acciones>summary{min-height:92px;border-radius:13px;padding:10px 7px;flex-direction:column;gap:7px;font-size:11.5px;color:#294c64;background:#fff;border-color:#d9e3e9;white-space:normal;text-align:center}
+.dashboard-v130 .menu-acciones>summary::before{content:"•••";display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#f3f5f7;color:#617889;border:1px solid #dfe5e9;font-size:16px;letter-spacing:2px}
+.dashboard-v130 .menu-acciones-panel{top:calc(100% + 8px);width:min(360px,calc(100vw - 38px));border-radius:14px}
+.dashboard-v130 .metrics-v130{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:12px}
+.dashboard-v130 .metric-v130{min-height:118px;border:1px solid;border-radius:14px;padding:14px 8px 10px;text-align:center;display:flex;flex-direction:column;justify-content:center}
+.dashboard-v130 .metric-v130 strong{display:block;font-family:var(--display);font-size:30px;line-height:1;font-weight:850;letter-spacing:-.035em}
+.dashboard-v130 .metric-v130 span{font-size:11px;font-weight:750;color:#536b7a;margin-top:6px}
+.dashboard-v130 .metric-v130 em{font-style:normal;font-size:13px;margin-top:7px;font-weight:900}
+.dashboard-v130 .metric-prom{background:var(--dash-blue-soft);border-color:#b9dcf2}.dashboard-v130 .metric-prom strong,.dashboard-v130 .metric-prom em{color:#086bb1}
+.dashboard-v130 .metric-logro{background:var(--dash-green-soft);border-color:#bde2c8}.dashboard-v130 .metric-logro strong,.dashboard-v130 .metric-logro em{color:var(--dash-green)}
+.dashboard-v130 .metric-eval{background:var(--dash-purple-soft);border-color:#dac9ed}.dashboard-v130 .metric-eval strong,.dashboard-v130 .metric-eval em{color:var(--dash-purple)}
+.dashboard-v130 .metric-aus{background:var(--dash-orange-soft);border-color:#f3c8aa}.dashboard-v130 .metric-aus strong,.dashboard-v130 .metric-aus em{color:var(--dash-orange)}
+.dashboard-v130 .panorama-v130{margin-top:12px;background:#fff;border:1px solid #d9e3e9;border-radius:15px;padding:13px 14px}
+.dashboard-v130 .panorama-v130 h4{margin:0 0 10px;font-family:var(--display);font-size:14px;color:#163f59;display:flex;align-items:center;gap:8px}
+.dashboard-v130 .panorama-v130 h4::before{content:"▥";display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#0b72b4;color:#fff;font-size:12px}
+.dashboard-v130 .pan-bar{height:13px;border-radius:999px;overflow:hidden;background:#e8eef2;display:flex}
+.dashboard-v130 .pan-bar span{height:100%;min-width:0}.dashboard-v130 .pan-log{background:linear-gradient(90deg,#31ae5b,#1e9b49)}.dashboard-v130 .pan-pro{background:linear-gradient(90deg,#ffc526,#f3a700)}.dashboard-v130 .pan-apo{background:linear-gradient(90deg,#ff6458,#e63632)}
+.dashboard-v130 .pan-stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:10px}.dashboard-v130 .pan-stat{text-align:center;border-right:1px solid #dce5ea}.dashboard-v130 .pan-stat:last-child{border-right:0}.dashboard-v130 .pan-stat strong{font-size:20px;color:#163f59}.dashboard-v130 .pan-stat span{display:block;font-size:10.5px;color:#617585;margin-top:2px}.dashboard-v130 .pan-stat i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}.dashboard-v130 .pan-stat.log i{background:#22a653}.dashboard-v130 .pan-stat.pro i{background:#f5b100}.dashboard-v130 .pan-stat.apo i{background:#ed423b}
+.dashboard-v130 .foco-v130{margin-top:12px;border:1px solid #e8c46f;border-left:5px solid #e6a000;background:linear-gradient(135deg,#fff8e8,#fff);border-radius:16px;padding:15px 16px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:13px;box-shadow:0 7px 18px rgba(178,124,0,.08)}
+.dashboard-v130 .foco-v130 .foco-ico{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#eca000;color:#fff;font-size:23px;font-weight:900;box-shadow:0 5px 12px rgba(228,154,0,.2)}
+.dashboard-v130 .foco-v130 small{display:block;color:#a96900;font-weight:900;margin-bottom:3px;letter-spacing:.015em}.dashboard-v130 .foco-v130 p{margin:0;font-size:16px;font-weight:850;line-height:1.28;color:#15364d}.dashboard-v130 .foco-v130 .foco-pct{display:block;margin-top:5px;color:#c92e2a;font-size:13px;font-weight:900}.dashboard-v130 .foco-v130 .foco-meta{display:block;margin-top:4px;color:#6a7d89;font-size:10.5px;font-weight:750}.dashboard-v130 .foco-v130 .btn{min-height:52px;border-radius:11px;background:#eaa000;border-color:#e2a200;color:#fff;font-weight:900;padding:8px 14px;white-space:nowrap}
+.dashboard-v130 .foco-v130.foco-ok{border-color:#b9dec5;border-left-color:#24a459;background:linear-gradient(135deg,#eefaf2,#fff)}
+.dashboard-v130 .foco-v130.foco-ok .foco-ico{background:#24a459}.dashboard-v130 .foco-v130.foco-ok small{color:#197d42}.dashboard-v130 .foco-v130.foco-ok p{font-size:14px}.dashboard-v130 .foco-v130.foco-ok .foco-pct{color:#397256}
+.dashboard-v130 .tools-v130{margin-top:10px;display:flex;gap:8px;align-items:flex-start}.dashboard-v130 .selector-listas-v130{flex:1}.dashboard-v130 .selector-listas-v130>summary{cursor:pointer;list-style:none;border:1px solid #d9e3e9;background:#fff;border-radius:10px;padding:9px 11px;font-size:11.5px;font-weight:800;color:#536b7a}.dashboard-v130 .selector-listas-v130>summary::-webkit-details-marker{display:none}.dashboard-v130 .selector-listas-v130 .tiras{margin-top:7px}.dashboard-v130 .fecha-compacta{margin-top:10px}.dashboard-v130 .administrar-lista{margin-top:7px}
+:root[data-tema="oscuro"] .dashboard-v130 .eval-hero,:root[data-tema="oscuro"] .dashboard-v130 .quick-action,:root[data-tema="oscuro"] .dashboard-v130 .panorama-v130,:root[data-tema="oscuro"] .dashboard-v130 .menu-acciones>summary{background:#16262f;border-color:#2b414c;color:#e6eff3}
+:root[data-tema="oscuro"] .dashboard-v130 .hero-title,:root[data-tema="oscuro"] .dashboard-v130 .panorama-v130 h4,:root[data-tema="oscuro"] .dashboard-v130 .foco-v130 p{color:#e6eff3}
+:root[data-tema="oscuro"] .dashboard-v130 .foco-v130{background:#25251c;border-color:#6f5b24}
+@media(max-width:620px){
+  .dashboard-v130 .dash-topline{display:block}.dashboard-v130 .dash-pills{margin-top:6px}
+  .dashboard-v130 .eval-hero{padding:15px 12px;border-radius:16px}.dashboard-v130 .hero-title-row{align-items:flex-start}.dashboard-v130 .hero-title{font-size:25px}.dashboard-v130 .hero-date input{width:116px;font-size:10px}
+  .dashboard-v130 .hero-primary{grid-template-columns:minmax(0,1.45fr) minmax(0,.75fr)}.dashboard-v130 .hero-primary .btn{font-size:13px;padding:10px 8px}
+  .dashboard-v130 .quick-actions-v130{gap:6px}.dashboard-v130 .quick-action,.dashboard-v130 .menu-acciones>summary{min-height:86px;padding:8px 5px;font-size:10.5px}.dashboard-v130 .qicon,.dashboard-v130 .menu-acciones>summary::before{width:34px;height:34px}
+  .dashboard-v130 .metrics-v130{gap:6px}.dashboard-v130 .metric-v130{min-height:102px;padding:10px 4px}.dashboard-v130 .metric-v130 strong{font-size:25px}.dashboard-v130 .metric-v130 span{font-size:9.5px}.dashboard-v130 .metric-v130 em{font-size:11px}
+  .dashboard-v130 .foco-v130{grid-template-columns:auto 1fr;padding:11px}.dashboard-v130 .foco-v130 .btn{grid-column:1/-1;width:100%;min-height:44px}.dashboard-v130 .foco-v130 .foco-ico{width:40px;height:40px}.dashboard-v130 .foco-v130 p{font-size:13px}
+}
+@media(max-width:460px){
+  .dashboard-v130 .hero-title-row{display:block}.dashboard-v130 .hero-date{align-items:flex-start;margin-top:9px}.dashboard-v130 .hero-date input{width:148px}
+  .dashboard-v130 .hero-primary{grid-template-columns:1fr}.dashboard-v130 .hero-primary .btn{min-height:50px}.dashboard-v130 .hero-primary .btn-resumen{min-height:44px}
+}
+@media(max-width:390px){
+  .dashboard-v130 .quick-actions-v130{grid-template-columns:repeat(2,1fr)}
+  .dashboard-v130 .metrics-v130{grid-template-columns:repeat(2,1fr)}
+  .dashboard-v130 .metric-v130{min-height:92px}
+}
+
 </style>
 </head>
 <body>
@@ -3240,21 +3332,60 @@ function cabeceraEvaluacion() {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const e = estadisticas(ev), p = panoramaAprendizaje(ev), f = focoDelCurso(ev), total = puntajeTotal(ev);
   const corto = (f) => (f ? f.slice(8, 10) + "/" + f.slice(5, 7) : "—");
+  const pTotal = p.logrado + p.proceso + p.apoyo;
+  const pctLog = pTotal ? Math.round(p.logrado / pTotal * 100) : 0;
+  const pctPro = pTotal ? Math.round(p.proceso / pTotal * 100) : 0;
+  const pctApo = pTotal ? Math.max(0, 100 - pctLog - pctPro) : 0;
   return `
-  <div class="tarjeta no-imprimir">
-    <div class="fila" style="gap:9px">
+  <div class="tarjeta dashboard-v130 no-imprimir">
+    <div class="dash-topline">
       <h2 class="titulo-curso">${esc(curso.nombre.toUpperCase())}</h2>
-      <span class="pastilla"><b>${S.datos.roster.length}</b> estudiantes</span>
-      <span class="pastilla"><b>${lista.length}</b> ${lista.length === 1 ? "lista" : "listas"}</span>
+      <div class="dash-pills">
+        <span class="dash-pill"><strong>${S.datos.roster.length}</strong> estudiantes</span>
+        <span class="dash-pill"><strong>${lista.length}</strong> ${lista.length === 1 ? "lista" : "listas"}</span>
+      </div>
     </div>
-    <div class="acciones-principales">
-      <button class="btn btn-lleno accion-continuar" data-accion="ir-evaluacion">Continuar evaluación</button>
-      <button class="btn" data-accion="pestana" data-v="resumen">Ver resumen</button>
-      <button class="btn" data-accion="informe-estudiante">Informe por estudiante</button>
-      <details class="menu-acciones"><summary>Más opciones</summary><div class="menu-acciones-panel">
-        <button class="btn btn-mini" data-accion="excel">Exportar curso a Excel</button>
-        <button class="btn btn-mini" data-accion="notas-curso">Informe de notas (PDF)</button>
-        <button class="btn btn-mini" data-accion="informe-estudiante">Informe por estudiante (PDF)</button>
+
+    <section class="eval-hero">
+      <span class="hero-status">En evaluación</span>
+      <div class="hero-title-row">
+        <h3 class="hero-title">${esc(ev.nombre || "Sin nombre")}${rotuloTipo(ev) ? ` <span class="etiqueta-tipo">${rotuloTipo(ev)}</span>` : ""}</h3>
+        <label class="hero-date"><span>Fecha</span><input type="date" data-campo="fecha" value="${esc(ev.fecha)}"></label>
+      </div>
+      <p class="hero-sub">${totalIndicadores(ev)} indicadores · ${total} pts · nota de 2,0 a 7,0${esEscala(ev) ? ` · escala 1–${nNiveles(ev)}` : ""}</p>
+      <div class="hero-oa">${codigosOA(ev).map((x) => `<span class="oa-chip">${esc(x)}</span>`).join("")}</div>
+    </section>
+
+    ${f ? `<section class="foco-v130"><div class="foco-ico">◎</div><div><small>Indicador prioritario para la próxima clase</small><p>${esc(f.texto || "sin redactar")}</p><span class="foco-pct">${f.pct}% de logro en el curso</span><span class="foco-meta">Indicador ${esc(f.rot)}${f.oa ? ` · ${esc(f.oa)}` : ""}${f.apoyo ? ` · ${f.apoyo} estudiante${f.apoyo === 1 ? "" : "s"} requiere${f.apoyo === 1 ? "" : "n"} refuerzo` : ""}</span></div>${f.apoyo ? `<button class="btn" data-accion="ver-foco-estudiantes">Ver ${f.apoyo} estudiante${f.apoyo === 1 ? "" : "s"} ›</button>` : ""}</section>` : `<section class="foco-v130 foco-ok"><div class="foco-ico">✓</div><div><small>Foco pedagógico</small><p>No hay indicadores críticos en los datos registrados.</p><span class="foco-pct">Todos los indicadores evaluados alcanzan al menos 80% de logro.</span></div></section>`}
+
+    <div class="metrics-v130">
+      <div class="metric-v130 metric-prom"><strong>${num1(e.prom)}</strong><span>Promedio</span><em>⌁</em></div>
+      <div class="metric-v130 metric-logro"><strong>${e.logro === null ? "—" : e.logro + "%"}</strong><span>Logro</span><em>◎</em></div>
+      <div class="metric-v130 metric-eval"><strong>${e.evaluados}/${e.presentes}</strong><span>Evaluados</span><em>●●</em></div>
+      <div class="metric-v130 metric-aus"><strong>${e.ausentes}</strong><span>Ausentes</span><em>●×</em></div>
+    </div>
+
+    <div class="hero-primary">
+      <button class="btn btn-lleno" data-accion="ir-evaluacion">Continuar evaluación</button>
+      <button class="btn btn-resumen" data-accion="pestana" data-v="resumen">Ver resumen</button>
+    </div>
+
+    <section class="panorama-v130">
+      <h4>Panorama de aprendizaje</h4>
+      <div class="pan-bar" aria-label="Distribución del aprendizaje"><span class="pan-log" style="width:${pctLog}%"></span><span class="pan-pro" style="width:${pctPro}%"></span><span class="pan-apo" style="width:${pctApo}%"></span></div>
+      <div class="pan-stats">
+        <div class="pan-stat log"><strong><i></i>${p.logrado}</strong><span>Logrado</span></div>
+        <div class="pan-stat pro"><strong><i></i>${p.proceso}</strong><span>En proceso</span></div>
+        <div class="pan-stat apo"><strong><i></i>${p.apoyo}</strong><span>Requiere apoyo</span></div>
+      </div>
+      ${p.sinDatos ? `<p class="sub" style="margin:8px 0 0;text-align:center">${p.sinDatos} estudiante${p.sinDatos === 1 ? "" : "s"} todavía sin datos suficientes.</p>` : ""}
+    </section>
+
+    <div class="quick-actions-v130">
+      <button class="quick-action" data-accion="informe-estudiante"><span class="qicon">ID</span><span>Informe por estudiante</span></button>
+      <button class="quick-action qexcel" data-accion="excel"><span class="qicon">X</span><span>Exportar<br>(Excel)</span></button>
+      <button class="quick-action qpdf" data-accion="notas-curso"><span class="qicon">PDF</span><span>Informe<br>PDF</span></button>
+      <details class="menu-acciones qmore"><summary>Más opciones</summary><div class="menu-acciones-panel">
         <button class="btn btn-mini" data-accion="imprimir">PDF con marcas</button>
         <button class="btn btn-mini" data-accion="imprimir-blanco">PDF en blanco</button>
         <button class="btn btn-mini" data-accion="informe-logro">Informe de logro (PDF)</button>
@@ -3264,22 +3395,16 @@ function cabeceraEvaluacion() {
         <button class="btn btn-mini" data-accion="ayuda">¿Cómo funciona?</button>
       </div></details>
     </div>
-    <span class="rotulo-seccion">Listas del curso</span>
-    <div class="tiras v2">${lista.map((x,i)=>`<button class="tira ${i===S.evalIdx?"activa":""}" data-accion="abrir-eval" data-i="${i}" title="${esc(x.nombre||`Lista ${i+1}`)}"><b>Lista ${i+1}</b><small>${corto(x.fecha)}</small><span class="tira-nombre">${esc(x.nombre||"Sin nombre")}</span></button>`).join("")}<button class="tira nueva" data-accion="nueva-eval" title="Nueva lista de cotejo">+</button></div>
-    <div class="cab-lista"><span class="rotulo-seccion" style="margin-top:0">Evaluación seleccionada</span><span class="estado-lista">En evaluación</span></div>
-    <h3 class="titulo-eval">${esc(ev.nombre||"Sin nombre")}${rotuloTipo(ev)?` <span class="etiqueta-tipo">${rotuloTipo(ev)}</span>`:""}</h3>
-    <div class="meta-eval"><span class="pastilla">${totalIndicadores(ev)} indicadores</span>${esEscala(ev)?`<span class="pastilla">Escala 1–${nNiveles(ev)}</span>`:""}<span class="pastilla">${total} pts</span><span class="pastilla">Nota 2,0–7,0</span>${codigosOA(ev).map(x=>`<span class="oa-chip">${esc(x)}</span>`).join("")}</div>
-    <div class="panel-cifras v2">
-      <div class="cifra c-prom ${e.prom!==null&&e.prom<4?"alerta":""}"><b>${num1(e.prom)}</b><span>promedio</span></div>
-      <div class="cifra c-logro ${e.logro!==null&&e.logro<50?"alerta":""}"><b>${e.logro===null?"—":e.logro+"%"}</b><span>logro del curso</span></div>
-      <div class="cifra c-pend ${e.sinEvaluar?"alerta":""}"><b>${e.evaluados}/${e.presentes}</b><span>evaluados</span></div>
-      <div class="cifra c-aus"><b>${e.ausentes}</b><span>ausentes</span></div>
+
+    <div class="tools-v130">
+      <details class="selector-listas-v130"><summary>Cambiar lista · ${lista.length} ${lista.length === 1 ? "lista" : "listas"}</summary>
+        <div class="tiras v2">${lista.map((x, i) => `<button class="tira ${i === S.evalIdx ? "activa" : ""}" data-accion="abrir-eval" data-i="${i}" title="${esc(x.nombre || `Lista ${i + 1}`)}"><b>Lista ${i + 1}</b><small>${corto(x.fecha)}</small><span class="tira-nombre">${esc(x.nombre || "Sin nombre")}</span></button>`).join("")}<button class="tira nueva" data-accion="nueva-eval" title="Nueva lista de cotejo">+</button></div>
+      </details>
     </div>
-    <div class="panorama"><div class="panorama-cab"><b>Panorama de aprendizaje</b><span>Solo considera indicadores que ya tienen una marca</span></div><div class="panorama-grid"><div class="nivel-aprendizaje logrado"><strong>${p.logrado}</strong><span>Logrado · 80% o más</span></div><div class="nivel-aprendizaje proceso"><strong>${p.proceso}</strong><span>En proceso · 60–79%</span></div><div class="nivel-aprendizaje apoyo"><strong>${p.apoyo}</strong><span>Requiere apoyo · menos de 60%</span></div></div>${p.sinDatos?`<p class="sub" style="margin:7px 0 0">${p.sinDatos} estudiante${p.sinDatos===1?"":"s"} todavía sin datos suficientes.</p>`:""}</div>
-    ${f?`<div class="foco v2"><div class="foco-titulo"><b>Foco para la próxima clase</b><span class="foco-etiqueta">Indicador con menor logro</span></div><p><span class="mono">${esc(f.rot)}</span> ${esc(f.texto||"sin redactar")}</p><span class="foco-pct">${f.pct}% de logro${f.oa?` · ${esc(f.oa)}`:""}${f.apoyo?` · ${f.apoyo} estudiante${f.apoyo===1?"":"s"} requieren refuerzo`:""}</span><div class="foco-acciones">${f.apoyo?`<button class="btn btn-mini" data-accion="ver-foco-estudiantes">Ver estudiantes</button>`:""}<button class="btn btn-mini" data-accion="pestana" data-v="resumen">Analizar resultados</button></div></div>`:""}
-    <div class="fecha-compacta"><label class="campo-fecha"><span>Fecha de la clase</span><input type="date" data-campo="fecha" value="${esc(ev.fecha)}"></label><span class="estado-guardado-mini">Los cambios se guardan automáticamente</span></div>
+
+    <div class="fecha-compacta"><span class="estado-guardado-mini">Los cambios se guardan automáticamente · la fecha se edita junto al nombre de la evaluación</span></div>
     <details class="administrar-lista"><summary>Administrar esta lista</summary><div class="fila"><button class="btn btn-mini" data-accion="limpiar-marcas">Limpiar marcas</button><button class="btn btn-mini btn-peligro" data-accion="borrar-eval">Eliminar esta lista</button></div></details>
-    ${S.ajustes?panelAjustes(ev):""}
+    ${S.ajustes ? panelAjustes(ev) : ""}
   </div>`;
 }
 
