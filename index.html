@@ -1010,6 +1010,15 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .progreso-item small{display:block;color:var(--soft);font-size:10.5px;margin-top:2px}
 .progreso-item em{font-style:normal;font-family:var(--mono);font-size:12px;font-weight:800;padding:4px 7px;border-radius:999px;background:#fbeceb;color:#a3322a}
 .progreso-item.mejora em{background:#e6f5ee;color:#1c7a55}
+/* v145 · Administración segura de seguimientos */
+.seguimientos-admin-v145{display:grid;gap:7px;margin-top:8px}
+.seguimiento-admin-v145{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 10px}
+.seguimiento-admin-v145 b{display:block;font-size:12.5px;line-height:1.25}
+.seguimiento-admin-v145 small{display:block;color:var(--soft);font-size:10.5px;margin-top:2px}
+.seguimiento-admin-v145 .btn{min-height:34px;padding:7px 9px;font-size:10.5px}
+.btn-peligro-suave-v145{border-color:#e8b7b2!important;background:#fff8f7!important;color:#9b342d!important}
+:root[data-tema="oscuro"] .btn-peligro-suave-v145{background:#352321!important;border-color:#74453f!important;color:#f1a59d!important}
+@media(max-width:520px){.seguimiento-admin-v145{grid-template-columns:1fr}.seguimiento-admin-v145 .btn{width:100%}}
 .btn-cancha{background:linear-gradient(135deg,#f0ad12,#df9400)!important;border-color:#d78e00!important;color:#fff!important}
 .btn-cancha::before{content:"☀";font-size:17px;margin-right:3px}
 .cancha-cab{position:sticky;top:58px;z-index:24;margin:0 0 10px;background:linear-gradient(135deg,#063f70,#0874b9);color:#fff;border-radius:14px;padding:11px 12px;box-shadow:0 7px 20px rgba(6,63,112,.22)}
@@ -2705,6 +2714,11 @@ async function copiarListaA(cursoId, lista) {
   lista.datos = Array.from({ length: n }, () => lista.criterios.map(filaNiveles));
   lista.estado = Array(n).fill(0);
   lista.obs = Array(n).fill("");
+  lista.medidas = Array.from({ length: n }, () => []);
+  if (Array.isArray(lista.ade)) lista.ade = Array.from({ length: n }, () => []);
+  // Un seguimiento pertenece a estudiantes concretos del curso de origen.
+  // Al copiarlo a otro curso se transforma en una lista normal, evitando asignarlo por índice a otra persona.
+  if (lista.seguimientoFoco) { lista.seguimientoFoco = null; if (pesoDe(lista) === 0) lista.peso = 1; }
   datos.evaluaciones.push(lista);
   try { await almacen.escribir(cursoId, datos); }
   catch (e) { if (e.message !== "sin-sesion") throw e; }   // sin sesión queda guardado solo aquí
@@ -2920,6 +2934,32 @@ function resumenImportacionHTML(ev) {
 }
 
 /* Deja una nómina nueva en un curso, ajustando las filas de todas sus listas. */
+function sincronizarSeguimientoConRoster(e, roster) {
+  const seg = e && e.seguimientoFoco;
+  if (!seg || typeof seg !== "object") return;
+  const nombresFuente = Array.isArray(seg.nombres) && seg.nombres.length
+    ? seg.nombres.map((x) => String(x || ""))
+    : Array.isArray(seg.base) ? seg.base.map((x) => String((x && x.nombre) || "")).filter(Boolean) : [];
+  const nombres = [...new Set(nombresFuente)].filter((nom) => roster.includes(nom));
+  // En seguimientos antiguos sin nombres, conserva índices todavía válidos.
+  const indicesLegado = !nombres.length && Array.isArray(seg.estudiantes)
+    ? [...new Set(seg.estudiantes.map(Number).filter((i) => Number.isInteger(i) && i >= 0 && i < roster.length))] : [];
+  seg.nombres = nombres.length ? nombres : indicesLegado.map((i) => roster[i]).filter(Boolean);
+  seg.estudiantes = seg.nombres.map((nom) => roster.indexOf(nom)).filter((i) => i >= 0);
+  if (Array.isArray(seg.base)) {
+    seg.base = seg.base.filter((x) => {
+      const nom = String((x && x.nombre) || "");
+      if (nom) return seg.nombres.includes(nom);
+      const i = Number(x && x.i); return seg.estudiantes.includes(i);
+    }).map((x) => {
+      const y = { ...x };
+      if (y.nombre && roster.includes(String(y.nombre))) y.i = roster.indexOf(String(y.nombre));
+      return y;
+    });
+  }
+  return seg.nombres.length > 0 || seg.estudiantes.length > 0;
+}
+
 function ponerNomina(datos, nombres) {
   datos.roster = nombres.slice();
   datos.adecuaciones = nombres.map(() => []);
@@ -2929,8 +2969,14 @@ function ponerNomina(datos, nombres) {
     e.datos = Array.from({ length: n }, () => e.criterios.map((c) => c.indicadores.map(() => 0)));
     e.estado = Array(n).fill(0);
     e.obs = Array(n).fill("");
+    e.medidas = Array.from({ length: n }, () => []);
     if (Array.isArray(e.ade)) e.ade = Array.from({ length: n }, () => []);
+    sincronizarSeguimientoConRoster(e, datos.roster);
   });
+  datos.evaluaciones = datos.evaluaciones.filter((e) => !e.seguimientoFoco ||
+    ((Array.isArray(e.seguimientoFoco.nombres) && e.seguimientoFoco.nombres.length) ||
+     (Array.isArray(e.seguimientoFoco.estudiantes) && e.seguimientoFoco.estudiantes.length)));
+  if (!datos.evaluaciones.length) datos.evaluaciones = [nuevaEvaluacion(n, [], "", S.cursoId)];
 }
 
 /* Lee el respaldo de Planillas EF y ofrece sus nóminas. */
@@ -3023,6 +3069,9 @@ function sumarEstudiante(nombre) {
     e.marcas.push(e.criterios.map((c) => Array(c.indicadores.length).fill(0)));
     e.datos.push(e.criterios.map(filaNiveles));
     e.estado.push(0); e.obs.push("");
+    (e.medidas = e.medidas || []).push([]);
+    if (Array.isArray(e.ade)) e.ade.push([]);
+    sincronizarSeguimientoConRoster(e, S.datos.roster);
   });
 }
 
@@ -3135,7 +3184,7 @@ function nuevaEvaluacion(nAlumnos, oaCodigos, nombre, cursoId) {
     fecha: hoy(),
     oa: "",
     tipo: "docente",
-    medidas: [],
+    medidas: Array.from({ length: nAlumnos }, () => []),
     adeModo: "curso",
     ade: null,
     exigencia: EXIGENCIA,
@@ -3704,18 +3753,21 @@ function vistaApp() {
 function indicesEvaluables(ev) {
   const todos = S.datos.roster.map((_, i) => i);
   const seg = ev && ev.seguimientoFoco;
+  if (!seg) return todos;
   let xs = [];
-  if (seg && Array.isArray(seg.nombres) && seg.nombres.length) {
+  if (Array.isArray(seg.nombres) && seg.nombres.length) {
     xs = seg.nombres.map((nom) => S.datos.roster.indexOf(String(nom))).filter((i) => i >= 0);
   }
-  if (!xs.length && seg && Array.isArray(seg.estudiantes)) {
+  if (!xs.length && Array.isArray(seg.estudiantes)) {
     xs = seg.estudiantes.map(Number).filter((i) => Number.isInteger(i) && i >= 0 && i < S.datos.roster.length);
   }
-  return xs.length ? [...new Set(xs)] : todos;
+  // Un seguimiento sin participantes nunca debe convertirse accidentalmente
+  // en una evaluación para todo el curso.
+  return [...new Set(xs)];
 }
 
 function esSeguimientoFoco(ev) {
-  return !!(ev && ev.seguimientoFoco && Array.isArray(ev.seguimientoFoco.estudiantes) && ev.seguimientoFoco.estudiantes.length);
+  return !!(ev && ev.seguimientoFoco && typeof ev.seguimientoFoco === "object");
 }
 
 function porcentajeIndicador(ev, i, j, q) {
@@ -4546,7 +4598,7 @@ function vistaResumen() {
       ${logros.map((l) => `
         <div class="logro-item">
           <div class="rotulo"><span><b class="mono" style="font-size:11px">${l.rot}</b> ${esc(l.texto)}</span><em>${l.pct === null ? "—" : l.pct + "%"}</em></div>
-          <div class="pista"><i class="${l.pct === null ? "" : l.pct < 50 ? "critica" : l.pct < 70 ? "baja" : ""}" style="width:${l.pct || 0}%"></i></div>
+          <div class="pista"><i class="${l.pct === null ? "" : l.pct < 60 ? "critica" : l.pct < 80 ? "baja" : ""}" style="width:${l.pct || 0}%"></i></div>
         </div>`).join("")}
     </div>
   </div>
@@ -4595,8 +4647,8 @@ function vistaResumen() {
           ${rem ? `<p class="rotulo-seccion" style="margin:12px 0 5px">${esc(rem[0])}</p>
             <div class="caja-medidas">${rem[3].filter((x) => !puestas.has(x)).map(opcion).join("")}</div>` : ""}`;
         })()}
-        ${flojos.length > 1 ? `<p class="sub" style="margin:8px 0 0">Otros objetivos bajo 60%:
-          ${flojos.slice(1).filter((x) => x.pct < 60).map((x) => `${esc(x.c.oa || "C" + (x.j + 1))} ${x.pct}%`).join(" · ") || "ninguno"}</p>` : ""}
+        ${flojos.length > 1 ? `<p class="sub" style="margin:8px 0 0">Otros objetivos que requieren refuerzo (&lt;80%):
+          ${flojos.slice(1).filter((x) => x.pct < 80).map((x) => `${esc(x.c.oa || "C" + (x.j + 1))} ${x.pct}%`).join(" · ") || "ninguno"}</p>` : ""}
       </details>`;
     }).join("")}
   </div>`;
@@ -4620,7 +4672,7 @@ function vistaResumen() {
               <span><b class="mono" style="font-size:11px">${String(i + 1).padStart(2, "0")}</b> ${esc(nom || "—")}</span>
               <em>${pct === null ? "—" : pct + "%"}</em>
             </div>
-            <div class="pista"><i class="${pct === null ? "" : pct < 50 ? "critica" : pct < 70 ? "baja" : ""}" style="width:${pct || 0}%"></i></div>
+            <div class="pista"><i class="${pct === null ? "" : pct < 60 ? "critica" : pct < 80 ? "baja" : ""}" style="width:${pct || 0}%"></i></div>
             <p class="detalle-logro">${r.puntaje} de ${r.total} pts · nota ${num1(r.nota)}${
               esEscala(ev) ? "" : ` · ${r.logrados} de ${totalIndicadores(ev)} indicadores`}${
               r.sinMarca ? ` · ${r.sinMarca} sin marcar` : ""}</p>
@@ -4637,7 +4689,7 @@ function vistaResumen() {
                   const v = nivelDe(ev, i, j, q);
                   pi = v ? Math.round((puntosNivel(ev, v) / maxNivel(ev)) * 100) : null;
                   rot = v ? `${esc(descriptorDe(ev, c, v - 1))} · ${pi}%` : "sin marcar";
-                  cls = !v ? "vacio" : pi >= 70 ? "ok" : pi >= 50 ? "medio" : "bajo";
+                  cls = !v ? "vacio" : pi >= 80 ? "ok" : pi >= 60 ? "medio" : "bajo";
                 } else {
                   const v = marcaDe(ev, i, j, q);
                   rot = v === 1 ? `logrado · ${ind.pts} pts` : v === 2 ? "no logrado · 0 pts" : "sin marcar";
@@ -4701,7 +4753,7 @@ function datosConsolidado() {
 }
 
 function fichaDe(i) {
-  const evs = S.datos.evaluaciones;
+  const evs = S.datos.evaluaciones.filter((ev) => !esSeguimientoFoco(ev) || indicesEvaluables(ev).includes(i));
   const items = evs.map((ev) => {
     const est = ev.estado[i] || 0;
     const r = est ? null : resultado(ev, i);
@@ -4723,6 +4775,7 @@ function fichaDe(i) {
 function trayectoriaIndicadores(i) {
   const mapa = new Map();
   S.datos.evaluaciones.forEach((ev) => {
+    if (esSeguimientoFoco(ev) && !indicesEvaluables(ev).includes(i)) return;
     if (ev.estado[i]) return;
     ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
       const clave = (ind.texto || "").trim();
@@ -4748,9 +4801,52 @@ function trayectoriaIndicadores(i) {
 }
 
 
+function seguimientosDelEstudiante(i) {
+  return S.datos.evaluaciones.map((ev, k) => ({ ev, k }))
+    .filter(({ ev }) => esSeguimientoFoco(ev) && indicesEvaluables(ev).includes(i));
+}
+
+function limpiarFilaEvaluacion(ev, i) {
+  if (!ev || i < 0) return;
+  if (ev.marcas && ev.marcas[i]) ev.marcas[i] = ev.criterios.map((c) => Array(c.indicadores.length).fill(0));
+  if (ev.datos && ev.datos[i]) ev.datos[i] = ev.criterios.map(filaNiveles);
+  if (ev.estado) ev.estado[i] = 0;
+  if (ev.obs) ev.obs[i] = "";
+  if (ev.medidas) ev.medidas[i] = [];
+  if (Array.isArray(ev.ade)) ev.ade[i] = [];
+}
+
+function quitarEstudianteDeSeguimiento(k, i) {
+  const ev = S.datos.evaluaciones[k];
+  if (!ev || !esSeguimientoFoco(ev)) return false;
+  const nombre = S.datos.roster[i] || "";
+  const seg = ev.seguimientoFoco;
+  limpiarFilaEvaluacion(ev, i);
+  if (Array.isArray(seg.nombres)) seg.nombres = seg.nombres.filter((n) => String(n) !== nombre);
+  if (Array.isArray(seg.estudiantes)) seg.estudiantes = seg.estudiantes.filter((x) => Number(x) !== i);
+  if (Array.isArray(seg.base)) seg.base = seg.base.filter((x) => {
+    const nom = String((x && x.nombre) || "");
+    return nom ? nom !== nombre : Number(x && x.i) !== i;
+  });
+  sincronizarSeguimientoConRoster(ev, S.datos.roster);
+  if (!indicesEvaluables(ev).length || !(seg.nombres || []).length) {
+    S.datos.evaluaciones.splice(k, 1);
+    if (!S.datos.evaluaciones.length) S.datos.evaluaciones = [nuevaEvaluacion(S.datos.roster.length, [], "", S.cursoId)];
+    if (S.evalIdx > k) S.evalIdx--;
+    else if (S.evalIdx === k) S.evalIdx = Math.min(k, S.datos.evaluaciones.length - 1);
+  }
+  return true;
+}
+
+function abrirFichaProgreso(i) {
+  const nombre = S.datos.roster[i] || `Estudiante ${i + 1}`;
+  abrirModal(`<h3>Ficha de progreso · ${esc(nombre)}</h3><p class="sub" style="margin:4px 0 0">Seguimiento acumulado de las evaluaciones registradas en este curso.</p>${progresoEstudianteHTML(i)}<div class="fila" style="margin-top:14px"><button class="btn btn-lleno" data-accion="informe-alumno" data-i="${i}">Informe para el apoderado</button><button class="btn" data-accion="ficha" data-i="${i}">Ver historial completo</button><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
+}
+
 function progresoGeneral(i) {
   const puntos = [];
   S.datos.evaluaciones.forEach((ev, k) => {
+    if (esSeguimientoFoco(ev) && !indicesEvaluables(ev).includes(i)) return;
     if (ev.estado[i]) return;
     const r = resultado(ev, i);
     if (!r || !r.marcados) return;
@@ -4766,6 +4862,7 @@ function progresoGeneral(i) {
 function indicadoresPendientes(i) {
   const mapa = new Map();
   S.datos.evaluaciones.forEach((ev, ek) => {
+    if (esSeguimientoFoco(ev) && !indicesEvaluables(ev).includes(i)) return;
     if (ev.estado[i]) return;
     ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
       const texto = (ind.texto || "").trim();
@@ -4782,7 +4879,7 @@ function indicadoresPendientes(i) {
       mapa.set(texto, { texto, pct, oa: c.oa || "", lista: ev.nombre || `Lista ${ek + 1}`, fecha: ev.fecha });
     }));
   });
-  return [...mapa.values()].filter((x) => x.pct < 70).sort((a,b) => a.pct - b.pct || (b.fecha || "").localeCompare(a.fecha || ""));
+  return [...mapa.values()].filter((x) => x.pct < 80).sort((a,b) => a.pct - b.pct || (b.fecha || "").localeCompare(a.fecha || ""));
 }
 
 function graficoProgresoHTML(i) {
@@ -4806,6 +4903,7 @@ function progresoEstudianteHTML(i) {
   const tr = trayectoriaIndicadores(i);
   const mejoras = tr.filter(x=>x.avance>0).sort((a,b)=>b.avance-a.avance).slice(0,4);
   const ultima = g.puntos[g.puntos.length-1];
+  const seguimientos = seguimientosDelEstudiante(i);
   const tendenciaTxt = g.puntos.length < 2 ? '—' : `${g.tendencia > 0 ? '+' : ''}${g.tendencia}%`;
   return `<div class="progreso-resumen">
       <div class="progreso-kpi"><strong>${num1(f.prom)}</strong><span>Promedio</span></div>
@@ -4816,8 +4914,9 @@ function progresoEstudianteHTML(i) {
     ${graficoProgresoHTML(i)}
     ${ultima ? `<p class="sub" style="margin:6px 0 0">Último resultado registrado: <b>${ultima.pct}%</b> · nota ${num1(ultima.nota)} · ${esc(ultima.nombre)}</p>` : ''}
     <p class="rotulo-seccion" style="margin:14px 0 6px">Indicadores que requieren apoyo</p>
-    ${pendientes.length ? `<div class="progreso-lista">${pendientes.map(x=>`<div class="progreso-item"><div><b>${esc(x.texto)}</b><small>${esc(x.oa || x.lista)} · última evidencia ${fechaLarga(x.fecha)}</small></div><em>${x.pct}%</em></div>`).join('')}</div>` : `<p class="sub" style="margin:0">No aparecen indicadores bajo 70% en la evidencia más reciente registrada.</p>`}
-    ${mejoras.length ? `<p class="rotulo-seccion" style="margin:14px 0 6px">Mejoras observadas</p><div class="progreso-lista">${mejoras.map(x=>`<div class="progreso-item mejora"><div><b>${esc(x.texto)}</b><small>${x.hitos.length} mediciones del mismo indicador</small></div><em>+${x.avance}%</em></div>`).join('')}</div>` : ''}`;
+    ${pendientes.length ? `<div class="progreso-lista">${pendientes.map(x=>`<div class="progreso-item"><div><b>${esc(x.texto)}</b><small>${esc(x.oa || x.lista)} · última evidencia ${fechaLarga(x.fecha)}</small></div><em>${x.pct}%</em></div>`).join('')}</div>` : `<p class="sub" style="margin:0">No aparecen indicadores bajo 80% en la evidencia más reciente registrada.</p>`}
+    ${mejoras.length ? `<p class="rotulo-seccion" style="margin:14px 0 6px">Mejoras observadas</p><div class="progreso-lista">${mejoras.map(x=>`<div class="progreso-item mejora"><div><b>${esc(x.texto)}</b><small>${x.hitos.length} mediciones del mismo indicador</small></div><em>+${x.avance}%</em></div>`).join('')}</div>` : ''}
+    ${seguimientos.length ? `<p class="rotulo-seccion" style="margin:14px 0 6px">Seguimientos pedagógicos · ${seguimientos.length}</p><div class="seguimientos-admin-v145">${seguimientos.map(({ev,k})=>{ const pct=porcentajeIndicador(ev,i,0,0); return `<div class="seguimiento-admin-v145"><span><b>${esc(ev.nombre || 'Seguimiento')}</b><small>${fechaLarga(ev.fecha)} · ${pct===null?'pendiente':pct+'% de logro'}</small></span><button class="btn btn-peligro-suave-v145" data-accion="borrar-seguimiento-estudiante" data-i="${i}" data-k="${k}">Eliminar</button></div>`; }).join('')}</div>${seguimientos.length>1?`<div class="fila" style="margin-top:8px"><button class="btn btn-peligro-suave-v145" data-accion="borrar-todos-seguimientos-estudiante" data-i="${i}">Eliminar todos los seguimientos</button></div>`:''}` : ''}`;
 }
 
 function fichaHTML(i) {
@@ -5091,8 +5190,29 @@ document.addEventListener("click", async (evt) => {
     abrirModal(`<h3>Progreso por estudiante</h3><p class="sub" style="margin:5px 0 10px">Selecciona un estudiante para ver su evolución, indicadores que requieren apoyo y mejoras observadas.</p><div class="progreso-seleccion">${filas}</div><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return;
   }
   if (a === "ver-progreso") {
-    const i=+btn.dataset.i, nombre=S.datos.roster[i]||`Estudiante ${i+1}`;
-    abrirModal(`<h3>Ficha de progreso · ${esc(nombre)}</h3><p class="sub" style="margin:4px 0 0">Seguimiento acumulado de las evaluaciones registradas en este curso.</p>${progresoEstudianteHTML(i)}<div class="fila" style="margin-top:14px"><button class="btn btn-lleno" data-accion="informe-alumno" data-i="${i}">Informe para el apoderado</button><button class="btn" data-accion="ficha" data-i="${i}">Ver historial completo</button><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return;
+    abrirFichaProgreso(+btn.dataset.i); return;
+  }
+  if (a === "borrar-seguimiento-estudiante") {
+    const i = +btn.dataset.i, k = +btn.dataset.k;
+    const seg = S.datos.evaluaciones[k], nombre = S.datos.roster[i] || `Estudiante ${i + 1}`;
+    if (!seg || !esSeguimientoFoco(seg)) { abrirFichaProgreso(i); return; }
+    confirmar(`Se eliminará este seguimiento de ${nombre}. Si hay otros estudiantes en la misma reevaluación, sus registros se conservarán.`, () => {
+      anotarDeshacer(`Seguimiento eliminado de ${nombre}`);
+      quitarEstudianteDeSeguimiento(k, i);
+      marcarCambio(); pintar(); abrirFichaProgreso(i);
+    });
+    return;
+  }
+  if (a === "borrar-todos-seguimientos-estudiante") {
+    const i = +btn.dataset.i, nombre = S.datos.roster[i] || `Estudiante ${i + 1}`;
+    const ks = seguimientosDelEstudiante(i).map((x) => x.k).sort((a,b) => b-a);
+    if (!ks.length) { abrirFichaProgreso(i); return; }
+    confirmar(`Se eliminarán los ${ks.length} seguimientos de ${nombre}. Las evaluaciones normales y los registros de otros estudiantes no se borrarán.`, () => {
+      anotarDeshacer(`Seguimientos eliminados de ${nombre}`);
+      ks.forEach((k) => quitarEstudianteDeSeguimiento(k, i));
+      marcarCambio(); pintar(); abrirFichaProgreso(i);
+    });
+    return;
   }
   if (a === "ir-evaluacion") {
     cerrarModal();
@@ -5138,7 +5258,19 @@ document.addEventListener("click", async (evt) => {
       <p class="sub" style="margin:4px 0 8px">Compara el desempeño del indicador entre <b>${esc(seg.origenNombre || "la evaluación anterior")}</b> y esta reevaluación.</p>
       <div class="seguimiento-resumen-v141"><div class="seguimiento-kpi-v141"><strong>${r.superaron}</strong><span>Superaron foco</span></div><div class="seguimiento-kpi-v141"><strong>${r.mejoraron}</strong><span>Mejoraron</span></div><div class="seguimiento-kpi-v141"><strong>${r.mantienen}</strong><span>Se mantienen</span></div><div class="seguimiento-kpi-v141"><strong>${r.apoyo}</strong><span>Aún con apoyo</span></div></div>
       <div class="seguimiento-lista-v141">${r.items.map((x) => `<div class="seguimiento-alumno-v141"><span><b>${esc(x.nombre)}</b><small>Antes: ${x.antes === null ? "—" : Math.round(x.antes) + "%"} · Ahora: ${x.ahora === null ? "pendiente" : Math.round(x.ahora) + "%"}</small></span><em class="seguimiento-estado-v141 ${esc(x.cls)}">${esc(x.estado)}</em></div>`).join("")}</div>
-      <div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="ir-evaluacion">Continuar reevaluación</button><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
+      <div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="ir-evaluacion">Continuar reevaluación</button><button class="btn btn-peligro-suave-v145" data-accion="borrar-seguimiento-completo">Eliminar seguimiento</button><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
+    return;
+  }
+  if (a === "borrar-seguimiento-completo") {
+    if (!esSeguimientoFoco(ev)) return;
+    const nombre = ev.nombre || "Seguimiento";
+    confirmar(`Se eliminará completo “${nombre}” para todos los estudiantes incluidos.`, () => {
+      anotarDeshacer(`Seguimiento eliminado: ${nombre}`);
+      S.datos.evaluaciones.splice(S.evalIdx, 1);
+      if (!S.datos.evaluaciones.length) S.datos.evaluaciones = [nuevaEvaluacion(S.datos.roster.length, [], "", S.cursoId)];
+      S.evalIdx = Math.min(S.evalIdx, S.datos.evaluaciones.length - 1);
+      marcarCambio(); pintar();
+    });
     return;
   }
   if (a === "informe-estudiante") {
@@ -5213,6 +5345,7 @@ document.addEventListener("click", async (evt) => {
   }
   if (a === "poner-escala") {
     const niveles = ESCALAS[+btn.dataset.k][1];
+    anotarDeshacer("Escala modificada");
     ev.escala = { niveles: niveles.map((n) => ({ ...n })) };
     const N = niveles.length;
     ev.datos.forEach((f) => f.forEach((fila) => { if (Array.isArray(fila)) fila.forEach((v, q) => { if (v > N) fila[q] = N; }); }));
@@ -5226,6 +5359,7 @@ document.addEventListener("click", async (evt) => {
     const k = +btn.dataset.k;
     if (nNiveles(ev) <= 2) return;
     confirmar("Se quitará ese nivel y las marcas más altas bajarán al nivel máximo disponible.", () => {
+      anotarDeshacer("Nivel de escala eliminado");
       ev.escala.niveles.splice(k, 1);
       const N = nNiveles(ev);
       ev.datos.forEach((f) => f.forEach((fila) => { if (Array.isArray(fila)) fila.forEach((v, q) => { if (v > N) fila[q] = N; }); }));
@@ -5252,8 +5386,15 @@ document.addEventListener("click", async (evt) => {
   }
   if (a === "limpiar-criterio") {
     const j = +btn.dataset.j;
-    indicesEvaluables(ev).forEach((i) => { ev.marcas[i][j] = ev.marcas[i][j].map(() => 0); ev.datos[i][j] = 0; });
-    marcarCambio(); pintar(); return;
+    confirmar("Se borrarán las marcas de este criterio para los estudiantes de esta evaluación.", () => {
+      anotarDeshacer("Marcas de criterio borradas");
+      indicesEvaluables(ev).forEach((i) => {
+        ev.marcas[i][j] = ev.marcas[i][j].map(() => 0);
+        ev.datos[i][j] = filaNiveles(ev.criterios[j]);
+      });
+      marcarCambio(); pintar();
+    });
+    return;
   }
   if (a === "asistencia") {
     const i = +btn.dataset.i;
@@ -5300,7 +5441,7 @@ document.addEventListener("click", async (evt) => {
             <div class="trayecto">
               <p class="txt">${esc(x.texto)}</p>
               <div class="hitos">
-                ${x.hitos.map((h) => `<span class="hito ${h.logro >= 70 ? "ok" : h.logro >= 50 ? "medio" : "bajo"}"
+                ${x.hitos.map((h) => `<span class="hito ${h.logro >= 80 ? "ok" : h.logro >= 60 ? "medio" : "bajo"}"
                   title="${esc(h.lista)}">${fechaLarga(h.fecha).slice(0, 5)}<b>${h.logro}%</b></span>`).join("<i>→</i>")}
                 <em class="${x.avance > 0 ? "sube" : x.avance < 0 ? "baja" : ""}">${
                   x.avance > 0 ? "+" : ""}${x.avance}</em>
@@ -5467,8 +5608,12 @@ document.addEventListener("click", async (evt) => {
     return;
   }
   if (a === "quitar-plantilla") {
-    guardarPlantillas(plantillas().filter((x) => x.id !== btn.dataset.id));
-    cerrarModal(); pintar(); return;
+    const id = btn.dataset.id, pl = plantillas().find((x) => x.id === id);
+    confirmar(`Se eliminará la plantilla “${pl ? pl.nombre : "seleccionada"}”. Las listas ya creadas no se modificarán.`, () => {
+      guardarPlantillas(plantillas().filter((x) => x.id !== id));
+      pintar();
+    });
+    return;
   }
   if (a === "crear-eval") {
     const nom = $("#ne-nombre").value.trim(), f = $("#ne-fecha").value;
@@ -5530,6 +5675,8 @@ document.addEventListener("click", async (evt) => {
     copia.datos = copia.datos.map(() => copia.criterios.map(filaNiveles));
     copia.estado = copia.estado.map(() => 0);
     copia.obs = copia.obs.map(() => "");
+    copia.medidas = S.datos.roster.map(() => []);
+    if (copia.seguimientoFoco) { copia.seguimientoFoco = null; if (pesoDe(copia) === 0) copia.peso = 1; }
     S.datos.evaluaciones.push(copia);
     S.evalIdx = S.datos.evaluaciones.length - 1;
     marcarCambio(); pintar(); return;
@@ -5589,6 +5736,7 @@ document.addEventListener("click", async (evt) => {
     const j = +btn.dataset.j;
     if (ev.criterios.length <= 1) return;
     confirmar("Se quitará ese criterio con sus indicadores y las marcas de todo el curso.", () => {
+      anotarDeshacer("Criterio eliminado");
       ev.criterios.splice(j, 1);
       ev.marcas.forEach((f) => f.splice(j, 1));
       ev.datos.forEach((f) => f.splice(j, 1));
@@ -5607,6 +5755,7 @@ document.addEventListener("click", async (evt) => {
     const j = +btn.dataset.j, q = +btn.dataset.q;
     if (ev.criterios[j].indicadores.length <= 1) return;
     confirmar("Se quitará ese indicador y sus marcas en todo el curso.", () => {
+      anotarDeshacer("Indicador eliminado");
       ev.criterios[j].indicadores.splice(q, 1);
       ev.marcas.forEach((f) => f[j].splice(q, 1));
       ev.datos.forEach((f) => { if (Array.isArray(f[j])) f[j].splice(q, 1); });
@@ -5765,7 +5914,7 @@ document.addEventListener("click", async (evt) => {
       : `Se reemplazarán las nóminas de ${cursos.length} cursos. Las marcas ya puestas en esos cursos se pierden.`,
       async () => {
         for (const [cursoId, nombres] of cursos) {
-          if (cursoId === S.cursoId) { anotarDeshacer("Nómina reemplazada"); ponerNomina(S.datos, nombres); marcarCambio(); }
+          if (cursoId === S.cursoId) { anotarDeshacer("Nómina reemplazada"); ponerNomina(S.datos, nombres); S.evalIdx = Math.min(S.evalIdx, S.datos.evaluaciones.length - 1); marcarCambio(); }
           else {
             try {
               const d = await almacen.leer(cursoId);
@@ -5790,9 +5939,11 @@ document.addEventListener("click", async (evt) => {
       S.datos.roster = orden.map((k) => S.datos.roster[k]);
       S.datos.adecuaciones = orden.map((k) => adeDe(k));
       S.datos.evaluaciones.forEach((e) => {
-        ["marcas", "datos", "estado", "obs"].forEach((campo) => {
-          e[campo] = orden.map((k) => e[campo][k]);
+        ["marcas", "datos", "estado", "obs", "medidas"].forEach((campo) => {
+          if (Array.isArray(e[campo])) e[campo] = orden.map((k) => e[campo][k]);
         });
+        if (Array.isArray(e.ade)) e.ade = orden.map((k) => e.ade[k]);
+        sincronizarSeguimientoConRoster(e, S.datos.roster);
       });
       S.alumnoActivo = 0; marcarCambio(); pintar();
     });
@@ -5851,6 +6002,7 @@ document.addEventListener("click", async (evt) => {
   if (a === "quitar-todas-ade") {
     const i = +btn.dataset.i;
     confirmar(`Se quitarán todas las adecuaciones de ${esc(S.datos.roster[i] || "ese estudiante")}.`, () => {
+      anotarDeshacer("Adecuaciones eliminadas");
       if (S.pestana === "curso" || adeModo(evalActual()) === "curso") S.datos.adecuaciones[i] = [];
       else evalActual().ade[i] = [];
       marcarCambio(); cerrarModal(); pintar();
@@ -5869,12 +6021,24 @@ document.addEventListener("click", async (evt) => {
     return;
   }
   if (a === "borrar-alumno") {
-    const i = +btn.dataset.i;
-    confirmar(`Se quitará a ${S.datos.roster[i] || "ese estudiante"} de la nómina y de todas las listas del curso.`, () => {
-      anotarDeshacer(`Estudiante quitado: ${S.datos.roster[i] || "sin nombre"}`);
+    const i = +btn.dataset.i, nombreQuitado = S.datos.roster[i] || "ese estudiante";
+    confirmar(`Se quitará a ${nombreQuitado} de la nómina y de todas las listas del curso.`, () => {
+      anotarDeshacer(`Estudiante quitado: ${nombreQuitado || "sin nombre"}`);
       S.datos.roster.splice(i, 1);
       (S.datos.adecuaciones || []).splice(i, 1);
-      S.datos.evaluaciones.forEach((e) => { e.marcas.splice(i, 1); e.datos.splice(i, 1); e.estado.splice(i, 1); e.obs.splice(i, 1); });
+      S.datos.evaluaciones.forEach((e) => {
+        ["marcas", "datos", "estado", "obs", "medidas"].forEach((campo) => { if (Array.isArray(e[campo])) e[campo].splice(i, 1); });
+        if (Array.isArray(e.ade)) e.ade.splice(i, 1);
+        if (e.seguimientoFoco && Array.isArray(e.seguimientoFoco.nombres)) e.seguimientoFoco.nombres = e.seguimientoFoco.nombres.filter((n) => String(n) !== nombreQuitado);
+        if (e.seguimientoFoco && Array.isArray(e.seguimientoFoco.base)) e.seguimientoFoco.base = e.seguimientoFoco.base.filter((x) => String((x && x.nombre) || "") !== nombreQuitado);
+        sincronizarSeguimientoConRoster(e, S.datos.roster);
+      });
+      // Seguimientos que quedaron sin participantes ya no tienen sentido.
+      S.datos.evaluaciones = S.datos.evaluaciones.filter((e) => !e.seguimientoFoco ||
+        ((Array.isArray(e.seguimientoFoco.nombres) && e.seguimientoFoco.nombres.length) ||
+         (Array.isArray(e.seguimientoFoco.estudiantes) && e.seguimientoFoco.estudiantes.length)));
+      if (!S.datos.evaluaciones.length) S.datos.evaluaciones = [nuevaEvaluacion(S.datos.roster.length, [], "", S.cursoId)];
+      S.evalIdx = Math.min(S.evalIdx, S.datos.evaluaciones.length - 1);
       S.alumnoActivo = 0; marcarCambio(); pintar();
     });
     return;
@@ -5899,12 +6063,9 @@ document.addEventListener("click", async (evt) => {
     if (!lista.length) { cerrarModal(); return; }
     cerrarModal();
     confirmar(`Se reemplazará la nómina actual con ${lista.length} estudiantes y se borrarán las marcas de este curso.`, () => {
-      S.datos.roster = lista;
-      S.datos.evaluaciones.forEach((e) => {
-        e.marcas = lista.map(() => e.criterios.map((c) => Array(c.indicadores.length).fill(0)));
-        e.datos = lista.map(() => e.criterios.map(filaNiveles));
-        e.estado = lista.map(() => 0); e.obs = lista.map(() => "");
-      });
+      anotarDeshacer("Nómina reemplazada");
+      ponerNomina(S.datos, lista);
+      S.evalIdx = Math.min(S.evalIdx, S.datos.evaluaciones.length - 1);
       S.alumnoActivo = 0; marcarCambio(); pintar();
     });
     return;
@@ -5923,13 +6084,13 @@ document.addEventListener("click", async (evt) => {
   if (a === "cargar-nomina") {
     const lista = $("#txt-nomina").value.split("\n").map((x) => x.trim()).filter(Boolean);
     if (!lista.length) { cerrarModal(); return; }
-    S.datos.roster = lista;
-    S.datos.evaluaciones.forEach((e) => {
-      e.marcas = lista.map(() => e.criterios.map((c) => Array(c.indicadores.length).fill(0)));
-      e.datos = lista.map(() => e.criterios.map(filaNiveles));
-      e.estado = lista.map(() => 0); e.obs = lista.map(() => "");
+    confirmar(`Se reemplazará la nómina actual con ${lista.length} estudiantes. Se reiniciarán las marcas, observaciones, medidas y adecuaciones propias de las listas.`, () => {
+      anotarDeshacer("Nómina reemplazada");
+      ponerNomina(S.datos, lista);
+      S.evalIdx = Math.min(S.evalIdx, S.datos.evaluaciones.length - 1);
+      S.alumnoActivo = 0; marcarCambio(); pintar();
     });
-    S.alumnoActivo = 0; cerrarModal(); marcarCambio(); pintar(); return;
+    return;
   }
 
   /* --- salidas --- */
@@ -6409,7 +6570,7 @@ async function compararEntreCursos() {
           <span><b>${esc(x.curso.nombre)}</b>${x.curso.id === S.cursoId ? " · este curso" : ""}</span>
           <em>${x.pct === null ? "—" : x.pct + "%"}${x.pct === mejor && x.pct !== null ? " ★" : ""}</em>
         </div>
-        <div class="pista"><i class="${x.pct === null ? "" : x.pct < 50 ? "critica" : x.pct < 70 ? "baja" : ""}"
+        <div class="pista"><i class="${x.pct === null ? "" : x.pct < 60 ? "critica" : x.pct < 80 ? "baja" : ""}"
           style="width:${x.pct || 0}%"></i></div>
         <p class="detalle-logro">${x.evaluados} evaluados · promedio ${num1(x.prom)}${
           x.bajo4 ? ` · ${x.bajo4} bajo 4,0` : ""} · ${fechaLarga(x.lista.fecha)}</p>
