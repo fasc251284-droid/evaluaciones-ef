@@ -1152,6 +1152,40 @@ html,body,#raiz{max-width:100%;overflow-x:hidden}
   .dashboard-v130 .foco-v130{grid-template-columns:40px minmax(0,1fr);gap:9px;padding:11px 10px}
   .dashboard-v130 .foco-v130 .btn{grid-column:1/-1;width:100%}
 }
+
+/* ===== v142 · Foco pedagógico compacto ===== */
+.dashboard-v130 .foco-v130{
+  grid-template-columns:52px minmax(0,1fr);
+  grid-template-areas:"focoIcon focoTexto" "focoAcciones focoAcciones";
+  align-items:start;
+  gap:9px 12px;
+  padding:12px 14px;
+}
+.dashboard-v130 .foco-v130 .foco-ico{grid-area:focoIcon;align-self:center}
+.dashboard-v130 .foco-v130>div:nth-child(2){grid-area:focoTexto;min-width:0}
+.dashboard-v130 .foco-v130 .foco-acciones-v141{
+  grid-area:focoAcciones;
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  justify-content:stretch;
+  margin-top:2px;
+}
+.dashboard-v130 .foco-v130 .foco-acciones-v141 .btn{
+  width:100%;
+  min-width:0;
+  min-height:44px;
+  margin:0;
+  white-space:normal;
+}
+.dashboard-v130 .foco-v130.foco-ok{grid-template-areas:"focoIcon focoTexto"}
+@media(max-width:560px){
+  .dashboard-v130 .foco-v130{grid-template-columns:42px minmax(0,1fr);gap:8px 9px;padding:11px 10px}
+  .dashboard-v130 .foco-v130 .foco-acciones-v141{grid-template-columns:1fr}
+  .dashboard-v130 .foco-v130 .foco-ico{width:40px;height:40px}
+}
+
 </style>
 </head>
 <body>
