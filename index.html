@@ -796,6 +796,7 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .oa-min{font-family:var(--mono); font-size:7.5px; color:#5b7383}
   .eval-titulo{font-size:9.5px; margin:9px 0 3px}
   .res-ok{color:#126b45; font-weight:700}
+  .res-proceso{color:#9a6700; font-weight:700}
   .res-no{color:#8e2118; font-weight:700}
   .obs-informe{font-size:8.5px; line-height:1.45; margin:3px 0 6px; padding:4px 7px;
     background:#f4f8fa; border-radius:3px}
@@ -3839,6 +3840,36 @@ function panoramaAprendizaje(ev) {
   return r;
 }
 
+/* Interpretación pedagógica transversal. No cambia las marcas del instrumento:
+   las listas de cotejo siguen siendo L / NL y las escalas conservan sus descriptores. */
+function nivelAprendizajePct(pct) {
+  if (pct === null || pct === undefined || !Number.isFinite(Number(pct))) return { clave: "sin", label: "Sin datos" };
+  const n = Number(pct);
+  if (n >= 80) return { clave: "logrado", label: "Logrado" };
+  if (n >= 60) return { clave: "proceso", label: "En proceso" };
+  return { clave: "apoyo", label: "Requiere apoyo" };
+}
+
+/* Porcentaje de logro solo sobre indicadores efectivamente observados.
+   Evita que una evaluación aún incompleta baje artificialmente la clasificación. */
+function porcentajeObservadoEstudiante(ev, i) {
+  let suma = 0, maximo = 0;
+  ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
+    if (esEscala(ev)) {
+      const v = nivelDe(ev, i, j, q);
+      if (v) { suma += puntosNivel(ev, v); maximo += maxNivel(ev); }
+    } else {
+      const v = marcaDe(ev, i, j, q);
+      if (v) {
+        const pts = Number(ind.pts) || 0;
+        maximo += pts;
+        if (v === 1) suma += pts;
+      }
+    }
+  }));
+  return maximo ? Math.round((suma / maximo) * 100) : null;
+}
+
 function estudiantesDelFoco(ev, f) {
   if (!f) return [];
   const lista = [];
@@ -6448,7 +6479,7 @@ function imprimirComparacion() {
       <td class="c-n">${k + 1}</td>
       <td class="c-nom izq">${esc(x.curso.nombre)}${x.curso.id === S.cursoId ? " ·" : ""}</td>
       <td><span class="barra-pdf"><i style="width:${x.pct || 0}%;
-        background:${x.pct === null ? "#d5e2ea" : x.pct < 50 ? "#b8392e" : x.pct < 70 ? "#d99a10" : "#1e8a5f"}"></i></span></td>
+        background:${x.pct === null ? "#d5e2ea" : x.pct < 60 ? "#b8392e" : x.pct < 80 ? "#d99a10" : "#1e8a5f"}"></i></span></td>
       <td class="c-pct">${x.pct === null ? "—" : x.pct + "%"}</td>
       <td class="c-nota">${num1(x.prom)}</td>
       <td class="c-asis">${x.evaluados}</td>
@@ -6496,21 +6527,23 @@ function imprimirInforme() {
     porInd.push({ rot: `${j + 1}.${q + 1}`, oa: c.oa, texto: ind.texto,
       pct: cont ? Math.round((suma / cont) * 100) : null, cont, sin });
   }));
-  const flojos = porInd.filter((x) => x.pct !== null && x.pct < 60);
+  const flojos = porInd.filter((x) => x.pct !== null && x.pct < 80);
 
   // logro de cada estudiante
   const porAlu = S.datos.roster.map((nom, i) => {
     const est = ev.estado[i] || 0;
     if (est) return { nom: nom || `N° ${i + 1}`, i, est };
     const r = resultado(ev, i);
-    return { nom: nom || `N° ${i + 1}`, i, est: 0, r,
-      pct: r.total ? Math.round((r.puntaje / r.total) * 100) : null,
+    const pct = porcentajeObservadoEstudiante(ev, i);
+    return { nom: nom || `N° ${i + 1}`, i, est: 0, r, pct, nivel: nivelAprendizajePct(pct),
       medidas: (ev.medidas && ev.medidas[i]) || [] };
   });
+  const pctCursoValidos = porAlu.filter((x) => !x.est && x.pct !== null).map((x) => x.pct);
+  const pctCursoObservado = pctCursoValidos.length ? Math.round(pctCursoValidos.reduce((a, b) => a + b, 0) / pctCursoValidos.length) : null;
 
   hojaInforme(Math.max(porAlu.length, porInd.length));
   const barra = (pct) => `<span class="barra-pdf"><i style="width:${pct || 0}%;
-    background:${pct === null ? "#d5e2ea" : pct < 50 ? "#b8392e" : pct < 70 ? "#d99a10" : "#1e8a5f"}"></i></span>`;
+    background:${pct === null ? "#d5e2ea" : pct < 60 ? "#b8392e" : pct < 80 ? "#d99a10" : "#1e8a5f"}"></i></span>`;
 
   $("#impresion").innerHTML = `
     ${membreteHTML()}
@@ -6519,9 +6552,9 @@ function imprimirInforme() {
       <tr><th>Curso</th><td>${esc(curso.nombre)}</td>
           <th>Fecha</th><td>${fechaLarga(ev.fecha)}</td>
           <th>Instrumento</th><td>${esEscala(ev) ? `Escala 1–${nNiveles(ev)}` : "Lista de cotejo"}</td></tr>
-      <tr><th>Estudiantes</th><td>${n - e.ausentes} evaluados${e.ausentes ? ` · ${e.ausentes} ausentes` : ""}</td>
+      <tr><th>Estudiantes</th><td>${e.evaluados}/${e.presentes} evaluados${e.ausentes ? ` · ${e.ausentes} ausentes` : ""}</td>
           <th>Promedio</th><td>${num1(e.prom)}</td>
-          <th>Logro del curso</th><td>${e.logro === null ? "—" : e.logro + "%"} · ${total} pts</td></tr>
+          <th>Logro del curso</th><td>${pctCursoObservado === null ? "—" : pctCursoObservado + "%"} · ${nivelAprendizajePct(pctCursoObservado).label}</td></tr>
     </tbody></table>
 
     <p class="rot-informe">Logro por indicador</p>
@@ -6533,18 +6566,19 @@ function imprimirInforme() {
       <td>${barra(x.pct)}</td>
       <td class="c-pct">${x.pct === null ? "—" : x.pct + "%"}</td>
       <td class="c-asis">${x.sin || ""}</td></tr>`).join("")}</tbody></table>
-    ${flojos.length ? `<p class="nota-med"><b>Indicadores bajo 60%:</b>
-      ${flojos.map((x) => `${x.rot} (${x.pct}%)`).join(" · ")}. Conviene retomarlos en la próxima clase.</p>` : ""}
+    ${flojos.length ? `<p class="nota-med"><b>Indicadores prioritarios bajo 80%:</b>
+      ${flojos.map((x) => `${x.rot} (${x.pct}% · ${nivelAprendizajePct(x.pct).label})`).join(" · ")}. Conviene retomarlos en la próxima clase.</p>` : ""}
 
     <p class="rot-informe">Logro por estudiante</p>
     <table><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
-      <th class="col-barra">Logro</th><th class="c-pct">%</th><th class="c-pts">Pts</th>
+      <th class="col-barra">Logro</th><th class="c-pct">%</th><th style="width:13%">Nivel</th><th class="c-pts">Pts</th>
       <th class="c-nota">Nota</th><th class="izq">Medidas remediales</th></tr></thead>
     <tbody>${porAlu.map((x, k) => `<tr>
       <td class="c-n">${k + 1}</td>
       <td class="c-nom izq">${esc(x.nom)}</td>
       <td>${x.est ? "" : barra(x.pct)}</td>
       <td class="c-pct">${x.est ? (x.est === 1 ? "A" : "J") : (x.pct === null ? "—" : x.pct + "%")}</td>
+      <td class="${x.est || !x.nivel ? "" : x.nivel.clave === "logrado" ? "res-ok" : x.nivel.clave === "proceso" ? "res-proceso" : "res-no"}">${x.est ? "" : esc(x.nivel.label)}</td>
       <td class="c-pts">${x.est ? "" : `${x.r.puntaje}/${x.r.total}`}</td>
       <td class="c-nota">${x.est ? "" : num1(x.r.nota)}</td>
       <td class="izq">${x.est ? "" : esc((x.medidas || []).join("; "))}</td></tr>`).join("")}</tbody></table>`;
@@ -6568,22 +6602,30 @@ function imprimirInformeAlumno(i) {
       let estado, ok;
       if (esEscala(ev)) {
         const v = nivelDe(ev, i, j, q);
-        ok = v ? puntosNivel(ev, v) / maxNivel(ev) >= 0.6 : null;
+        const ratio = v ? puntosNivel(ev, v) / maxNivel(ev) : null;
+        ok = ratio === null ? null : ratio >= 0.8 ? true : ratio < 0.6 ? false : "proceso";
+        // Evidencia original de la escala: se conserva el descriptor configurado en el instrumento.
         estado = v ? descriptorDe(ev, c, v - 1) : "sin marcar";
       } else {
         const v = marcaDe(ev, i, j, q);
         ok = v === 1 ? true : v === 2 ? false : null;
-        estado = v === 1 ? "Logrado" : v === 2 ? "Por lograr" : "sin marcar";
+        // La lista de cotejo no se transforma en una escala de tres niveles.
+        estado = v === 1 ? "L · Logrado" : v === 2 ? "NL · No logrado" : "sin marcar";
       }
       filas.push({ rot: `${j + 1}.${q + 1}`, oa: c.oa, texto: ind.texto, estado, ok });
     }));
     const r = resultado(ev, i);
-    return { ev, filas, r, pct: r.total ? Math.round((r.puntaje / r.total) * 100) : null,
+    const pct = porcentajeObservadoEstudiante(ev, i);
+    return { ev, filas, r, pct, nivel: nivelAprendizajePct(pct),
       medidas: (ev.medidas && ev.medidas[i]) || [] };
   });
 
   const logrados = detalle.flatMap((d) => d.filas).filter((x) => x.ok === true);
+  const enProceso = detalle.flatMap((d) => d.filas).filter((x) => x.ok === "proceso");
   const porLograr = detalle.flatMap((d) => d.filas).filter((x) => x.ok === false);
+  const pctValidos = detalle.map((d) => d.pct).filter((x) => x !== null);
+  const pctGlobal = pctValidos.length ? Math.round(pctValidos.reduce((a, b) => a + b, 0) / pctValidos.length) : null;
+  const nivelGlobal = nivelAprendizajePct(pctGlobal);
 
   $("#impresion").innerHTML = `
     ${membreteHTML()}
@@ -6593,8 +6635,8 @@ function imprimirInformeAlumno(i) {
           <th>Asignatura</th><td>Educación Física y Salud</td>
           <th>Promedio</th><td>${num1(f.prom)}</td></tr>
       <tr><th>Evaluaciones</th><td>${f.items.length}</td>
-          <th>Fortalezas</th><td>${logrados.length} indicadores logrados</td>
-          <th>Por reforzar</th><td>${porLograr.length} indicadores</td></tr>
+          <th>Interpretación global</th><td class="${nivelGlobal.clave === "logrado" ? "res-ok" : nivelGlobal.clave === "proceso" ? "res-proceso" : nivelGlobal.clave === "apoyo" ? "res-no" : ""}">${pctGlobal === null ? "Sin datos" : `${nivelGlobal.label} · ${pctGlobal}%`}</td>
+          <th>Indicadores</th><td>${logrados.length} logrados${enProceso.length ? ` · ${enProceso.length} en proceso` : ""}${porLograr.length ? ` · ${porLograr.length} por reforzar` : ""}</td></tr>
     </tbody></table>
     ${ade.length ? `<p class="nota-dua"><b>Adecuaciones curriculares · Decreto 83/2015.</b>
       ${ade.map((t) => esc(t)).join("; ")}</p>` : ""}
@@ -6602,12 +6644,13 @@ function imprimirInformeAlumno(i) {
     <p class="rot-informe">Resultado de cada evaluación</p>
     ${detalle.map((d) => `
       <p class="eval-titulo"><b>${esc(d.ev.nombre)}</b> · ${fechaLarga(d.ev.fecha)} ·
-        nota ${num1(d.r.nota)} · ${d.pct === null ? "—" : d.pct + "%"} de logro</p>
+        nota ${num1(d.r.nota)} · ${d.pct === null ? "—" : d.pct + "%"} de logro ·
+        <span class="${d.nivel.clave === "logrado" ? "res-ok" : d.nivel.clave === "proceso" ? "res-proceso" : d.nivel.clave === "apoyo" ? "res-no" : ""}">${esc(d.nivel.label)}</span></p>
       <table><thead><tr><th class="c-n">N°</th><th class="izq">Indicador</th><th style="width:22%">Resultado</th></tr></thead>
       <tbody>${d.filas.map((x) => `<tr>
         <td class="c-n mono">${x.rot}</td>
         <td class="izq">${esc(x.texto || "sin redactar")}</td>
-        <td class="${x.ok === true ? "res-ok" : x.ok === false ? "res-no" : ""}">${esc(x.estado)}</td></tr>`).join("")}</tbody></table>
+        <td class="${x.ok === true ? "res-ok" : x.ok === "proceso" ? "res-proceso" : x.ok === false ? "res-no" : ""}">${esc(x.estado)}</td></tr>`).join("")}</tbody></table>
       ${d.medidas.length ? `<p class="nota-med"><b>Apoyo entregado:</b> ${d.medidas.map((t) => esc(t)).join("; ")}</p>` : ""}
       ${(d.ev.obs[i] || "").trim() ? `<p class="obs-informe"><b>Observación:</b> ${esc(d.ev.obs[i])}</p>` : ""}`).join("")}
 
