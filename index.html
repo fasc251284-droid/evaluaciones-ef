@@ -1045,6 +1045,24 @@ body.modo-cancha-activo .zona-desliz>.fila:last-child .btn{min-height:48px}
 @media(max-width:760px){.dashboard-v130 .acciones-esenciales-v136{grid-template-columns:1fr 1fr}.dashboard-v130 .acciones-esenciales-v136 .accion-continuar-v136{grid-column:1/-1}.dashboard-v130 .acciones-esenciales-v136 .btn{min-height:48px;font-size:12px}}
 @media(max-width:390px){.dashboard-v130 .acciones-esenciales-v136{grid-template-columns:1fr}.dashboard-v130 .acciones-esenciales-v136 .accion-continuar-v136{grid-column:auto}}
 
+
+/* ===== v139 · Ajustes visibles + acceso claro a nueva lista ===== */
+.dashboard-v130 .acciones-principales-v139{grid-template-columns:minmax(0,1.25fr) minmax(0,.82fr) minmax(0,.95fr) minmax(0,.95fr)}
+.dashboard-v130 .acciones-principales-v139 .btn-ajustes-v139{border-color:#d6b24a;background:#fffaf0;color:#745706;box-shadow:0 2px 7px rgba(116,87,6,.05)}
+.dashboard-v130 .acciones-principales-v139 .btn-ajustes-v139::before{content:"⚙";display:grid;place-items:center;width:25px;height:25px;border-radius:8px;background:#fff2c8;color:#8a6500;font-size:14px;font-weight:900}
+.dashboard-v130 .selector-listas-v130 .tira.nueva-v139{min-width:112px;gap:5px;flex-direction:column;font-size:11px;font-weight:850;line-height:1.1;color:#176a9c;border-color:#8fc4df;background:#f7fbfe}
+.dashboard-v130 .selector-listas-v130 .tira.nueva-v139 .nueva-plus{font-size:21px;line-height:1;color:#0874b9}
+.dashboard-v130 .selector-listas-v130 .tira.nueva-v139:hover{background:#eef8fd;border-color:#5da7cf}
+@media(max-width:760px){
+  .dashboard-v130 .acciones-principales-v139{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .dashboard-v130 .acciones-principales-v139 .accion-continuar-v136{grid-column:1/-1}
+  .dashboard-v130 .acciones-principales-v139 .btn-ajustes-v139{grid-column:1/-1}
+}
+@media(max-width:390px){
+  .dashboard-v130 .acciones-principales-v139{grid-template-columns:1fr}
+  .dashboard-v130 .acciones-principales-v139 .accion-continuar-v136,.dashboard-v130 .acciones-principales-v139 .btn-ajustes-v139{grid-column:auto}
+}
+
 /* ===== v137 · Corrección responsive iPhone/tablet ===== */
 html,body,#raiz{max-width:100%;overflow-x:hidden}
 .envoltura,.dashboard-v130,.dashboard-v130>*{min-width:0;box-sizing:border-box}
@@ -3581,10 +3599,11 @@ function cabeceraEvaluacion() {
         <div class="hero-activity-icon">${iconoActividad(ev)}</div>
       </div>
 
-      <div class="acciones-esenciales-v136">
+      <div class="acciones-esenciales-v136 acciones-principales-v139">
         <button class="btn btn-lleno accion-continuar-v136" data-accion="ir-evaluacion">Continuar evaluación</button>
         <button class="btn btn-resumen" data-accion="pestana" data-v="resumen">Ver resumen</button>
         <button class="btn btn-informe-v136" data-accion="informe-estudiante">Informe por estudiante</button>
+        <button class="btn btn-ajustes-v139" data-accion="ajustes">${S.ajustes ? "Cerrar ajustes" : "Ajustes de la lista"}</button>
       </div>
       <button class="mas-opciones-boton-v138" data-accion="mas-opciones" aria-label="Abrir más opciones"><span class="mas-dots" aria-hidden="true">•••</span><span>Más opciones</span><span class="mas-chevron" aria-hidden="true">›</span></button>
     </section>
@@ -3615,7 +3634,7 @@ function cabeceraEvaluacion() {
 
     <div class="tools-v130">
       <details class="selector-listas-v130"><summary>Cambiar lista · ${lista.length} ${lista.length === 1 ? "lista" : "listas"}</summary>
-        <div class="tiras v2">${lista.map((x, i) => `<button class="tira ${i === S.evalIdx ? "activa" : ""}" data-accion="abrir-eval" data-i="${i}" title="${esc(x.nombre || `Lista ${i + 1}`)}"><b>Lista ${i + 1}</b><small>${corto(x.fecha)}</small><span class="tira-nombre">${esc(x.nombre || "Sin nombre")}</span></button>`).join("")}<button class="tira nueva" data-accion="nueva-eval" title="Nueva lista de cotejo">+</button></div>
+        <div class="tiras v2">${lista.map((x, i) => `<button class="tira ${i === S.evalIdx ? "activa" : ""}" data-accion="abrir-eval" data-i="${i}" title="${esc(x.nombre || `Lista ${i + 1}`)}"><b>Lista ${i + 1}</b><small>${corto(x.fecha)}</small><span class="tira-nombre">${esc(x.nombre || "Sin nombre")}</span></button>`).join("")}<button class="tira nueva nueva-v139" data-accion="nueva-eval" title="Nueva lista de cotejo"><span class="nueva-plus">＋</span><span>Nueva lista</span></button></div>
       </details>
     </div>
 
@@ -4638,7 +4657,6 @@ document.addEventListener("click", async (evt) => {
       <div class="mas-opciones-seccion">Lista y ayuda</div>
       <div class="mas-opciones-grid">
         <button class="btn" data-accion="duplicar-eval">Duplicar esta lista</button>
-        <button class="btn" data-accion="ajustes">${S.ajustes ? "Cerrar ajustes" : "Ajustes de la lista"}</button>
         <button class="btn" data-accion="ayuda">¿Cómo funciona?</button>
       </div>
       <div class="fila" style="margin-top:14px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
