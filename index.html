@@ -949,6 +949,69 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .dashboard-v130 .hero-head-v132{grid-template-columns:minmax(0,1fr) 70px}.dashboard-v130 .hero-activity-icon{width:70px;height:70px}.dashboard-v130 .hero-activity-icon svg{width:58px;height:58px}.dashboard-v130 .hero-title{font-size:25px}.dashboard-v130 .hero-meta-v132{gap:5px}.dashboard-v130 .hero-date-inline{width:100%;justify-content:flex-start}.dashboard-v130 .hero-date-inline input{width:auto;flex:1}
 }
 
+
+
+/* ===== v134 · Ficha de progreso + Modo cancha ===== */
+.progreso-seleccion{display:grid;gap:7px;max-height:48vh;overflow:auto}
+.progreso-persona{display:grid;grid-template-columns:42px 1fr auto;gap:10px;align-items:center;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:10px 11px;min-height:58px}
+.progreso-persona .avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:#eaf5fd;color:#075f9f;font-weight:850;font-size:12px}
+.progreso-persona b{display:block;font-size:13.5px;color:var(--ink)}
+.progreso-persona small{display:block;margin-top:2px;color:var(--soft);font-size:11.5px}
+.progreso-persona .flecha{font-size:22px;color:#7a94a6}
+.progreso-resumen{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:10px 0 12px}
+.progreso-kpi{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:9px 7px;text-align:center}
+.progreso-kpi strong{display:block;font-family:var(--display);font-size:20px;color:#075f9f;line-height:1.05}
+.progreso-kpi span{display:block;font-size:9.5px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em;margin-top:3px}
+.progreso-grafico{border:1px solid var(--line);border-radius:12px;background:#fbfdff;padding:8px 8px 5px;overflow:hidden}
+.progreso-grafico svg{display:block;width:100%;height:auto;min-height:145px}
+.progreso-grafico .grid{stroke:#dce8ef;stroke-width:1;stroke-dasharray:3 4}
+.progreso-grafico .linea{fill:none;stroke:#0874c1;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.progreso-grafico .punto{fill:#fff;stroke:#0874c1;stroke-width:3}
+.progreso-grafico .punto.ultimo{fill:#e7a20a;stroke:#c78500}
+.progreso-grafico text{font-family:Arial,sans-serif;fill:#5d7383;font-size:9px}
+.progreso-grafico .valor{font-weight:800;fill:#153f5b;font-size:9.5px}
+.progreso-lista{display:grid;gap:6px;margin-top:8px}
+.progreso-item{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:9px;padding:8px 10px;background:var(--surface)}
+.progreso-item b{display:block;font-size:12.5px;line-height:1.25}
+.progreso-item small{display:block;color:var(--soft);font-size:10.5px;margin-top:2px}
+.progreso-item em{font-style:normal;font-family:var(--mono);font-size:12px;font-weight:800;padding:4px 7px;border-radius:999px;background:#fbeceb;color:#a3322a}
+.progreso-item.mejora em{background:#e6f5ee;color:#1c7a55}
+.btn-cancha{background:linear-gradient(135deg,#f0ad12,#df9400)!important;border-color:#d78e00!important;color:#fff!important}
+.btn-cancha::before{content:"☀";font-size:17px;margin-right:3px}
+.cancha-cab{position:sticky;top:58px;z-index:24;margin:0 0 10px;background:linear-gradient(135deg,#063f70,#0874b9);color:#fff;border-radius:14px;padding:11px 12px;box-shadow:0 7px 20px rgba(6,63,112,.22)}
+.cancha-cab .cancha-linea{display:grid;grid-template-columns:48px 1fr auto;gap:10px;align-items:center}
+.cancha-cab .cancha-icon{width:46px;height:46px;border-radius:11px;background:#fff;display:grid;place-items:center;padding:4px}
+.cancha-cab .cancha-icon svg{width:40px;height:40px}
+.cancha-cab h2{margin:0;color:#fff;font-size:17px;line-height:1.15}
+.cancha-cab p{margin:3px 0 0;color:#d9ecf8;font-size:11.5px}
+.cancha-cab .cancha-salir{min-height:42px;border-radius:10px;background:#fff;color:#064b7f;border:0;font-weight:850;padding:0 12px}
+body.modo-cancha-activo{background:#eef6fb}
+body.modo-cancha-activo .barra-inf{display:none!important}
+body.modo-cancha-activo .envoltura{padding-bottom:20px;max-width:780px}
+body.modo-cancha-activo .barra-sup .escudo-barra{width:30px;height:30px}
+body.modo-cancha-activo .zona-desliz{border-radius:15px;box-shadow:0 5px 18px rgba(18,67,98,.08);padding:12px}
+body.modo-cancha-activo .alumno-nav-cancha{position:sticky;top:131px;z-index:20;background:var(--surface);padding:8px 0 10px;border-bottom:1px solid var(--line);margin-bottom:12px!important}
+body.modo-cancha-activo .alumno-nav-cancha .btn,body.modo-cancha-activo .alumno-nav-cancha select{min-height:52px;font-size:14px;font-weight:800}
+body.modo-cancha-activo .alumno-resumen-cancha h2{font-size:25px}
+body.modo-cancha-activo .alumno-resumen-cancha .nota{font-size:22px!important;padding:7px 10px}
+body.modo-cancha-activo .criterio-linea{padding:15px 0}
+body.modo-cancha-activo .criterio-linea .rotulo span{font-size:15px;line-height:1.35}
+body.modo-cancha-activo .indicador{grid-template-columns:auto 1fr 42px;gap:12px;font-size:15px;padding:7px 0}
+body.modo-cancha-activo .par-cas{gap:10px}
+body.modo-cancha-activo .cas,body.modo-cancha-activo .par-cas.compacto .cas{width:58px;height:58px;flex:0 0 58px;border-radius:13px;font-size:27px;border-width:2px}
+body.modo-cancha-activo .medidor .nivel{min-height:55px}
+body.modo-cancha-activo .obs-boton{min-height:50px;font-size:14px;font-weight:750}
+body.modo-cancha-activo .zona-desliz>.fila:last-child .btn{min-height:48px}
+@media(max-width:560px){
+  .progreso-resumen{grid-template-columns:repeat(3,1fr)}
+  .cancha-cab{top:54px;border-radius:0;margin-left:-12px;margin-right:-12px}
+  .cancha-cab .cancha-linea{grid-template-columns:42px 1fr auto}.cancha-cab .cancha-icon{width:40px;height:40px}.cancha-cab .cancha-icon svg{width:35px;height:35px}
+  .cancha-cab h2{font-size:15px}.cancha-cab .cancha-salir{padding:0 9px;font-size:12px}
+  body.modo-cancha-activo .alumno-nav-cancha{top:119px;display:grid!important;grid-template-columns:auto 1fr auto;gap:6px}
+  body.modo-cancha-activo .alumno-nav-cancha .btn{padding:0 8px;font-size:12px}
+  body.modo-cancha-activo .cas,body.modo-cancha-activo .par-cas.compacto .cas{width:54px;height:54px;flex-basis:54px}
+}
+
 </style>
 </head>
 <body>
@@ -2875,7 +2938,7 @@ const S = {
   cursoId: localStorage.getItem(PREFIJO + "ultimoCurso") || "c6",
   datos: null, cargando: true, errorCarga: "",
   evalIdx: 0, pestana: "evaluar", modo: "planilla", criterioActivo: 0, alumnoActivo: 0,
-  ajustes: false, guardado: "ok", detalleError: ""
+  ajustes: false, guardado: "ok", detalleError: "", modoCancha: false
 };
 
 const evalActual = () => (S.datos ? S.datos.evaluaciones[Math.min(S.evalIdx, S.datos.evaluaciones.length - 1)] : null);
@@ -3195,6 +3258,7 @@ function refrescarMarca(ev, i, j, q) {
 }
 
 function pintar() {
+  document.body.classList.toggle("modo-cancha-activo", !!S.modoCancha);
   const raiz = $("#raiz");
   if (S.verificando) { raiz.innerHTML = `<div class="vacio" style="padding-top:60px">Verificando sesión…</div>`; return; }
   if (!S.sesion && !S.sinCuenta) { raiz.innerHTML = vistaIngreso(); return; }
@@ -3404,6 +3468,17 @@ function iconoActividad(ev) {
   return `<svg ${comunes} aria-label="Educación Física"><rect x="28" y="24" width="64" height="76" rx="10" fill="#fff" stroke="#0874C1" stroke-width="5"/><rect x="45" y="17" width="30" height="16" rx="7" fill="#E7A20A"/><path d="M43 50l7 7 13-14M43 72l7 7 13-14M69 52h12M69 74h12" fill="none" stroke="#0874C1" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 
+function cabeceraCancha(ev) {
+  const e = estadisticas(ev);
+  return `<div class="cancha-cab no-imprimir">
+    <div class="cancha-linea">
+      <div class="cancha-icon">${iconoActividad(ev)}</div>
+      <div><h2>${esc(ev.nombre || "Evaluación")}</h2><p>${e.evaluados}/${e.presentes} evaluados · ${e.logro === null ? "sin logro aún" : e.logro + "% de logro"} · ${fechaLarga(ev.fecha)}</p></div>
+      <button class="cancha-salir" data-accion="modo-cancha-salir">Salir</button>
+    </div>
+  </div>`;
+}
+
 function cabeceraEvaluacion() {
   const ev = evalActual(), lista = S.datos.evaluaciones;
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
@@ -3445,6 +3520,8 @@ function cabeceraEvaluacion() {
       </div>
 
       <div class="quick-actions-v130">
+        <button class="quick-action" data-accion="modo-cancha"><span class="qicon">☀</span><span>Modo cancha</span></button>
+        <button class="quick-action" data-accion="progreso-estudiante"><span class="qicon">↗</span><span>Progreso por estudiante</span></button>
         <button class="quick-action" data-accion="informe-estudiante"><span class="qicon">ID</span><span>Informe por estudiante</span></button>
         <button class="quick-action qexcel" data-accion="excel"><span class="qicon">X</span><span>Exportar<br>(Excel)</span></button>
         <button class="quick-action qpdf" data-accion="notas-curso"><span class="qicon">PDF</span><span>Informe<br>PDF</span></button>
@@ -3658,6 +3735,7 @@ function pasosHTML() {
 /* --- Pestaña Evaluar --- */
 function vistaEvaluar() {
   const ev = evalActual();
+  if (S.modoCancha && S.datos.roster.length) return cabeceraCancha(ev) + vistaPorAlumno(ev);
   if (!S.datos.roster.length) {
     const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
     return `<div class="tarjeta">
@@ -3874,14 +3952,14 @@ function vistaPorAlumno(ev) {
   const est = ev.estado[i] || 0;
   return `
   <div class="tarjeta zona-desliz">
-    <div class="fila fila-sep no-imprimir" style="margin-bottom:10px">
+    <div class="fila fila-sep no-imprimir alumno-nav-cancha" style="margin-bottom:10px">
       <button class="btn btn-mini" data-accion="alumno-mover" data-d="-1" ${i === 0 ? "disabled" : ""}>‹ Anterior</button>
       <select data-accion="elegir-alumno" style="flex:1;min-width:140px">
         ${S.datos.roster.map((n, k) => `<option value="${k}" ${k === i ? "selected" : ""}>${esc(n || "—")}</option>`).join("")}
       </select>
       <button class="btn btn-mini" data-accion="alumno-mover" data-d="1" ${i === S.datos.roster.length - 1 ? "disabled" : ""}>Siguiente ›</button>
     </div>
-    <div class="fila fila-sep" style="border-bottom:1px solid var(--line);padding-bottom:10px">
+    <div class="fila fila-sep alumno-resumen-cancha" style="border-bottom:1px solid var(--line);padding-bottom:10px">
       <div>
         <h2>${esc(S.datos.roster[i] || "—")}</h2>
         <p class="sub" style="margin:2px 0 0">${esEscala(ev) ? `${r.marcados} de ${totalIndicadores(ev)} indicadores evaluados` : `${r.logrados} de ${totalIndicadores(ev)} indicadores logrados`} · ${r.puntaje} de ${r.total} pts${r.sinMarca ? ` · ${r.sinMarca} sin marcar` : ""}</p>
@@ -4182,6 +4260,79 @@ function trayectoriaIndicadores(i) {
     .map((x) => ({ ...x, avance: x.hitos[x.hitos.length - 1].logro - x.hitos[0].logro }));
 }
 
+
+function progresoGeneral(i) {
+  const puntos = [];
+  S.datos.evaluaciones.forEach((ev, k) => {
+    if (ev.estado[i]) return;
+    const r = resultado(ev, i);
+    if (!r || !r.marcados) return;
+    const pct = r.total ? Math.round((r.puntaje / r.total) * 100) : null;
+    if (pct === null) return;
+    puntos.push({ k, nombre: ev.nombre || `Lista ${k + 1}`, fecha: ev.fecha, pct, nota: r.nota });
+  });
+  const primero = puntos[0], ultimo = puntos[puntos.length - 1];
+  const tendencia = primero && ultimo && puntos.length > 1 ? ultimo.pct - primero.pct : 0;
+  return { puntos, tendencia };
+}
+
+function indicadoresPendientes(i) {
+  const mapa = new Map();
+  S.datos.evaluaciones.forEach((ev, ek) => {
+    if (ev.estado[i]) return;
+    ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
+      const texto = (ind.texto || "").trim();
+      if (!texto) return;
+      let pct = null;
+      if (esEscala(ev)) {
+        const v = nivelDe(ev, i, j, q);
+        if (v) pct = Math.round((puntosNivel(ev, v) / maxNivel(ev)) * 100);
+      } else {
+        const v = marcaDe(ev, i, j, q);
+        if (v) pct = v === 1 ? 100 : 0;
+      }
+      if (pct === null) return;
+      mapa.set(texto, { texto, pct, oa: c.oa || "", lista: ev.nombre || `Lista ${ek + 1}`, fecha: ev.fecha });
+    }));
+  });
+  return [...mapa.values()].filter((x) => x.pct < 70).sort((a,b) => a.pct - b.pct || (b.fecha || "").localeCompare(a.fecha || ""));
+}
+
+function graficoProgresoHTML(i) {
+  const g = progresoGeneral(i), pts = g.puntos.slice(-8);
+  if (!pts.length) return `<div class="vacio" style="padding:18px 8px"><strong>Sin datos todavía</strong>El gráfico aparecerá cuando el estudiante tenga al menos una evaluación marcada.</div>`;
+  const W = 330, H = 150, L = 24, R = 12, T = 18, B = 30;
+  const usableW = W - L - R, usableH = H - T - B;
+  const xy = pts.map((p, n) => {
+    const x = pts.length === 1 ? L + usableW/2 : L + (n * usableW/(pts.length-1));
+    const y = T + (100 - p.pct) * usableH/100;
+    return { ...p, x, y };
+  });
+  const poly = xy.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const guias = [100,80,60,40].map(v => { const y=T+(100-v)*usableH/100; return `<line class="grid" x1="${L}" y1="${y}" x2="${W-R}" y2="${y}"/><text x="2" y="${y+3}">${v}</text>`; }).join('');
+  const puntos = xy.map((p,n) => `<circle class="punto ${n===xy.length-1?'ultimo':''}" cx="${p.x}" cy="${p.y}" r="5"/><text class="valor" text-anchor="middle" x="${p.x}" y="${Math.max(10,p.y-9)}">${p.pct}%</text><text text-anchor="middle" x="${p.x}" y="${H-9}">${(p.fecha||'').slice(5).split('-').reverse().join('/') || n+1}</text>`).join('');
+  return `<div class="progreso-grafico"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución del porcentaje de logro">${guias}${xy.length>1?`<polyline class="linea" points="${poly}"/>`:''}${puntos}</svg></div>`;
+}
+
+function progresoEstudianteHTML(i) {
+  const f = fichaDe(i), g = progresoGeneral(i), pendientes = indicadoresPendientes(i).slice(0,6);
+  const tr = trayectoriaIndicadores(i);
+  const mejoras = tr.filter(x=>x.avance>0).sort((a,b)=>b.avance-a.avance).slice(0,4);
+  const ultima = g.puntos[g.puntos.length-1];
+  const tendenciaTxt = g.puntos.length < 2 ? '—' : `${g.tendencia > 0 ? '+' : ''}${g.tendencia}%`;
+  return `<div class="progreso-resumen">
+      <div class="progreso-kpi"><strong>${num1(f.prom)}</strong><span>Promedio</span></div>
+      <div class="progreso-kpi"><strong>${g.puntos.length}</strong><span>Evaluaciones</span></div>
+      <div class="progreso-kpi"><strong>${tendenciaTxt}</strong><span>Evolución</span></div>
+    </div>
+    <p class="rotulo-seccion" style="margin:10px 0 6px">Evolución del logro</p>
+    ${graficoProgresoHTML(i)}
+    ${ultima ? `<p class="sub" style="margin:6px 0 0">Último resultado registrado: <b>${ultima.pct}%</b> · nota ${num1(ultima.nota)} · ${esc(ultima.nombre)}</p>` : ''}
+    <p class="rotulo-seccion" style="margin:14px 0 6px">Indicadores que requieren apoyo</p>
+    ${pendientes.length ? `<div class="progreso-lista">${pendientes.map(x=>`<div class="progreso-item"><div><b>${esc(x.texto)}</b><small>${esc(x.oa || x.lista)} · última evidencia ${fechaLarga(x.fecha)}</small></div><em>${x.pct}%</em></div>`).join('')}</div>` : `<p class="sub" style="margin:0">No aparecen indicadores bajo 70% en la evidencia más reciente registrada.</p>`}
+    ${mejoras.length ? `<p class="rotulo-seccion" style="margin:14px 0 6px">Mejoras observadas</p><div class="progreso-lista">${mejoras.map(x=>`<div class="progreso-item mejora"><div><b>${esc(x.texto)}</b><small>${x.hitos.length} mediciones del mismo indicador</small></div><em>+${x.avance}%</em></div>`).join('')}</div>` : ''}`;
+}
+
 function fichaHTML(i) {
   const f = fichaDe(i);
   return f.items.map((x) => `
@@ -4411,11 +4562,25 @@ document.addEventListener("click", async (evt) => {
   if (a === "curso") { S.menuCurso = false; await cargarCurso(btn.dataset.id); return; }
   if (a === "menu-curso") { S.menuCurso = !S.menuCurso; pintar(); return; }
   if (a === "cerrar-menu") { S.menuCurso = false; pintar(); return; }
-  if (a === "pestana") { S.pestana = btn.dataset.v; pintar(); return; }
+  if (a === "pestana") { S.pestana = btn.dataset.v; if (S.pestana !== "evaluar") S.modoCancha = false; pintar(); return; }
   if (a === "modo") { S.modo = btn.dataset.v; pintar(); return; }
   if (a === "criterio") { S.criterioActivo = +btn.dataset.j; pintar(); return; }
   if (a === "ajustes") { S.ajustes = !S.ajustes; pintar(); return; }
   if (a === "abrir-eval") { S.evalIdx = +btn.dataset.i; S.pestana = "evaluar"; S.criterioActivo = 0; pintar(); return; }
+  if (a === "modo-cancha") {
+    if (!S.datos.roster.length) { abrirModal(`<h3>Modo cancha</h3><p class="sub">Primero debes cargar la nómina del curso.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return; }
+    S.modoCancha = true; S.pestana = "evaluar"; S.modo = "alumno"; S.alumnoActivo = Math.min(S.alumnoActivo, S.datos.roster.length - 1); pintar(); window.scrollTo({top:0,behavior:'smooth'}); return;
+  }
+  if (a === "modo-cancha-salir") { S.modoCancha = false; pintar(); window.scrollTo({top:0,behavior:'smooth'}); return; }
+  if (a === "progreso-estudiante") {
+    if (!S.datos.roster.length) { abrirModal(`<h3>Progreso por estudiante</h3><p class="sub">Primero debes agregar estudiantes a la nómina.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return; }
+    const filas = S.datos.roster.map((nom,i)=>{ const f=fichaDe(i), g=progresoGeneral(i); const ini=(nom||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase(); return `<button class="progreso-persona" data-accion="ver-progreso" data-i="${i}"><span class="avatar">${esc(ini||String(i+1))}</span><span><b>${esc(nom||`Estudiante ${i+1}`)}</b><small>${g.puntos.length} evaluación${g.puntos.length===1?'':'es'} con datos · promedio ${num1(f.prom)}</small></span><span class="flecha">›</span></button>`; }).join('');
+    abrirModal(`<h3>Progreso por estudiante</h3><p class="sub" style="margin:5px 0 10px">Selecciona un estudiante para ver su evolución, indicadores que requieren apoyo y mejoras observadas.</p><div class="progreso-seleccion">${filas}</div><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return;
+  }
+  if (a === "ver-progreso") {
+    const i=+btn.dataset.i, nombre=S.datos.roster[i]||`Estudiante ${i+1}`;
+    abrirModal(`<h3>Ficha de progreso · ${esc(nombre)}</h3><p class="sub" style="margin:4px 0 0">Seguimiento acumulado de las evaluaciones registradas en este curso.</p>${progresoEstudianteHTML(i)}<div class="fila" style="margin-top:14px"><button class="btn btn-lleno" data-accion="informe-alumno" data-i="${i}">Informe para el apoderado</button><button class="btn" data-accion="ficha" data-i="${i}">Ver historial completo</button><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return;
+  }
   if (a === "ir-evaluacion") {
     S.pestana = "evaluar"; S.modo = "planilla"; pintar();
     requestAnimationFrame(() => document.querySelector(".pestanas.no-imprimir")?.scrollIntoView({ behavior: "smooth", block: "start" }));
@@ -4590,7 +4755,8 @@ document.addEventListener("click", async (evt) => {
             </div>`).join("")}</div>`;
       })()}
       <div class="fila" style="margin-top:10px">
-        <button class="btn btn-lleno" data-accion="informe-alumno" data-i="${i}">Informe para el apoderado</button>
+        <button class="btn btn-lleno" data-accion="ver-progreso" data-i="${i}">Ficha de progreso</button>
+        <button class="btn" data-accion="informe-alumno" data-i="${i}">Informe para el apoderado</button>
         <button class="btn" data-accion="imprimir-ficha" data-i="${i}">Solo las notas</button>
         <button class="btn" data-accion="cerrar-modal">Cerrar</button>
       </div>`);
