@@ -1028,10 +1028,20 @@ body.modo-cancha-activo .zona-desliz>.fila:last-child .btn{min-height:48px}
 .dashboard-v130 .acciones-esenciales-v136 .accion-continuar-v136::before{content:"▶";display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#fff;color:#0874b9;font-size:11px}
 .dashboard-v130 .acciones-esenciales-v136 .btn-resumen::before{content:"▥";font-size:18px;color:#547182}
 .dashboard-v130 .acciones-esenciales-v136 .btn-informe-v136::before{content:"ID";display:grid;place-items:center;width:25px;height:25px;border-radius:8px;background:#eef7fd;color:#0875b9;border:1px solid #d4eaf7;font-size:9px;font-weight:900}
-.dashboard-v130 .mas-opciones-link-v136{margin:10px auto 0;display:flex;align-items:center;justify-content:center;gap:7px;border:0;background:transparent;color:#5e7788;font-size:11.5px;font-weight:800;padding:6px 10px;cursor:pointer}
-.dashboard-v130 .mas-opciones-link-v136 span{letter-spacing:2px;font-size:15px;line-height:1}
-.dashboard-v130 .mas-opciones-link-v136:active{transform:scale(.98)}
-:root[data-tema="oscuro"] .dashboard-v130 .mas-opciones-link-v136{color:#b9cad4}
+/* v138 · Más opciones como botón secundario real */
+.dashboard-v130 .mas-opciones-boton-v138{
+  margin:10px 0 0;width:100%;min-height:45px;display:flex;align-items:center;justify-content:center;gap:9px;
+  border:1.5px solid #b9d8eb;border-radius:12px;background:#fff;color:#176a9c;
+  font-size:12.5px;font-weight:850;padding:9px 14px;cursor:pointer;box-sizing:border-box;
+  box-shadow:0 2px 7px rgba(16,86,128,.04);transition:background .15s,border-color .15s,transform .08s
+}
+.dashboard-v130 .mas-opciones-boton-v138 .mas-dots{display:grid;place-items:center;width:29px;height:29px;border-radius:9px;background:#eef7fc;color:#176a9c;letter-spacing:2px;font-size:14px;line-height:1}
+.dashboard-v130 .mas-opciones-boton-v138 .mas-chevron{margin-left:auto;font-size:20px;line-height:1;color:#6d91a8;font-weight:600}
+.dashboard-v130 .mas-opciones-boton-v138:hover{background:#f7fbfe;border-color:#86bddc}
+.dashboard-v130 .mas-opciones-boton-v138:active{transform:scale(.995);background:#eef7fc}
+:root[data-tema="oscuro"] .dashboard-v130 .mas-opciones-boton-v138{background:#16262f;border-color:#36596d;color:#d8ecf7}
+:root[data-tema="oscuro"] .dashboard-v130 .mas-opciones-boton-v138 .mas-dots{background:#203846;color:#9dd6f4}
+:root[data-tema="oscuro"] .dashboard-v130 .mas-opciones-boton-v138 .mas-chevron{color:#8fb1c4}
 @media(max-width:760px){.dashboard-v130 .acciones-esenciales-v136{grid-template-columns:1fr 1fr}.dashboard-v130 .acciones-esenciales-v136 .accion-continuar-v136{grid-column:1/-1}.dashboard-v130 .acciones-esenciales-v136 .btn{min-height:48px;font-size:12px}}
 @media(max-width:390px){.dashboard-v130 .acciones-esenciales-v136{grid-template-columns:1fr}.dashboard-v130 .acciones-esenciales-v136 .accion-continuar-v136{grid-column:auto}}
 
@@ -3576,7 +3586,7 @@ function cabeceraEvaluacion() {
         <button class="btn btn-resumen" data-accion="pestana" data-v="resumen">Ver resumen</button>
         <button class="btn btn-informe-v136" data-accion="informe-estudiante">Informe por estudiante</button>
       </div>
-      <button class="mas-opciones-link-v136" data-accion="mas-opciones" aria-label="Abrir más opciones"><span aria-hidden="true">•••</span> Más opciones</button>
+      <button class="mas-opciones-boton-v138" data-accion="mas-opciones" aria-label="Abrir más opciones"><span class="mas-dots" aria-hidden="true">•••</span><span>Más opciones</span><span class="mas-chevron" aria-hidden="true">›</span></button>
     </section>
 
     <div class="metrics-v130">
