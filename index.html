@@ -959,6 +959,31 @@ th.col-fija{background:var(--surface-2); z-index:3}
 
 
 
+
+/* ===== v141 · Reevaluación del foco pedagógico ===== */
+.dashboard-v130 .foco-acciones-v141{display:flex;flex-wrap:wrap;gap:7px;justify-content:flex-end}
+.dashboard-v130 .foco-acciones-v141 .btn{min-height:44px}
+.dashboard-v130 .btn-reevaluar-v141{background:linear-gradient(135deg,#0b79bd,#075c9b)!important;border-color:#075c9b!important;color:#fff!important}
+.dashboard-v130 .seguimiento-v141{border-color:#b9d9ec;background:linear-gradient(135deg,#eef8fe,#fff)}
+.dashboard-v130 .seguimiento-v141 .foco-ico{background:linear-gradient(135deg,#0a82c8,#075e9e)}
+.dashboard-v130 .seguimiento-v141 .foco-ico::before{content:"↻";font-size:24px}
+.dashboard-v130 .seguimiento-v141 small{color:#08679f}
+.dashboard-v130 .seguimiento-v141 .foco-pct{color:#176f9f}
+.seguimiento-resumen-v141{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:11px 0}
+.seguimiento-kpi-v141{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:9px 7px;text-align:center}
+.seguimiento-kpi-v141 strong{display:block;font-family:var(--display);font-size:20px;line-height:1;color:#075f9f}
+.seguimiento-kpi-v141 span{display:block;margin-top:4px;color:var(--soft);font-size:9.5px;text-transform:uppercase;letter-spacing:.035em}
+.seguimiento-lista-v141{display:grid;gap:6px;max-height:45vh;overflow:auto;margin-top:10px}
+.seguimiento-alumno-v141{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:9px 10px;background:var(--surface)}
+.seguimiento-alumno-v141 b{display:block;font-size:12.5px}.seguimiento-alumno-v141 small{display:block;color:var(--soft);font-size:10.5px;margin-top:2px}
+.seguimiento-estado-v141{font-style:normal;font-size:10.5px;font-weight:850;border-radius:999px;padding:5px 8px;background:#eef3f6;color:#57707f;white-space:nowrap}
+.seguimiento-estado-v141.superado{background:#e3f5eb;color:#197347}.seguimiento-estado-v141.mejora{background:#e8f4fb;color:#086a9f}.seguimiento-estado-v141.apoyo{background:#fff1dc;color:#9a5d00}.seguimiento-estado-v141.baja{background:#fde9e7;color:#a33830}
+.aviso-seguimiento-v141{margin:0 0 10px;padding:10px 12px;border:1px solid #b9d9ec;border-radius:11px;background:#eef8fe;color:#174f70;font-size:12px;line-height:1.4}
+@media(max-width:560px){
+  .dashboard-v130 .foco-acciones-v141{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .seguimiento-resumen-v141{grid-template-columns:repeat(2,1fr)}
+}
+
 /* ===== v134 · Ficha de progreso + Modo cancha ===== */
 .progreso-seleccion{display:grid;gap:7px;max-height:48vh;overflow:auto}
 .progreso-persona{display:grid;grid-template-columns:42px 1fr auto;gap:10px;align-items:center;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:10px 11px;min-height:58px}
@@ -1062,6 +1087,36 @@ body.modo-cancha-activo .zona-desliz>.fila:last-child .btn{min-height:48px}
   .dashboard-v130 .acciones-principales-v139{grid-template-columns:1fr}
   .dashboard-v130 .acciones-principales-v139 .accion-continuar-v136,.dashboard-v130 .acciones-principales-v139 .btn-ajustes-v139{grid-column:auto}
 }
+
+
+/* ===== v140 · Importar instrumentos preparados ===== */
+.dashboard-v130 .selector-listas-v130 .tira.importar-v140{min-width:118px;gap:5px;flex-direction:column;font-size:11px;font-weight:850;line-height:1.1;color:#5b4b91;border-color:#c8bee9;background:#fbf9ff}
+.dashboard-v130 .selector-listas-v130 .tira.importar-v140 .importar-ico{display:grid;place-items:center;width:25px;height:25px;border-radius:8px;background:#eee9fb;color:#6552a1;font-size:16px;line-height:1}
+.dashboard-v130 .selector-listas-v130 .tira.importar-v140:hover{background:#f3effd;border-color:#9e8ed3}
+.importar-lista-v140{display:grid;gap:12px}
+.importar-lista-v140 .importar-caja{border:1px solid #d7e5ed;border-radius:12px;background:#f8fbfd;padding:12px}
+.importar-lista-v140 .importar-caja h4{margin:0 0 5px;font-size:13px;color:#173b50}
+.importar-lista-v140 .importar-caja p{margin:0;font-size:11.5px;line-height:1.45;color:#617785}
+.importar-lista-v140 input[type=file]{display:block;width:100%;box-sizing:border-box;margin-top:9px;font-size:12px}
+.importar-lista-v140 textarea{width:100%;box-sizing:border-box;min-height:120px;margin-top:8px;resize:vertical}
+.importar-preview-v140{max-height:210px;overflow:auto;border:1px solid #dce8ee;border-radius:10px;background:#fff;padding:8px 10px;margin-top:8px}
+.importar-preview-v140 div{font-size:11.5px;line-height:1.4;padding:4px 0;border-bottom:1px solid #edf2f5}
+.importar-preview-v140 div:last-child{border-bottom:0}
+.seccion-importar-v140{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding:11px 12px;border:1px solid #d8e8f0;border-radius:12px;background:#f9fcfe;box-sizing:border-box}
+.seccion-importar-v140 .seccion-importar-texto{display:flex;flex-direction:column;min-width:0;gap:2px}
+.seccion-importar-v140 .seccion-importar-texto b{font-size:12.5px;color:#173b50}
+.seccion-importar-v140 .seccion-importar-texto span{font-size:10.5px;line-height:1.35;color:#6b7e89}
+.seccion-importar-v140 .importar-boton-v140{flex:0 0 auto;min-height:39px;border-color:#9d8dd3;background:#f3effd;color:#5c4a96;font-weight:850}
+.seccion-importar-v140 .importar-boton-v140 span{font-size:16px}
+@media(max-width:540px){.seccion-importar-v140{align-items:stretch;flex-direction:column}.seccion-importar-v140 .importar-boton-v140{width:100%}}
+:root[data-tema="oscuro"] .dashboard-v130 .selector-listas-v130 .tira.importar-v140{background:#211e2d;border-color:#554b76;color:#ddd6f6}
+:root[data-tema="oscuro"] .importar-lista-v140 .importar-caja{background:#16262f;border-color:#31505f}
+:root[data-tema="oscuro"] .importar-lista-v140 .importar-caja h4{color:#e3eef4}
+:root[data-tema="oscuro"] .importar-lista-v140 .importar-caja p{color:#a9bdc8}
+:root[data-tema="oscuro"] .importar-preview-v140{background:#13212a;border-color:#31505f}
+:root[data-tema="oscuro"] .seccion-importar-v140{background:#16262f;border-color:#31505f}
+:root[data-tema="oscuro"] .seccion-importar-v140 .seccion-importar-texto b{color:#e3eef4}
+:root[data-tema="oscuro"] .seccion-importar-v140 .seccion-importar-texto span{color:#a9bdc8}
 
 /* ===== v137 · Corrección responsive iPhone/tablet ===== */
 html,body,#raiz{max-width:100%;overflow-x:hidden}
@@ -2647,6 +2702,160 @@ function listaDesdePlantilla(pl) {
   };
 }
 
+
+/* =========================================================
+   v140 · Importación de instrumentos preparados
+   Formatos: JSON de estructura compatible, CSV/TSV/TXT y Excel (.xlsx/.xls).
+   Los archivos tabulares pueden usar columnas OA, Criterio/Objetivo,
+   Indicador y Puntaje. Si solo hay una columna, cada fila se trata como indicador.
+   ========================================================= */
+let IMPORTACION_PENDIENTE = null;
+
+function claveImportacion(v) {
+  return String(v == null ? "" : v).normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().trim().replace(/[^a-z0-9]+/g, "");
+}
+
+function valorFilaImportacion(fila, candidatos) {
+  if (!fila || typeof fila !== "object") return "";
+  const mapa = {};
+  Object.keys(fila).forEach((k) => { mapa[claveImportacion(k)] = fila[k]; });
+  for (const c of candidatos) {
+    const k = claveImportacion(c);
+    if (mapa[k] !== undefined && mapa[k] !== null && String(mapa[k]).trim() !== "") return mapa[k];
+  }
+  return "";
+}
+
+function separarLineaImportacion(linea, sep) {
+  const out = []; let actual = "", comillas = false;
+  for (let i = 0; i < linea.length; i++) {
+    const ch = linea[i];
+    if (ch === '"') {
+      if (comillas && linea[i + 1] === '"') { actual += '"'; i++; }
+      else comillas = !comillas;
+    } else if (ch === sep && !comillas) { out.push(actual.trim()); actual = ""; }
+    else actual += ch;
+  }
+  out.push(actual.trim()); return out;
+}
+
+function filasDesdeTextoImportacion(texto) {
+  const lineas = String(texto || "").replace(/\r/g, "").split("\n").map((x) => x.trim()).filter(Boolean);
+  if (!lineas.length) return [];
+  const candidatos = ["\t", ";", ","];
+  let sep = "\t", mejor = 0;
+  candidatos.forEach((c) => { const n = (lineas[0].match(new RegExp(c === "\t" ? "\\t" : `\\${c}`, "g")) || []).length; if (n > mejor) { mejor = n; sep = c; } });
+  if (!mejor) return lineas.map((x) => ({ Indicador: x }));
+  const primera = separarLineaImportacion(lineas[0], sep);
+  const claves = primera.map(claveImportacion);
+  const pareceCabecera = claves.some((x) => ["oa","objetivodeaprendizaje","criterio","objetivo","indicador","indicadores","puntaje","puntos"].includes(x));
+  const cab = pareceCabecera ? primera : primera.map((_, i) => i === 0 ? "Indicador" : `Columna ${i + 1}`);
+  const inicio = pareceCabecera ? 1 : 0;
+  return lineas.slice(inicio).map((l) => {
+    const vals = separarLineaImportacion(l, sep), o = {};
+    cab.forEach((h, i) => { o[h] = vals[i] == null ? "" : vals[i]; });
+    return o;
+  });
+}
+
+function criteriosDesdeFilasImportadas(filas) {
+  const grupos = new Map();
+  (filas || []).forEach((r) => {
+    const indicador = String(valorFilaImportacion(r, ["Indicador","Indicadores","Descriptor","Desempeño","Desempeno","Criterio de éxito","Criterio de exito"]) || "").trim();
+    if (!indicador) return;
+    let oa = String(valorFilaImportacion(r, ["OA","Objetivo de aprendizaje","Código OA","Codigo OA"]) || "").trim().toUpperCase();
+    let criterio = String(valorFilaImportacion(r, ["Criterio","Objetivo","Objetivo de evaluación","Objetivo de evaluacion","Dimensión","Dimension"]) || "").trim();
+    const ptsRaw = Number(String(valorFilaImportacion(r, ["Puntaje","Puntos","Pts","Valor"]) || "").replace(",","."));
+    const pts = Number.isFinite(ptsRaw) && ptsRaw > 0 ? ptsRaw : PTS_DEFECTO;
+    const oaHallado = oa ? buscarOA(S.cursoId, oa) : null;
+    if (oaHallado) oa = oaHallado.codigo;
+    const clave = `${oa}||${criterio}`;
+    if (!grupos.has(clave)) {
+      grupos.set(clave, {
+        texto: criterio || (oaHallado ? oaHallado.texto : "Indicadores importados"),
+        oa: oaHallado ? oaHallado.codigo : oa,
+        eje: oaHallado ? oaHallado.eje : "",
+        objEval: criterio || "",
+        indicadores: []
+      });
+    }
+    grupos.get(clave).indicadores.push({ texto: indicador, pts });
+  });
+  return [...grupos.values()].filter((c) => c.indicadores.length);
+}
+
+function evaluacionDesdeCriteriosImportados(criterios, nombre, fecha, base) {
+  if (!Array.isArray(criterios) || !criterios.length) throw new Error("sin-indicadores");
+  const n = S.datos.roster.length;
+  const ev = nuevaEvaluacion(n, [], nombre || "Lista importada", S.cursoId);
+  ev.fecha = fecha || hoy();
+  ev.criterios = criterios.map((c) => normalizarCriterio(c, Number(base && base.ptsDefecto) > 0 ? Number(base.ptsDefecto) : PTS_DEFECTO));
+  ev.modo = base && base.modo === "escala" ? "escala" : "cotejo";
+  if (base && base.escala && Array.isArray(base.escala.niveles)) ev.escala = JSON.parse(JSON.stringify(base.escala));
+  ev.exigencia = base ? exigenciaValida(base.exigencia) : EXIGENCIA;
+  ev.peso = base ? pesoDe(base) : 1;
+  ev.ptsDefecto = Number(base && base.ptsDefecto) > 0 ? Number(base.ptsDefecto) : PTS_DEFECTO;
+  ev.imagenTipo = base && base.imagenTipo ? base.imagenTipo : "auto";
+  ev.marcas = Array.from({ length: n }, () => ev.criterios.map((c) => Array(c.indicadores.length).fill(0)));
+  ev.datos = Array.from({ length: n }, () => ev.criterios.map(filaNiveles));
+  ev.estado = Array(n).fill(0); ev.obs = Array(n).fill("");
+  return ev;
+}
+
+function evaluacionDesdeObjetoImportado(j, nombreArchivo) {
+  let obj = j;
+  if (obj && obj.plantilla && obj.plantilla.criterios) obj = obj.plantilla;
+  if (obj && Array.isArray(obj.evaluaciones) && obj.evaluaciones.length) obj = obj.evaluaciones[0];
+  if (obj && obj.datos && Array.isArray(obj.datos.evaluaciones) && obj.datos.evaluaciones.length) obj = obj.datos.evaluaciones[0];
+  if (!obj || !Array.isArray(obj.criterios) || !obj.criterios.length) throw new Error("estructura-json");
+  return evaluacionDesdeCriteriosImportados(obj.criterios, obj.nombre || nombreArchivo || "Lista importada", obj.fecha || hoy(), obj);
+}
+
+async function asegurarXLSXImportacion() {
+  if (window.XLSX) return window.XLSX;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload = resolve; s.onerror = reject; document.head.appendChild(s);
+  });
+  return window.XLSX;
+}
+
+async function leerArchivoInstrumento(file) {
+  if (!file) throw new Error("sin-archivo");
+  const nombre = (file.name || "Lista importada").replace(/\.[^.]+$/, "");
+  const ext = (file.name.split(".").pop() || "").toLowerCase();
+  if (ext === "json") {
+    const txt = await file.text();
+    return evaluacionDesdeObjetoImportado(JSON.parse(txt), nombre);
+  }
+  if (["xlsx","xls"].includes(ext)) {
+    const XLSX = await asegurarXLSXImportacion();
+    if (!XLSX) throw new Error("xlsx-no-disponible");
+    const libro = XLSX.read(await file.arrayBuffer(), { type: "array" });
+    const hoja = libro.Sheets[libro.SheetNames[0]];
+    const filas = XLSX.utils.sheet_to_json(hoja, { defval: "" });
+    const criterios = criteriosDesdeFilasImportadas(filas);
+    return evaluacionDesdeCriteriosImportados(criterios, nombre, hoy(), null);
+  }
+  if (["csv","tsv","txt"].includes(ext)) {
+    const filas = filasDesdeTextoImportacion(await file.text());
+    const criterios = criteriosDesdeFilasImportadas(filas);
+    return evaluacionDesdeCriteriosImportados(criterios, nombre, hoy(), null);
+  }
+  throw new Error("formato-no-compatible");
+}
+
+function resumenImportacionHTML(ev) {
+  const inds = ev.criterios.flatMap((c) => c.indicadores.map((i) => ({ oa: c.oa, criterio: c.texto, texto: i.texto })));
+  return `<h3>Revisar lista importada</h3>
+    <p class="sub" style="margin:4px 0 8px"><b>${esc(ev.nombre)}</b> · ${ev.criterios.length} criterio${ev.criterios.length === 1 ? "" : "s"} · ${inds.length} indicadores.</p>
+    <div class="importar-preview-v140">${inds.slice(0, 12).map((x, i) => `<div><b>${i + 1}.</b> ${esc(x.texto)}${x.oa ? ` <span class="sub">· ${esc(x.oa)}</span>` : ""}</div>`).join("")}${inds.length > 12 ? `<div class="sub">… y ${inds.length - 12} indicadores más.</div>` : ""}</div>
+    <p class="sub" style="margin:8px 0 0">Se creará una lista nueva. Las listas y marcas existentes no se modificarán.</p>
+    <div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="confirmar-importacion-lista">Importar</button><button class="btn" data-accion="cerrar-modal">Cancelar</button></div>`;
+}
+
 /* Deja una nómina nueva en un curso, ajustando las filas de todas sus listas. */
 function ponerNomina(datos, nombres) {
   datos.roster = nombres.slice();
@@ -2905,6 +3114,9 @@ function normalizar(d) {
         fecha: e.fecha || hoy(),
         oa: e.oa || "",
         tipo: TIPOS[e.tipo] !== undefined ? e.tipo : "docente",
+        visual: typeof e.visual === "string" ? e.visual : "auto",
+        seguimientoFoco: e.seguimientoFoco && typeof e.seguimientoFoco === "object"
+          ? JSON.parse(JSON.stringify(e.seguimientoFoco)) : null,
         adeModo: MODOS_ADE.includes(e.adeModo) ? e.adeModo : "curso",
         medidas: Array.from({ length: n }, (_, i) =>
           Array.isArray(e.medidas) && Array.isArray(e.medidas[i])
@@ -3425,17 +3637,113 @@ function vistaApp() {
 /* --- Cabecera de la evaluación --- */
 /* El indicador con menor logro del curso: por dónde conviene partir
    la próxima clase. Solo se propone si de verdad está descendido. */
+
+function indicesEvaluables(ev) {
+  const todos = S.datos.roster.map((_, i) => i);
+  const seg = ev && ev.seguimientoFoco;
+  let xs = [];
+  if (seg && Array.isArray(seg.nombres) && seg.nombres.length) {
+    xs = seg.nombres.map((nom) => S.datos.roster.indexOf(String(nom))).filter((i) => i >= 0);
+  }
+  if (!xs.length && seg && Array.isArray(seg.estudiantes)) {
+    xs = seg.estudiantes.map(Number).filter((i) => Number.isInteger(i) && i >= 0 && i < S.datos.roster.length);
+  }
+  return xs.length ? [...new Set(xs)] : todos;
+}
+
+function esSeguimientoFoco(ev) {
+  return !!(ev && ev.seguimientoFoco && Array.isArray(ev.seguimientoFoco.estudiantes) && ev.seguimientoFoco.estudiantes.length);
+}
+
+function porcentajeIndicador(ev, i, j, q) {
+  if (ev.estado[i]) return null;
+  if (esEscala(ev)) {
+    const v = nivelDe(ev, i, j, q);
+    return v ? Math.round((puntosNivel(ev, v) / maxNivel(ev)) * 100) : null;
+  }
+  const v = marcaDe(ev, i, j, q);
+  return v === 1 ? 100 : v === 2 ? 0 : null;
+}
+
+function resumenSeguimientoFoco(ev) {
+  if (!esSeguimientoFoco(ev)) return null;
+  const seg = ev.seguimientoFoco;
+  const base = Array.isArray(seg.base) ? seg.base : [];
+  const porI = new Map(base.map((x) => [Number(x.i), Number.isFinite(Number(x.pct)) ? Number(x.pct) : null]));
+  const porNombre = new Map(base.filter((x) => x && x.nombre).map((x) => [String(x.nombre), Number.isFinite(Number(x.pct)) ? Number(x.pct) : null]));
+  const items = indicesEvaluables(ev).map((i) => {
+    const nombreActual = S.datos.roster[i] || `Estudiante ${i + 1}`;
+    const antes = porNombre.has(nombreActual) ? porNombre.get(nombreActual) : (porI.has(i) ? porI.get(i) : null);
+    const ahora = porcentajeIndicador(ev, i, 0, 0);
+    let estado = "Pendiente", cls = "";
+    if (ahora !== null) {
+      if (ahora >= 80) { estado = "Superó el foco"; cls = "superado"; }
+      else if (antes !== null && ahora > antes) { estado = "Mejoró · aún requiere apoyo"; cls = "mejora"; }
+      else if (antes !== null && ahora < antes) { estado = "Disminuyó"; cls = "baja"; }
+      else { estado = "Se mantiene · requiere apoyo"; cls = "apoyo"; }
+    }
+    return { i, nombre: nombreActual, antes, ahora, estado, cls };
+  });
+  const conDato = items.filter((x) => x.ahora !== null);
+  return {
+    items,
+    mejoraron: conDato.filter((x) => x.antes !== null && x.ahora > x.antes).length,
+    superaron: conDato.filter((x) => x.ahora >= 80).length,
+    mantienen: conDato.filter((x) => x.antes !== null && x.ahora === x.antes).length,
+    apoyo: conDato.filter((x) => x.ahora < 80).length,
+    pendientes: items.length - conDato.length
+  };
+}
+
+function tarjetaSeguimientoFoco(ev) {
+  const r = resumenSeguimientoFoco(ev), seg = ev.seguimientoFoco;
+  if (!r) return "";
+  const avance = `${r.items.length - r.pendientes}/${r.items.length} reevaluados`;
+  return `<section class="foco-v130 seguimiento-v141"><div class="foco-ico">↻</div><div><small>Seguimiento del foco pedagógico</small><p>${esc(seg.texto || (ev.criterios[0] && ev.criterios[0].indicadores[0] ? ev.criterios[0].indicadores[0].texto : "Indicador de seguimiento"))}</p><span class="foco-pct">${avance} · ${r.superaron} ya alcanzan 80% o más</span><span class="foco-meta">Origen: ${esc(seg.origenNombre || "evaluación anterior")}${seg.oa ? ` · ${esc(seg.oa)}` : ""} · ${r.apoyo} aún requiere${r.apoyo === 1 ? "" : "n"} apoyo</span></div><div class="foco-acciones-v141"><button class="btn" data-accion="ver-comparacion-foco">Ver comparación</button><button class="btn btn-reevaluar-v141" data-accion="ir-evaluacion">Reevaluar ahora</button></div></section>`;
+}
+
+function crearSeguimientoFoco(ev, f, estudiantes, nombre, fecha) {
+  const n = S.datos.roster.length;
+  const c0 = ev.criterios[f.j];
+  const ind0 = c0.indicadores[f.q];
+  const criterio = {
+    texto: c0.texto || "",
+    oa: c0.oa || "",
+    eje: c0.eje || "",
+    objEval: c0.objEval || "",
+    indicadores: [JSON.parse(JSON.stringify(ind0))],
+    descriptores: Array.isArray(c0.descriptores) ? JSON.parse(JSON.stringify(c0.descriptores)) : []
+  };
+  const base = estudiantes.map((x) => ({ i: x.i, nombre: x.nombre, pct: porcentajeIndicador(ev, x.i, f.j, f.q), nivel: x.nivel || "" }));
+  return {
+    id: idNuevo(), nombre: nombre || `Seguimiento · ${ev.nombre || "Foco"}`, fecha: fecha || hoy(), oa: "",
+    tipo: ev.tipo || "docente", visual: ev.visual || "auto",
+    medidas: Array.from({ length: n }, () => []), adeModo: ev.adeModo || "curso", ade: null,
+    exigencia: exigenciaValida(ev.exigencia), peso: 0, ptsDefecto: ev.ptsDefecto || PTS_DEFECTO,
+    modo: ev.modo === "escala" ? "escala" : "cotejo",
+    escala: JSON.parse(JSON.stringify(ev.escala || { niveles: ESCALA_BASE })),
+    criterios: [criterio],
+    marcas: Array.from({ length: n }, () => [[0]]),
+    datos: Array.from({ length: n }, () => [[0]]),
+    estado: Array(n).fill(0), obs: Array(n).fill(""),
+    seguimientoFoco: {
+      origenId: ev.id, origenNombre: ev.nombre || "Evaluación anterior", origenFecha: ev.fecha || "",
+      rot: f.rot, texto: ind0.texto || f.texto || "", oa: c0.oa || "", estudiantes: estudiantes.map((x) => x.i), nombres: estudiantes.map((x) => x.nombre), base
+    }
+  };
+}
+
 function focoDelCurso(ev) {
   const n = S.datos.roster.length;
   if (!n) return null;
   let peor = null;
   ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
     let suma = 0, cont = 0, apoyo = 0;
-    for (let i = 0; i < n; i++) {
+    for (const i of indicesEvaluables(ev)) {
       if (ev.estado[i]) continue;
       if (esEscala(ev)) {
         const v = nivelDe(ev, i, j, q);
-        if (v) { const ratio = puntosNivel(ev, v) / maxNivel(ev); suma += ratio; cont++; if (ratio < .75) apoyo++; }
+        if (v) { const ratio = puntosNivel(ev, v) / maxNivel(ev); suma += ratio; cont++; if (ratio < .80) apoyo++; }
       } else {
         const v = marcaDe(ev, i, j, q);
         if (v) { suma += v === 1 ? 1 : 0; cont++; if (v === 2) apoyo++; }
@@ -3450,7 +3758,7 @@ function focoDelCurso(ev) {
 
 function panoramaAprendizaje(ev) {
   const r = { logrado: 0, proceso: 0, apoyo: 0, sinDatos: 0 };
-  for (let i = 0; i < S.datos.roster.length; i++) {
+  for (const i of indicesEvaluables(ev)) {
     if (ev.estado[i]) continue;
     let suma = 0, maximo = 0;
     ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
@@ -3472,12 +3780,12 @@ function panoramaAprendizaje(ev) {
 function estudiantesDelFoco(ev, f) {
   if (!f) return [];
   const lista = [];
-  for (let i = 0; i < S.datos.roster.length; i++) {
+  for (const i of indicesEvaluables(ev)) {
     if (ev.estado[i]) continue;
     let requiere = false, nivel = "";
     if (esEscala(ev)) {
       const v = nivelDe(ev, i, f.j, f.q);
-      if (v) { const ratio = puntosNivel(ev, v) / maxNivel(ev); requiere = ratio < .75; nivel = descriptorDe(ev, ev.criterios[f.j], Math.max(0, v - 1)); }
+      if (v) { const ratio = puntosNivel(ev, v) / maxNivel(ev); requiere = ratio < .80; nivel = descriptorDe(ev, ev.criterios[f.j], Math.max(0, v - 1)); }
     } else {
       const v = marcaDe(ev, i, f.j, f.q); requiere = v === 2; nivel = v === 2 ? "No logrado" : v === 1 ? "Logrado" : "";
     }
@@ -3487,14 +3795,16 @@ function estudiantesDelFoco(ev, f) {
 }
 
 function estadisticas(ev) {
-  const n = S.datos.roster.length;
+  const activos = indicesEvaluables(ev), n = activos.length;
   let puntaje = 0, maximo = 0, sinEvaluar = 0, ausentes = 0, evaluados = 0;
   const notas = [];
   const total = puntajeTotal(ev);
-  for (let i = 0; i < n; i++) {
+  for (const i of activos) {
     if (ev.estado[i]) { ausentes++; continue; }
     const r = resultado(ev, i);
-    puntaje += r.puntaje; maximo += total;
+    if (esSeguimientoFoco(ev)) {
+      if (r.marcados > 0) { puntaje += r.puntaje; maximo += total; }
+    } else { puntaje += r.puntaje; maximo += total; }
     if (r.sinMarca > 0) sinEvaluar++;
     if (r.marcados > 0 && r.sinMarca === 0) evaluados++;
     if (r.nota !== null) notas.push(r.nota);
@@ -3567,7 +3877,7 @@ function cabeceraCancha(ev) {
 function cabeceraEvaluacion() {
   const ev = evalActual(), lista = S.datos.evaluaciones;
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
-  const e = estadisticas(ev), p = panoramaAprendizaje(ev), f = focoDelCurso(ev), total = puntajeTotal(ev);
+  const e = estadisticas(ev), p = panoramaAprendizaje(ev), f = focoDelCurso(ev), seguimiento = resumenSeguimientoFoco(ev), total = puntajeTotal(ev);
   const corto = (f) => (f ? f.slice(8, 10) + "/" + f.slice(5, 7) : "—");
   const pTotal = p.logrado + p.proceso + p.apoyo;
   const pctLog = pTotal ? Math.round(p.logrado / pTotal * 100) : 0;
@@ -3590,7 +3900,7 @@ function cabeceraEvaluacion() {
           <div class="hero-title-row">
             <h3 class="hero-title">${esc(ev.nombre || "Sin nombre")}${rotuloTipo(ev) ? ` <span class="etiqueta-tipo">${rotuloTipo(ev)}</span>` : ""}</h3>
           </div>
-          <p class="hero-sub">${totalIndicadores(ev)} indicadores · ${total} pts · nota de 2,0 a 7,0${esEscala(ev) ? ` · escala 1–${nNiveles(ev)}` : ""}</p>
+          <p class="hero-sub">${esSeguimientoFoco(ev) ? `Seguimiento formativo · ${indicesEvaluables(ev).length} estudiante${indicesEvaluables(ev).length === 1 ? "" : "s"} · no modifica el promedio consolidado` : `${totalIndicadores(ev)} indicadores · ${total} pts · nota de 2,0 a 7,0${esEscala(ev) ? ` · escala 1–${nNiveles(ev)}` : ""}`}</p>
           <div class="hero-meta-v132">
             <div class="hero-oa">${codigosOA(ev).map((x) => `<span class="oa-chip">${esc(x)}</span>`).join("")}</div>
             <label class="hero-date-inline"><span>Fecha</span><input type="date" data-campo="fecha" value="${esc(ev.fecha)}"></label>
@@ -3609,7 +3919,7 @@ function cabeceraEvaluacion() {
     </section>
 
     <div class="metrics-v130">
-      <div class="metric-v130 metric-prom"><strong>${num1(e.prom)}</strong><span>Promedio</span><em>⌁</em></div>
+      <div class="metric-v130 metric-prom"><strong>${seguimiento ? `${seguimiento.superaron}/${seguimiento.items.length}` : num1(e.prom)}</strong><span>${seguimiento ? "Superaron foco" : "Promedio"}</span><em>⌁</em></div>
       <div class="metric-v130 metric-logro"><strong>${e.logro === null ? "—" : e.logro + "%"}</strong><span>Logro</span><em>◎</em></div>
       <div class="metric-v130 metric-eval"><strong>${e.evaluados}/${e.presentes}</strong><span>Evaluados</span><em>●●</em></div>
       <div class="metric-v130 metric-aus"><strong>${e.ausentes}</strong><span>Ausentes</span><em>●×</em></div>
@@ -3629,13 +3939,17 @@ function cabeceraEvaluacion() {
 
 
 
-    ${f ? `<section class="foco-v130"><div class="foco-ico">◎</div><div><small>Indicador prioritario para la próxima clase</small><p>${esc(f.texto || "sin redactar")}</p><span class="foco-pct">${f.pct}% de logro en el curso</span><span class="foco-meta">Indicador ${esc(f.rot)}${f.oa ? ` · ${esc(f.oa)}` : ""}${f.apoyo ? ` · ${f.apoyo} estudiante${f.apoyo === 1 ? "" : "s"} requiere${f.apoyo === 1 ? "" : "n"} refuerzo` : ""}</span></div>${f.apoyo ? `<button class="btn" data-accion="ver-foco-estudiantes">Ver ${f.apoyo} estudiante${f.apoyo === 1 ? "" : "s"} ›</button>` : ""}</section>` : `<section class="foco-v130 foco-ok"><div class="foco-ico">✓</div><div><small>Foco pedagógico</small><p>No hay indicadores críticos en los datos registrados.</p><span class="foco-pct">Todos los indicadores evaluados alcanzan al menos 80% de logro.</span></div></section>`}
+    ${seguimiento ? tarjetaSeguimientoFoco(ev) : f ? `<section class="foco-v130"><div class="foco-ico">◎</div><div><small>Indicador prioritario para la próxima clase</small><p>${esc(f.texto || "sin redactar")}</p><span class="foco-pct">${f.pct}% de logro en el curso</span><span class="foco-meta">Indicador ${esc(f.rot)}${f.oa ? ` · ${esc(f.oa)}` : ""}${f.apoyo ? ` · ${f.apoyo} estudiante${f.apoyo === 1 ? "" : "s"} requiere${f.apoyo === 1 ? "" : "n"} refuerzo` : ""}</span></div>${f.apoyo ? `<div class="foco-acciones-v141"><button class="btn" data-accion="ver-foco-estudiantes">Ver ${f.apoyo} estudiante${f.apoyo === 1 ? "" : "s"}</button><button class="btn btn-reevaluar-v141" data-accion="reevaluar-foco">Reevaluar foco</button></div>` : ""}</section>` : `<section class="foco-v130 foco-ok"><div class="foco-ico">✓</div><div><small>Foco pedagógico</small><p>No hay indicadores críticos en los datos registrados.</p><span class="foco-pct">Todos los indicadores evaluados alcanzan al menos 80% de logro.</span></div></section>`}
 
 
     <div class="tools-v130">
       <details class="selector-listas-v130"><summary>Cambiar lista · ${lista.length} ${lista.length === 1 ? "lista" : "listas"}</summary>
         <div class="tiras v2">${lista.map((x, i) => `<button class="tira ${i === S.evalIdx ? "activa" : ""}" data-accion="abrir-eval" data-i="${i}" title="${esc(x.nombre || `Lista ${i + 1}`)}"><b>Lista ${i + 1}</b><small>${corto(x.fecha)}</small><span class="tira-nombre">${esc(x.nombre || "Sin nombre")}</span></button>`).join("")}<button class="tira nueva nueva-v139" data-accion="nueva-eval" title="Nueva lista de cotejo"><span class="nueva-plus">＋</span><span>Nueva lista</span></button></div>
       </details>
+      <section class="seccion-importar-v140">
+        <div class="seccion-importar-texto"><b>Instrumentos preparados</b><span>Carga una lista desde Excel, CSV, TXT o JSON, o pega indicadores desde Word.</span></div>
+        <button class="btn importar-boton-v140" data-accion="importar-lista"><span>⇧</span> Importar lista</button>
+      </section>
     </div>
 
     <div class="fecha-compacta"><span class="estado-guardado-mini">Los cambios se guardan automáticamente · la fecha se edita junto al nombre de la evaluación</span></div>
@@ -3818,6 +4132,7 @@ function vistaEvaluar() {
     </div>` + cabeceraEvaluacion();
   }
   return cabeceraEvaluacion() + `
+  ${esSeguimientoFoco(ev) ? `<div class="aviso-seguimiento-v141 no-imprimir"><b>Reevaluación focalizada:</b> esta lista muestra solo a ${indicesEvaluables(ev).length} estudiante${indicesEvaluables(ev).length === 1 ? "" : "s"} seleccionado${indicesEvaluables(ev).length === 1 ? "" : "s"} desde el foco pedagógico de la evaluación anterior.</div>` : ""}
   <div class="pestanas no-imprimir" style="margin-top:0">
     <button class="pestana" data-accion="modo" data-v="planilla" aria-pressed="${S.modo === "planilla"}">Planilla</button>
     <button class="pestana" data-accion="modo" data-v="criterio" aria-pressed="${S.modo === "criterio"}">Por criterio</button>
@@ -3924,7 +4239,8 @@ function vistaPlanilla(ev) {
         </tr>
       </thead>
       <tbody>
-        ${S.datos.roster.map((nom, i) => {
+        ${indicesEvaluables(ev).map((i) => {
+          const nom = S.datos.roster[i];
           const r = resultado(ev, i);
           const est = ev.estado[i] || 0;
           return `<tr class="${est ? "fila-ausente" : ""}" data-fila="${i}">
@@ -3993,7 +4309,8 @@ function vistaPorCriterio(ev) {
       </div>
     </div>
     <span class="rotulo-seccion">Estudiantes</span>
-    ${S.datos.roster.map((nombre, i) => {
+    ${indicesEvaluables(ev).map((i) => {
+      const nombre = S.datos.roster[i];
       const r = resultado(ev, i);
       const est = ev.estado[i] || 0;
       return `<div class="alumno">
@@ -4017,17 +4334,20 @@ function vistaPorCriterio(ev) {
 
 /* --- Por estudiante --- */
 function vistaPorAlumno(ev) {
-  const i = Math.min(S.alumnoActivo, S.datos.roster.length - 1);
+  const activos = indicesEvaluables(ev);
+  let i = activos.includes(S.alumnoActivo) ? S.alumnoActivo : (activos[0] ?? 0);
+  S.alumnoActivo = i;
+  const posActivo = Math.max(0, activos.indexOf(i));
   const r = resultado(ev, i);
   const est = ev.estado[i] || 0;
   return `
   <div class="tarjeta zona-desliz">
     <div class="fila fila-sep no-imprimir alumno-nav-cancha" style="margin-bottom:10px">
-      <button class="btn btn-mini" data-accion="alumno-mover" data-d="-1" ${i === 0 ? "disabled" : ""}>‹ Anterior</button>
+      <button class="btn btn-mini" data-accion="alumno-mover" data-d="-1" ${posActivo === 0 ? "disabled" : ""}>‹ Anterior</button>
       <select data-accion="elegir-alumno" style="flex:1;min-width:140px">
-        ${S.datos.roster.map((n, k) => `<option value="${k}" ${k === i ? "selected" : ""}>${esc(n || "—")}</option>`).join("")}
+        ${activos.map((k) => `<option value="${k}" ${k === i ? "selected" : ""}>${esc(S.datos.roster[k] || "—")}</option>`).join("")}
       </select>
-      <button class="btn btn-mini" data-accion="alumno-mover" data-d="1" ${i === S.datos.roster.length - 1 ? "disabled" : ""}>Siguiente ›</button>
+      <button class="btn btn-mini" data-accion="alumno-mover" data-d="1" ${posActivo === activos.length - 1 ? "disabled" : ""}>Siguiente ›</button>
     </div>
     <div class="fila fila-sep alumno-resumen-cancha" style="border-bottom:1px solid var(--line);padding-bottom:10px">
       <div>
@@ -4072,7 +4392,8 @@ function vistaPorAlumno(ev) {
 /* --- Pestaña Resumen --- */
 function vistaResumen() {
   const ev = evalActual();
-  const n = S.datos.roster.length;
+  const activos = indicesEvaluables(ev);
+  const n = activos.length;
   if (!n) return `<div class="tarjeta"><div class="vacio">
     <strong>Todavía no hay resumen</strong>
     El resumen se arma con las marcas del curso. Primero carga la nómina y evalúa a tus estudiantes.
@@ -4081,7 +4402,7 @@ function vistaResumen() {
 
   const e = estadisticas(ev);
   const notas = [];
-  for (let i = 0; i < n; i++) {
+  for (const i of activos) {
     if (ev.estado[i]) continue;
     const r = resultado(ev, i);
     if (r.nota !== null) notas.push(r.nota);
@@ -4092,7 +4413,7 @@ function vistaResumen() {
   if (esEscala(ev)) {
     ev.criterios.forEach((c, j) => {
       let suma = 0, cont = 0;
-      for (let i = 0; i < n; i++) {
+      for (const i of activos) {
         if (ev.estado[i]) continue;
         c.indicadores.forEach((ind, q) => {
           const v = nivelDe(ev, i, j, q);
@@ -4104,7 +4425,7 @@ function vistaResumen() {
     });
   } else ev.criterios.forEach((c, j) => c.indicadores.forEach((ind, q) => {
     let log = 0, marc = 0;
-    for (let i = 0; i < n; i++) {
+    for (const i of activos) {
       if (ev.estado[i]) continue;
       const v = marcaDe(ev, i, j, q);
       if (v === 1) { log++; marc++; } else if (v === 2) marc++;
@@ -4138,7 +4459,8 @@ function vistaResumen() {
   </div>
 
   ${(() => {
-    const bajos = S.datos.roster.map((nom, i) => {
+    const bajos = activos.map((i) => {
+      const nom = S.datos.roster[i];
       if (ev.estado[i]) return null;
       const r = resultado(ev, i);
       if (r.nota === null || r.nota >= 4) return null;
@@ -4191,7 +4513,8 @@ function vistaResumen() {
     <h2>Logro por estudiante</h2>
     <p class="sub" style="margin:2px 0 12px">Porcentaje del puntaje alcanzado sobre el total de la lista${esEscala(ev) ? "" : ", y cuántos indicadores logró"}.</p>
     <div class="logro">
-      ${S.datos.roster.map((nom, i) => {
+      ${activos.map((i) => {
+        const nom = S.datos.roster[i];
         const est = ev.estado[i] || 0;
         if (est) return `<div class="logro-item">
           <div class="rotulo"><span><b class="mono" style="font-size:11px">${String(i + 1).padStart(2, "0")}</b> ${esc(nom || "—")}</span>
@@ -4246,7 +4569,8 @@ function vistaResumen() {
   <div class="tarjeta">
     <h2>Notas del curso</h2>
     <div style="margin-top:8px">
-      ${S.datos.roster.map((nom, i) => {
+      ${activos.map((i) => {
+        const nom = S.datos.roster[i];
         const r = resultado(ev, i);
         const est = ev.estado[i] || 0;
         return `<div class="alumno-cab" style="padding:6px 0;border-top:1px solid var(--line)">
@@ -4678,6 +5002,7 @@ document.addEventListener("click", async (evt) => {
     abrirModal(`<h3>Ficha de progreso · ${esc(nombre)}</h3><p class="sub" style="margin:4px 0 0">Seguimiento acumulado de las evaluaciones registradas en este curso.</p>${progresoEstudianteHTML(i)}<div class="fila" style="margin-top:14px"><button class="btn btn-lleno" data-accion="informe-alumno" data-i="${i}">Informe para el apoderado</button><button class="btn" data-accion="ficha" data-i="${i}">Ver historial completo</button><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return;
   }
   if (a === "ir-evaluacion") {
+    cerrarModal();
     S.pestana = "evaluar"; S.modo = "planilla"; pintar();
     requestAnimationFrame(() => document.querySelector(".pestanas.no-imprimir")?.scrollIntoView({ behavior: "smooth", block: "start" }));
     return;
@@ -4686,6 +5011,42 @@ document.addEventListener("click", async (evt) => {
     const f = focoDelCurso(ev), estudiantes = estudiantesDelFoco(ev, f);
     if (!f || !estudiantes.length) { abrirModal(`<h3>Sin estudiantes para mostrar</h3><p class="sub" style="margin:6px 0 0">No hay estudiantes marcados actualmente como requerimiento de refuerzo en este indicador.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return; }
     abrirModal(`<h3>Estudiantes para reforzar</h3><p class="sub" style="margin:5px 0 10px"><b>${esc(f.rot)}</b> · ${esc(f.texto||"Indicador")}</p><div class="caja-oas">${estudiantes.map(x=>`<button class="oa-item" data-accion="ficha" data-i="${x.i}"><span><b>${esc(x.nombre)}</b>${x.nivel?`<br><span class="sub">${esc(x.nivel)}</span>`:""}</span></button>`).join("")}</div><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return;
+  }
+
+  if (a === "reevaluar-foco") {
+    const f = focoDelCurso(ev), estudiantes = estudiantesDelFoco(ev, f);
+    if (!f || !estudiantes.length) {
+      abrirModal(`<h3>Sin foco para reevaluar</h3><p class="sub" style="margin:6px 0 0">No hay estudiantes que requieran seguimiento en el indicador prioritario actual.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return;
+    }
+    abrirModal(`<h3>Reevaluar foco</h3>
+      <p class="sub" style="margin:4px 0 9px">Se creará una mini evaluación nueva con <b>un solo indicador</b> y únicamente los ${estudiantes.length} estudiante${estudiantes.length === 1 ? "" : "s"} que actualmente requieren apoyo.</p>
+      <div class="aviso-seguimiento-v141"><b>${esc(f.rot)} · ${esc(f.texto || "Indicador")}</b><br>${f.oa ? esc(f.oa) + " · " : ""}${f.pct}% de logro actual.</div>
+      <label class="campo"><span>Nombre del seguimiento</span><input id="rf-nombre" value="${esc(`Seguimiento · ${ev.nombre || "Foco"}`)}"></label>
+      <label class="campo" style="margin-top:8px"><span>Fecha</span><input id="rf-fecha" type="date" value="${hoy()}"></label>
+      <div class="seguimiento-lista-v141">${estudiantes.map((x) => `<div class="seguimiento-alumno-v141"><span><b>${esc(x.nombre)}</b><small>${esc(x.nivel || "Requiere apoyo")}</small></span><em class="seguimiento-estado-v141 apoyo">seguimiento</em></div>`).join("")}</div>
+      <div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="confirmar-reevaluacion-foco">Crear seguimiento</button><button class="btn" data-accion="cerrar-modal">Cancelar</button></div>`);
+    return;
+  }
+  if (a === "confirmar-reevaluacion-foco") {
+    const f = focoDelCurso(ev), estudiantes = estudiantesDelFoco(ev, f);
+    if (!f || !estudiantes.length) { cerrarModal(); return; }
+    const nombre = (document.getElementById("rf-nombre") || {}).value || `Seguimiento · ${ev.nombre || "Foco"}`;
+    const fecha = (document.getElementById("rf-fecha") || {}).value || hoy();
+    const nueva = crearSeguimientoFoco(ev, f, estudiantes, nombre.trim(), fecha);
+    S.datos.evaluaciones.push(nueva);
+    S.evalIdx = S.datos.evaluaciones.length - 1; S.criterioActivo = 0; S.modo = "alumno";
+    S.alumnoActivo = estudiantes[0].i;
+    cerrarModal(); marcarCambio(); pintar(); return;
+  }
+  if (a === "ver-comparacion-foco") {
+    const r = resumenSeguimientoFoco(ev), seg = ev.seguimientoFoco;
+    if (!r || !seg) return;
+    abrirModal(`<h3>Comparación del seguimiento</h3>
+      <p class="sub" style="margin:4px 0 8px">Compara el desempeño del indicador entre <b>${esc(seg.origenNombre || "la evaluación anterior")}</b> y esta reevaluación.</p>
+      <div class="seguimiento-resumen-v141"><div class="seguimiento-kpi-v141"><strong>${r.superaron}</strong><span>Superaron foco</span></div><div class="seguimiento-kpi-v141"><strong>${r.mejoraron}</strong><span>Mejoraron</span></div><div class="seguimiento-kpi-v141"><strong>${r.mantienen}</strong><span>Se mantienen</span></div><div class="seguimiento-kpi-v141"><strong>${r.apoyo}</strong><span>Aún con apoyo</span></div></div>
+      <div class="seguimiento-lista-v141">${r.items.map((x) => `<div class="seguimiento-alumno-v141"><span><b>${esc(x.nombre)}</b><small>Antes: ${x.antes === null ? "—" : Math.round(x.antes) + "%"} · Ahora: ${x.ahora === null ? "pendiente" : Math.round(x.ahora) + "%"}</small></span><em class="seguimiento-estado-v141 ${esc(x.cls)}">${esc(x.estado)}</em></div>`).join("")}</div>
+      <div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="ir-evaluacion">Continuar reevaluación</button><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
+    return;
   }
   if (a === "informe-estudiante") {
     if (!S.datos.roster.length) {
@@ -4708,7 +5069,10 @@ document.addEventListener("click", async (evt) => {
     return;
   }
   if (a === "alumno-mover") {
-    S.alumnoActivo = Math.max(0, Math.min(S.datos.roster.length - 1, S.alumnoActivo + +btn.dataset.d));
+    const activos = indicesEvaluables(ev);
+    const pos = Math.max(0, activos.indexOf(S.alumnoActivo));
+    const sig = Math.max(0, Math.min(activos.length - 1, pos + Number(btn.dataset.d || 0)));
+    S.alumnoActivo = activos[sig] ?? 0;
     pintar(); return;
   }
 
@@ -4736,7 +5100,7 @@ document.addEventListener("click", async (evt) => {
   }
   if (a === "todos-nivel") {
     const j = +btn.dataset.j, k = +btn.dataset.k;
-    S.datos.roster.forEach((_, i) => { if (!ev.estado[i]) ev.datos[i][j] = k; });
+    indicesEvaluables(ev).forEach((i) => { if (!ev.estado[i]) ev.datos[i][j] = k; });
     marcarCambio(); pintar(); return;
   }
   if (a === "cambiar-modo") {
@@ -4788,14 +5152,14 @@ document.addEventListener("click", async (evt) => {
   }
   if (a === "todos-marca") {
     const j = +btn.dataset.j, q = +btn.dataset.q;
-    const presentes = S.datos.roster.map((_, i) => i).filter((i) => !ev.estado[i]);
+    const presentes = indicesEvaluables(ev).filter((i) => !ev.estado[i]);
     const todos = presentes.length && presentes.every((i) => ev.marcas[i][j][q] === 1);
     presentes.forEach((i) => { ev.marcas[i][j][q] = todos ? 0 : 1; });
     marcarCambio(); pintar(); return;
   }
   if (a === "limpiar-criterio") {
     const j = +btn.dataset.j;
-    S.datos.roster.forEach((_, i) => { ev.marcas[i][j] = ev.marcas[i][j].map(() => 0); ev.datos[i][j] = 0; });
+    indicesEvaluables(ev).forEach((i) => { ev.marcas[i][j] = ev.marcas[i][j].map(() => 0); ev.datos[i][j] = 0; });
     marcarCambio(); pintar(); return;
   }
   if (a === "asistencia") {
@@ -4892,6 +5256,62 @@ document.addEventListener("click", async (evt) => {
   }
 
   /* --- listas --- */
+  if (a === "importar-lista") {
+    abrirModal(`
+      <h3>Importar lista</h3>
+      <p class="sub" style="margin:4px 0 10px">Carga un instrumento preparado y conviértelo en una lista editable de este curso.</p>
+      <div class="importar-lista-v140">
+        <div class="importar-caja"><h4>Desde un archivo</h4>
+          <p>Compatible con Excel (.xlsx/.xls), CSV, TXT y JSON. En Excel/CSV usa columnas como <b>OA</b>, <b>Criterio</b>, <b>Indicador</b> y <b>Puntaje</b>. Solo “Indicador” es obligatorio.</p>
+          <input id="archivo-importar-lista" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt,.json,application/json,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+          <div class="fila" style="margin-top:10px"><button class="btn btn-lleno" data-accion="leer-importacion-lista">Leer archivo</button></div>
+        </div>
+        <div class="importar-caja"><h4>Pegar indicadores</h4>
+          <p>También puedes copiar una tabla desde Word/Excel o pegar un indicador por línea.</p>
+          <textarea id="texto-importar-lista" placeholder="Indicador 1\nIndicador 2\nIndicador 3"></textarea>
+          <div class="fila" style="margin-top:8px"><button class="btn" data-accion="leer-texto-importacion-lista">Usar texto pegado</button></div>
+        </div>
+      </div>
+      <div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cancelar</button></div>`);
+    return;
+  }
+  if (a === "leer-importacion-lista") {
+    const inp = document.getElementById("archivo-importar-lista");
+    const file = inp && inp.files && inp.files[0];
+    if (!file) { alert("Selecciona un archivo primero."); return; }
+    btn.disabled = true; btn.textContent = "Leyendo…";
+    try {
+      IMPORTACION_PENDIENTE = await leerArchivoInstrumento(file);
+      abrirModal(resumenImportacionHTML(IMPORTACION_PENDIENTE));
+    } catch (err) {
+      console.error(err);
+      const msg = err && err.message === "formato-no-compatible" ? "Ese formato todavía no es compatible. Usa Excel, CSV, TXT o JSON." :
+        err && err.message === "xlsx-no-disponible" ? "No se pudo cargar el lector de Excel. Conéctate a internet o guarda el archivo como CSV." :
+        err && err.message === "estructura-json" ? "El JSON no contiene una estructura de lista reconocible." :
+        "No pude encontrar indicadores válidos en el archivo. Revisa que exista una columna llamada Indicador.";
+      abrirModal(`<h3>No se pudo importar</h3><p class="sub" style="margin:6px 0 0">${esc(msg)}</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="importar-lista">Intentar de nuevo</button><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
+    }
+    return;
+  }
+  if (a === "leer-texto-importacion-lista") {
+    const texto = (document.getElementById("texto-importar-lista") || {}).value || "";
+    try {
+      const criterios = criteriosDesdeFilasImportadas(filasDesdeTextoImportacion(texto));
+      IMPORTACION_PENDIENTE = evaluacionDesdeCriteriosImportados(criterios, "Lista importada", hoy(), null);
+      abrirModal(resumenImportacionHTML(IMPORTACION_PENDIENTE));
+    } catch {
+      alert("No encontré indicadores válidos en el texto pegado.");
+    }
+    return;
+  }
+  if (a === "confirmar-importacion-lista") {
+    if (!IMPORTACION_PENDIENTE) return;
+    S.datos.evaluaciones.push(IMPORTACION_PENDIENTE);
+    S.evalIdx = S.datos.evaluaciones.length - 1; S.criterioActivo = 0;
+    IMPORTACION_PENDIENTE = null;
+    cerrarModal(); marcarCambio(); pintar();
+    return;
+  }
   if (a === "nueva-eval") {
     abrirModal(`
       <h3>Nueva lista de cotejo</h3>
