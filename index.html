@@ -1361,6 +1361,48 @@ html,body,#raiz{max-width:100%;overflow-x:hidden}
 :root[data-tema="oscuro"] .seccion-v147 .col-fija{background:#14242d}
 :root[data-tema="oscuro"] .seccion-v147 th.col-fija{background:#19313d}
 
+/* ===== v148 · unificación visual de Ajustes, Más opciones e Informe por estudiante ===== */
+.modal{background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);border:1px solid #d9e5ec;box-shadow:0 18px 42px rgba(16,43,56,.22)}
+.modal h3{font-family:var(--display);font-size:24px;line-height:1.08;color:#0b2f50;margin:0 0 4px}
+.modal .sub{color:#607686}
+.modal-v148-intro{margin:6px 0 0;font-size:13px;line-height:1.45;color:#607686}
+.modal-v148-seccion{margin:16px 0 6px;padding-left:10px;border-left:3px solid #e8a400;font-family:var(--display);font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#0c4c79}
+.modal-v148-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
+.modal-v148-grid .btn{width:100%;min-height:48px;display:grid;grid-template-columns:34px minmax(0,1fr) 18px;align-items:center;gap:10px;text-align:left;padding:10px 12px;border:1px solid #d3e1ea;background:#fff;border-radius:12px;font-weight:800;color:#163f59;box-shadow:0 3px 10px rgba(18,67,98,.03)}
+.modal-v148-grid .btn::before{content:attr(data-icon);display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:#eef7fd;color:#0874b9;font-size:14px;font-weight:900}
+.modal-v148-grid .btn::after{content:"›";text-align:right;color:#7893a4;font-size:18px;font-weight:900}
+.modal-v148-grid .btn-peligro-v148{background:#fff8f7;border-color:#e8b2ad;color:#a2352d}
+.modal-v148-grid .btn-peligro-v148::before{background:#fff0ee;color:#c43b31}
+.caja-oas-v148{max-height:54vh;background:#fff;border:1px solid #d9e5ec;border-radius:16px;padding:10px;box-shadow:inset 0 1px 0 rgba(255,255,255,.65)}
+.oa-item-v148{display:grid;grid-template-columns:minmax(0,1fr) 18px;align-items:center;gap:10px;border:1px solid #d7e4eb;border-radius:12px;background:#fff;padding:11px 12px;margin-bottom:8px;box-shadow:0 3px 10px rgba(18,67,98,.03)}
+.oa-item-v148:last-child{margin-bottom:0}
+.oa-item-v148 b{display:block;color:#163f59;font-size:13px}
+.oa-item-v148 .sub{display:block;margin-top:3px;font-size:11.5px;line-height:1.35}
+.oa-item-v148 .flecha{color:#6a8aa0;font-size:18px;font-weight:900;text-align:right}
+.ajustes-inline-v146.ajustes-v148{background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);border:1px solid #d9e5ec;border-radius:18px;padding:10px 14px 14px;box-shadow:0 6px 18px rgba(20,62,88,.05)}
+.ajustes-v148 .bloque-seccion{border-top:0;padding-top:0;margin-top:0}
+.ajustes-v148 .rotulo-seccion{color:#0c4c79;border-left-color:#e8a400}
+.ajustes-v148 .campo>span{color:#5a7485}
+.ajustes-v148 .caja-oa-lista,.ajustes-v148 .caja-escala,.ajustes-v148 .bloque-criterio,.ajustes-v148 .ind-edit,.ajustes-v148 .criterio-edit,.ajustes-v148 .det-desc,.ajustes-v148 .pastilla{border-color:#d9e5ec}
+.ajustes-v148 .caja-oa-lista,.ajustes-v148 .caja-escala,.ajustes-v148 .bloque-criterio{background:#f8fbfd}
+.ajustes-v148 .bloque-criterio{padding:12px;border-radius:14px;box-shadow:0 3px 10px rgba(18,67,98,.03)}
+.ajustes-v148 .ind-edit{background:#fff;border-radius:12px}
+.ajustes-v148 .det-desc{background:#fff;border:1px solid #d9e5ec;border-radius:12px;padding:10px;margin-top:8px}
+.ajustes-v148 .det-desc summary{cursor:pointer;font-weight:700;color:#163f59}
+.ajustes-v148 .btn{border-color:#d3e1ea}
+.ajustes-v148 .btn-lleno{background:linear-gradient(135deg,#087bc2,#07569a);border-color:#07569a;color:#fff;box-shadow:0 5px 12px rgba(7,86,154,.14)}
+.ajustes-v148 .btn-peligro{color:#a2352d;border-color:#e8b2ad;background:#fff8f7}
+:root[data-tema="oscuro"] .modal{background:#14242d;border-color:#304b59}
+:root[data-tema="oscuro"] .modal h3{color:#e7f1f6}
+:root[data-tema="oscuro"] .modal .sub,:root[data-tema="oscuro"] .modal-v148-intro{color:#aac0cd}
+:root[data-tema="oscuro"] .modal-v148-grid .btn,:root[data-tema="oscuro"] .caja-oas-v148,:root[data-tema="oscuro"] .oa-item-v148{background:#172832;border-color:#35505e;color:#dceaf1;box-shadow:none}
+:root[data-tema="oscuro"] .modal-v148-grid .btn::before{background:#203846;color:#9dd6f4}
+:root[data-tema="oscuro"] .ajustes-inline-v146.ajustes-v148{background:#14242d;border-color:#304b59;box-shadow:none}
+:root[data-tema="oscuro"] .ajustes-v148 .caja-oa-lista,:root[data-tema="oscuro"] .ajustes-v148 .caja-escala,:root[data-tema="oscuro"] .ajustes-v148 .bloque-criterio{background:#172832;border-color:#35505e}
+:root[data-tema="oscuro"] .ajustes-v148 .ind-edit,:root[data-tema="oscuro"] .ajustes-v148 .det-desc{background:#14242d;border-color:#35505e}
+@media(min-width:700px){.modal-v148-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.modal h3{font-size:21px}.oa-item-v148{grid-template-columns:minmax(0,1fr) 14px}}
+
 </style>
 </head>
 <body>
@@ -4199,7 +4241,7 @@ function cabeceraEvaluacion() {
       <button class="mas-opciones-boton-v138" data-accion="mas-opciones" aria-label="Abrir más opciones"><span class="mas-dots" aria-hidden="true">•••</span><span>Más opciones</span><span class="mas-chevron" aria-hidden="true">›</span></button>
     </section>
 
-    ${S.ajustes ? `<section class="ajustes-inline-v146">${panelAjustes(ev)}</section>` : ""}
+    ${S.ajustes ? `<section class="ajustes-inline-v146 ajustes-v148">${panelAjustes(ev)}</section>` : ""}
 
     <section class="panorama-v130">
       <h4>Panorama de aprendizaje</h4>
@@ -4237,7 +4279,7 @@ function cabeceraEvaluacion() {
 function panelAjustes(ev) {
   const total = puntajeTotal(ev);
   return `
-  <div class="bloque-seccion">
+  <div class="bloque-seccion ajustes-v148">
     <span class="rotulo-seccion" style="margin-top:10px">Datos de la lista</span>
     <label class="campo"><span>Nombre de la lista de cotejo</span><input type="text" data-campo="nombre" value="${esc(ev.nombre)}"></label>
     <label class="campo"><span>Imagen de la evaluación</span>
@@ -5187,7 +5229,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v147</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v148</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
@@ -5358,25 +5400,25 @@ document.addEventListener("click", async (evt) => {
   }
   if (a === "mas-opciones") {
     abrirModal(`<h3>Más opciones</h3>
-      <p class="sub" style="margin:5px 0 0">Herramientas secundarias, informes, exportaciones y administración.</p>
-      <div class="mas-opciones-seccion">Trabajo docente</div>
-      <div class="mas-opciones-grid">
-        <button class="btn" data-accion="modo-cancha">Modo cancha</button>
-        <button class="btn" data-accion="progreso-estudiante">Progreso por estudiante</button>
+      <p class="modal-v148-intro">Herramientas secundarias, informes, exportaciones y administración de la lista actual.</p>
+      <div class="modal-v148-seccion">Trabajo docente</div>
+      <div class="modal-v148-grid">
+        <button class="btn" data-icon="⛳" data-accion="modo-cancha">Modo cancha</button>
+        <button class="btn" data-icon="📈" data-accion="progreso-estudiante">Progreso por estudiante</button>
       </div>
-      <div class="mas-opciones-seccion">Informes y exportación</div>
-      <div class="mas-opciones-grid">
-        <button class="btn" data-accion="excel">Exportar curso a Excel</button>
-        <button class="btn" data-accion="notas-curso">Informe de notas (PDF)</button>
-        <button class="btn" data-accion="imprimir">PDF con marcas</button>
-        <button class="btn" data-accion="imprimir-blanco">PDF en blanco</button>
-        <button class="btn" data-accion="informe-logro">Informe de logro (PDF)</button>
-        <button class="btn" data-accion="comparar-cursos">Comparar con otros cursos</button>
+      <div class="modal-v148-seccion">Informes y exportación</div>
+      <div class="modal-v148-grid">
+        <button class="btn" data-icon="📊" data-accion="excel">Exportar curso a Excel</button>
+        <button class="btn" data-icon="📝" data-accion="notas-curso">Informe de notas (PDF)</button>
+        <button class="btn" data-icon="✅" data-accion="imprimir">PDF con marcas</button>
+        <button class="btn" data-icon="📄" data-accion="imprimir-blanco">PDF en blanco</button>
+        <button class="btn" data-icon="🎯" data-accion="informe-logro">Informe de logro (PDF)</button>
+        <button class="btn" data-icon="↔" data-accion="comparar-cursos">Comparar con otros cursos</button>
       </div>
-      <div class="mas-opciones-seccion">Lista y ayuda</div>
-      <div class="mas-opciones-grid">
-        <button class="btn" data-accion="limpiar-marcas">Limpiar marcas de esta lista</button>
-        <button class="btn" data-accion="ayuda">¿Cómo funciona?</button>
+      <div class="modal-v148-seccion">Lista y ayuda</div>
+      <div class="modal-v148-grid">
+        <button class="btn btn-peligro-v148" data-icon="🧹" data-accion="limpiar-marcas">Limpiar marcas de esta lista</button>
+        <button class="btn" data-icon="❓" data-accion="ayuda">¿Cómo funciona?</button>
       </div>
       <div class="fila" style="margin-top:14px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
     return;
@@ -5484,15 +5526,16 @@ document.addEventListener("click", async (evt) => {
     const filas = S.datos.roster.map((nom, i) => {
       const f = fichaDe(i);
       const conDatos = f.items.filter((x) => x.nota !== null).length;
-      return `<button class="oa-item" data-accion="informe-alumno" data-i="${i}">
-        <span><b>${esc(nom || `Estudiante ${i + 1}`)}</b><br>
+      return `<button class="oa-item oa-item-v148" data-accion="informe-alumno" data-i="${i}">
+        <span><b>${esc(nom || `Estudiante ${i + 1}`)}</b>
         <span class="sub">${conDatos} evaluación${conDatos === 1 ? "" : "es"} con resultado · promedio ${num1(f.prom)}</span></span>
-        <span aria-hidden="true">›</span>
+        <span class="flecha" aria-hidden="true">›</span>
       </button>`;
     }).join("");
     abrirModal(`<h3>Informe por estudiante</h3>
-      <p class="sub" style="margin:5px 0 10px">Selecciona un estudiante. Se generará su informe de aprendizaje con resultados, indicadores, observaciones, apoyos y adecuaciones registradas.</p>
-      <div class="caja-oas">${filas}</div>
+      <p class="modal-v148-intro">Selecciona un estudiante. Se generará su informe de aprendizaje con resultados, indicadores, observaciones, apoyos y adecuaciones registradas.</p>
+      <div class="modal-v148-seccion">Estudiantes del curso</div>
+      <div class="caja-oas caja-oas-v148">${filas}</div>
       <div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
     return;
   }
