@@ -7670,11 +7670,64 @@ function wFicha(pares, anchoTotal) {
   return `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/>${bordes}</w:tblPr>${grid}${filas.join("")}</w:tbl>`;
 }
 
+/* Recuadro de indicador: número en negrita, texto normal y puntaje en cursiva,
+   igual que los recuadros de la leyenda del PDF. */
+function wCeldaIndicador(numero, texto, puntaje, ancho, tramos) {
+  return `<w:tc><w:tcPr><w:tcW w:w="${Math.round(ancho)}" w:type="dxa"/>` +
+    (tramos > 1 ? `<w:gridSpan w:val="${tramos}"/>` : "") +
+    `<w:vAlign w:val="top"/></w:tcPr><w:p><w:pPr><w:spacing w:after="0"/></w:pPr>` +
+    (numero ? `<w:r><w:rPr><w:b/><w:sz w:val="14"/></w:rPr><w:t xml:space="preserve">${xesc(numero)} </w:t></w:r>` : "") +
+    `<w:r><w:rPr><w:sz w:val="14"/></w:rPr><w:t xml:space="preserve">${xesc(texto)}</w:t></w:r>` +
+    (puntaje ? `<w:r><w:rPr><w:i/><w:sz w:val="13"/><w:color w:val="5B7383"/></w:rPr>` +
+      `<w:t xml:space="preserve">  ${xesc(puntaje)}</w:t></w:r>` : "") +
+    `</w:p></w:tc>`;
+}
+
+/* Los indicadores se reparten en rejilla. Si la última fila queda incompleta,
+   sus celdas se ensanchan para ocupar todo el ancho en vez de dejar huecos:
+   con 10 indicadores en 4 columnas, los dos últimos ocupan media hoja cada
+   uno en lugar de quedar apretados a la izquierda. */
+function wRejilla(items, columnas, anchoTotal) {
+  const w = anchoTotal / columnas;
+  const bordes = `<w:tblBorders>${["top", "left", "bottom", "right", "insideH", "insideV"]
+    .map((x) => `<w:${x} w:val="single" w:sz="4" w:color="C8DCE8"/>`).join("")}</w:tblBorders>`;
+  const grid = `<w:tblGrid>${new Array(columnas).fill(0).map(() => `<w:gridCol w:w="${Math.round(w)}"/>`).join("")}</w:tblGrid>`;
+  const filas = [];
+  for (let i = 0; i < items.length; i += columnas) {
+    const tramo = items.slice(i, i + columnas);
+    // Reparto de las columnas de la fila entre las celdas que realmente hay.
+    const base = Math.floor(columnas / tramo.length);
+    let sobran = columnas - base * tramo.length;
+    const celdas = tramo.map((it) => {
+      const n = base + (sobran-- > 0 ? 1 : 0);
+      return wCeldaIndicador(it.numero, it.texto, it.puntaje, w * n, n);
+    });
+    filas.push("<w:tr>" + celdas.join("") + "</w:tr>");
+  }
+  return `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/>${bordes}</w:tblPr>${grid}${filas.join("")}</w:tbl>`;
+}
+
 function exportarWord() {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const ev = evalActual();
-  const { cab, filas, total } = filasDeEvaluacion(ev);
-  const nMarcas = columnasPlanilla(ev).length;
+  const { filas: filasBrutas, total, cols } = filasDeEvaluacion(ev);
+  const nMarcas = cols.length;
+
+  /* filasDeEvaluacion arma el encabezado para Excel: pone el texto completo
+     del indicador y agrega las columnas Adecuaciones y Medidas remediales.
+     En la hoja eso no cabe, así que aquí se replica el encabezado del PDF:
+     los indicadores van numerados 1.1, 1.2, … y las adecuaciones y medidas
+     bajan al pie, marcadas con * junto al nombre. */
+  const cab = ["N°", "Estudiante", "As.",
+    ...cols.map((c) => `${c.j + 1}.${c.q + 1}`),
+    "Pts", "%", "Nota", "Obs."];
+  const filas = filasBrutas.map((f) => {
+    const c = f.slice();
+    c.pop();            // medidas remediales: van al pie
+    const ade = c.splice(2, 1)[0];   // adecuaciones: van al pie, con * en el nombre
+    if (ade) c[1] = `${c[1]} *`;
+    return c;
+  });
   const { orientacion } = planImpresion(nMarcas);
   const m = medidasHoja(orientacion, 12);
   const e = estadisticas(ev);
@@ -7716,10 +7769,14 @@ function exportarWord() {
     partes.push(wParrafo(`${c.oa || "Criterio " + (j + 1)} · ${EJES[c.eje] || "criterio propio"}`, { negrita: true, tam: 16, espacio: 20 }));
     partes.push(wParrafo(c.texto || "—", { tam: 15, espacio: 20 }));
     if (c.objEval) partes.push(wParrafo(`Objetivo de evaluación: ${c.objEval}`, { tam: 15, espacio: 20 }));
-    c.indicadores.forEach((ind, q) => partes.push(
-      wParrafo(`${j + 1}.${q + 1}   ${ind.texto || "sin redactar"}   (${esEscala(ev) ? `1–${nNiveles(ev)}` : ind.pts + " pts"})`,
-        { tam: 15, espacio: 10 })));
-    partes.push(wParrafo("", { espacio: 40 }));
+    /* Rejilla de dos columnas: las filas crecen según los indicadores y
+       la última se reparte el ancho entre las celdas que le queden. */
+    partes.push(wRejilla(c.indicadores.map((ind, q) => ({
+      numero: `${j + 1}.${q + 1}`,
+      texto: ind.texto || "sin redactar",
+      puntaje: esEscala(ev) ? `1–${nNiveles(ev)}` : `${ind.pts} pts`,
+    })), 2, anchoTotal));
+    partes.push(wParrafo("", { espacio: 60 }));
   });
 
   const conAde = S.datos.roster.map((n, i) => {
