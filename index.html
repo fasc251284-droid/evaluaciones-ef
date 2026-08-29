@@ -1378,6 +1378,9 @@ html,body,#raiz{max-width:100%;overflow-x:hidden}
 .modal-v148-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
 .modal-v148-grid .btn{width:100%;min-height:48px;display:grid;grid-template-columns:34px minmax(0,1fr) 18px;align-items:center;gap:10px;text-align:left;padding:10px 12px;border:1px solid #d3e1ea;background:#fff;border-radius:12px;font-weight:800;color:#163f59;box-shadow:0 3px 10px rgba(18,67,98,.03)}
 .modal-v148-grid .btn::before{content:attr(data-icon);display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:#eef7fd;color:#0874b9;font-size:var(--t-base);font-weight:900}
+/* Mismo recurso para los botones chicos de la barra de salidas: el icono va
+   como pseudoelemento, así no se puede seleccionar ni se copia con el texto. */
+.btn-mini[data-icon]::before{content:attr(data-icon); margin-right:5px; font-size:var(--t-sm); line-height:1}
 .modal-v148-grid .btn::after{content:"›";text-align:right;color:#7893a4;font-size:var(--t-lg);font-weight:900}
 .modal-v148-grid .btn-peligro-v148{background:#fff8f7;border-color:#e8b2ad;color:#a2352d}
 .modal-v148-grid .btn-peligro-v148::before{background:#fff0ee;color:#c43b31}
@@ -4911,9 +4914,9 @@ function vistaPlanilla(ev) {
     </table>
   </div>
   <div class="fila no-imprimir" style="margin-top:10px">
-    <button class="btn btn-mini" data-accion="imprimir">Imprimir o guardar PDF</button>
-    <button class="btn btn-mini" data-accion="word">Descargar Word</button>
-      <button class="btn btn-mini" data-accion="excel">Descargar Excel</button>
+    <button class="btn btn-mini" data-icon="📄" data-accion="imprimir">Imprimir o guardar PDF</button>
+    <button class="btn btn-mini" data-icon="📝" data-accion="word">Descargar Word</button>
+      <button class="btn btn-mini" data-icon="📊" data-accion="excel">Descargar Excel</button>
   </div>`;
 }
 
@@ -5222,9 +5225,9 @@ function vistaResumen() {
       }).join("")}
     </div>
     <div class="fila no-imprimir" style="margin-top:14px">
-      <button class="btn btn-mini" data-accion="imprimir">Imprimir o guardar PDF</button>
-      <button class="btn btn-mini" data-accion="word">Descargar Word</button>
-      <button class="btn btn-mini" data-accion="excel">Descargar Excel</button>
+      <button class="btn btn-mini" data-icon="📄" data-accion="imprimir">Imprimir o guardar PDF</button>
+      <button class="btn btn-mini" data-icon="📝" data-accion="word">Descargar Word</button>
+      <button class="btn btn-mini" data-icon="📊" data-accion="excel">Descargar Excel</button>
     </div>
   </div>`;
 }
@@ -5467,9 +5470,9 @@ function vistaConsolidado() {
     </table>
   </div>
   <div class="fila no-imprimir" style="margin-top:10px">
-    <button class="btn btn-mini" data-accion="imprimir">Imprimir o guardar PDF</button>
-    <button class="btn btn-mini" data-accion="word">Descargar Word</button>
-      <button class="btn btn-mini" data-accion="excel">Descargar Excel</button>
+    <button class="btn btn-mini" data-icon="📄" data-accion="imprimir">Imprimir o guardar PDF</button>
+    <button class="btn btn-mini" data-icon="📝" data-accion="word">Descargar Word</button>
+      <button class="btn btn-mini" data-icon="📊" data-accion="excel">Descargar Excel</button>
   </div>
   </div>`;
 }
@@ -5541,7 +5544,7 @@ function vistaCurso() {
     </label>
     <p class="sub" style="margin:-4px 0 12px">Se aplica a los PDF y al documento de Word. Ajusta el ancho de las columnas y cuántos estudiantes entran por hoja.</p>
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
-      <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
+      <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Word">
     </label>
     ${(() => {
       const p = leerPendientes(), cursos = Object.keys(p);
@@ -7532,12 +7535,90 @@ function imprimirFicha(i) {
   imprimirVentanaSegura();
 }
 
-/* ---- Exportar a Word ----
-   Word abre documentos HTML con las etiquetas de Office como si fueran .doc
-   nativos: conserva tablas, negritas y configuración de página, y la tabla
-   queda editable. Se hace así a propósito, en vez de generar un .docx real,
-   porque un .docx obliga a cargar una librería desde internet y la app tiene
-   que servir igual en la cancha sin señal. */
+/* ---- Exportar a Word (.docx real) ----
+   Un .docx es un ZIP con XML adentro. Se arma a mano, sin librerías, porque
+   la app tiene que servir en la cancha sin señal. Antes se generaba un .doc
+   en HTML de Office: el Word de escritorio lo abría, pero el de iPhone lo
+   rechaza, así que había que producir el formato de verdad. */
+
+const TABLA_CRC = (() => {
+  const t = new Int32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c;
+  }
+  return t;
+})();
+
+function crc32(bytes) {
+  let c = -1;
+  for (let i = 0; i < bytes.length; i++) c = TABLA_CRC[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ -1) >>> 0;
+}
+
+/* ZIP sin compresión (método "store"): alcanza de sobra para un documento. */
+function armarZip(archivos) {
+  const cod = new TextEncoder();
+  const partes = [], central = [];
+  let offset = 0;
+  const u16 = (n) => [n & 0xff, (n >>> 8) & 0xff];
+  const u32 = (n) => [n & 0xff, (n >>> 8) & 0xff, (n >>> 16) & 0xff, (n >>> 24) & 0xff];
+
+  for (const { nombre, texto } of archivos) {
+    const datos = cod.encode(texto);
+    const nom = cod.encode(nombre);
+    const crc = crc32(datos);
+    const local = [...u32(0x04034b50), ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
+      ...u32(crc), ...u32(datos.length), ...u32(datos.length), ...u16(nom.length), ...u16(0)];
+    partes.push(new Uint8Array(local), nom, datos);
+    central.push([...u32(0x02014b50), ...u16(20), ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
+      ...u32(crc), ...u32(datos.length), ...u32(datos.length), ...u16(nom.length),
+      ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(offset), ...Array.from(nom)]);
+    offset += local.length + nom.length + datos.length;
+  }
+  const dir = [].concat(...central);
+  const fin = [...u32(0x06054b50), ...u16(0), ...u16(0), ...u16(archivos.length), ...u16(archivos.length),
+    ...u32(dir.length), ...u32(offset), ...u16(0)];
+  partes.push(new Uint8Array(dir), new Uint8Array(fin));
+  const total = partes.reduce((a, p) => a + p.length, 0);
+  const salida = new Uint8Array(total);
+  let i = 0;
+  for (const p of partes) { salida.set(p, i); i += p.length; }
+  return salida;
+}
+
+const xesc = (s) => String(s == null ? "" : s)
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+
+const MM_TW = 56.6929;      // un milímetro en twips
+
+function wParrafo(texto, { negrita, tam = 18, espacio = 60 } = {}) {
+  return `<w:p><w:pPr><w:spacing w:after="${espacio}"/></w:pPr>` +
+    `<w:r><w:rPr>${negrita ? "<w:b/>" : ""}<w:sz w:val="${tam}"/></w:rPr>` +
+    `<w:t xml:space="preserve">${xesc(texto)}</w:t></w:r></w:p>`;
+}
+
+function wCelda(texto, ancho, { negrita, tam = 15, izq } = {}) {
+  return `<w:tc><w:tcPr><w:tcW w:w="${Math.round(ancho)}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>` +
+    `<w:p><w:pPr><w:jc w:val="${izq ? "left" : "center"}"/><w:spacing w:after="0"/></w:pPr>` +
+    `<w:r><w:rPr>${negrita ? "<w:b/>" : ""}<w:sz w:val="${tam}"/></w:rPr>` +
+    `<w:t xml:space="preserve">${xesc(texto)}</w:t></w:r></w:p></w:tc>`;
+}
+
+/* tblHeader repite el encabezado en cada hoja: eso Word sí lo respeta. */
+function wTabla(cab, filas, anchos) {
+  const bordes = `<w:tblBorders>${["top", "left", "bottom", "right", "insideH", "insideV"]
+    .map((b) => `<w:${b} w:val="single" w:sz="4" w:color="9BB8CA"/>`).join("")}</w:tblBorders>`;
+  const grid = `<w:tblGrid>${anchos.map((a) => `<w:gridCol w:w="${Math.round(a)}"/>`).join("")}</w:tblGrid>`;
+  const filaCab = `<w:tr><w:trPr><w:tblHeader/></w:trPr>` +
+    cab.map((v, k) => wCelda(v, anchos[k], { negrita: true, izq: k === 1 })).join("") + "</w:tr>";
+  const cuerpo = filas.map((f) =>
+    `<w:tr>${f.map((v, k) => wCelda(v, anchos[k], { izq: k === 1 })).join("")}</w:tr>`).join("");
+  return `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/>${bordes}</w:tblPr>${grid}${filaCab}${cuerpo}</w:tbl>`;
+}
+
 function exportarWord() {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const ev = evalActual();
@@ -7547,52 +7628,59 @@ function exportarWord() {
   const m = medidasHoja(orientacion, 12);
   const e = estadisticas(ev);
 
-  const fila = (celdas, etiqueta) => `<tr>${celdas.map((v, k) =>
-    `<${etiqueta} class="${k === 1 ? "izq" : ""}">${esc(v == null ? "" : v)}</${etiqueta}>`).join("")}</tr>`;
+  // Reparto proporcional del ancho útil entre las columnas.
+  const anchoUtil = (m.anchoMm - 24) * MM_TW;
+  const fijos = [0.04, 0.17, 0.05];
+  const cola = [0.06, 0.05, 0.06, 0.14];
+  const usado = [...fijos, ...cola].reduce((a, b) => a + b, 0);
+  const porMarca = Math.max(0.02, (1 - usado) / Math.max(1, nMarcas));
+  const anchos = [...fijos, ...new Array(nMarcas).fill(porMarca), ...cola].map((p) => p * anchoUtil);
 
-  const cuerpo = `
-    <p class="membrete"><b>${esc(colegio())}</b><br>Educación Física y Salud · ${esc(curso.nombre)}</p>
-    <h1>${esc(ev.nombre)}</h1>
-    <table class="ficha">
-      <tr><td><b>Curso</b></td><td>${esc(curso.nombre)}</td><td><b>Fecha</b></td><td>${fechaLarga(ev.fecha)}</td></tr>
-      <tr><td><b>Instrumento</b></td><td>${esEscala(ev) ? `Escala de apreciación 1–${nNiveles(ev)}` : "Lista de cotejo"}</td>
-          <td><b>Evalúa</b></td><td>${esc(quienEvalua(ev))}</td></tr>
-      <tr><td><b>Puntaje</b></td><td>${total} pts · exigencia ${exigenciaValida(ev.exigencia)}%</td>
-          <td><b>Promedio</b></td><td>${num1(e.prom)}</td></tr>
-      <tr><td><b>Unidad</b></td><td colspan="3">${esc(ev.oa || "—")}</td></tr>
-    </table>
-    ${ev.criterios.map((c, j) => `
-      <p class="oa"><b>${esc(c.oa || "Criterio " + (j + 1))}</b> · ${esc(c.texto || "—")}</p>
-      <ul>${c.indicadores.map((ind, q) =>
-        `<li><b>${j + 1}.${q + 1}</b> ${esc(ind.texto || "sin redactar")} <i>(${esEscala(ev) ? `1–${nNiveles(ev)}` : ind.pts + " pts"})</i></li>`).join("")}</ul>`).join("")}
-    <table class="planilla">
-      <thead>${fila(cab, "th")}</thead>
-      <tbody>${filas.map((f) => fila(f, "td")).join("")}</tbody>
-    </table>
-    <p class="pie">${esc(nombreDocente() || "")}${nombreDocente() ? " · " : ""}Generado el ${fechaLarga(hoy())}</p>`;
+  const lineas = [
+    wParrafo(`${colegio()} · Educación Física y Salud · ${curso.nombre}`, { negrita: true, tam: 18, espacio: 20 }),
+    wParrafo(ev.nombre || "Lista", { negrita: true, tam: 30, espacio: 80 }),
+    wParrafo(`${curso.nombre} · ${fechaLarga(ev.fecha)} · ${esEscala(ev) ? `Escala 1–${nNiveles(ev)}` : "Lista de cotejo"}`, { tam: 16, espacio: 20 }),
+    wParrafo(`${total} pts · exigencia ${exigenciaValida(ev.exigencia)}% · promedio ${num1(e.prom)} · evalúa ${quienEvalua(ev)}`, { tam: 16, espacio: 20 }),
+    wParrafo(`Unidad: ${ev.oa || "—"}`, { tam: 16, espacio: 60 }),
+  ];
+  ev.criterios.forEach((c, j) => {
+    lineas.push(wParrafo(`${c.oa || "Criterio " + (j + 1)} · ${c.texto || "—"}`, { negrita: true, tam: 16, espacio: 20 }));
+    c.indicadores.forEach((ind, q) => lineas.push(
+      wParrafo(`${j + 1}.${q + 1}  ${ind.texto || "sin redactar"}  (${esEscala(ev) ? `1–${nNiveles(ev)}` : ind.pts + " pts"})`, { tam: 15, espacio: 10 })));
+  });
+  lineas.push(wParrafo("", { espacio: 60 }));
+  lineas.push(wTabla(cab, filas, anchos));
+  lineas.push(wParrafo(`${nombreDocente() || ""}${nombreDocente() ? " · " : ""}Generado el ${fechaLarga(hoy())}`, { tam: 14, espacio: 0 }));
 
-  const doc = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-<head><meta charset="utf-8"><title>${esc(ev.nombre)}</title>
-<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
-<style>
-@page{size:${m.anchoMm}mm ${m.altoMm}mm; mso-page-orientation:${orientacion}; margin:12mm}
-body{font-family:Calibri,Arial,sans-serif; font-size:9pt; color:#102b38}
-.membrete{font-size:9pt; margin:0 0 4pt}
-h1{font-size:15pt; margin:0 0 6pt}
-table{border-collapse:collapse; width:100%}
-.ficha td{border:0.5pt solid #9bb8ca; padding:3pt 5pt; font-size:8.5pt}
-.oa{margin:8pt 0 2pt; font-size:9pt}
-ul{margin:0 0 6pt 14pt; padding:0}
-li{font-size:8.5pt; margin:0 0 1pt}
-.planilla th{border:0.5pt solid #6f93a8; background:#e8f1f7; padding:3pt 2pt; font-size:8pt; text-align:center}
-.planilla td{border:0.5pt solid #9bb8ca; padding:3pt 2pt; font-size:8pt; text-align:center}
-.planilla .izq{text-align:left}
-.pie{margin-top:8pt; font-size:8pt; color:#5b7383}
-</style></head><body>${cuerpo}</body></html>`;
+  const sect = `<w:sectPr><w:pgSz w:w="${Math.round(m.anchoMm * MM_TW)}" w:h="${Math.round(m.altoMm * MM_TW)}"` +
+    `${orientacion === "landscape" ? ' w:orient="landscape"' : ""}/>` +
+    `<w:pgMar w:top="${Math.round(12 * MM_TW)}" w:right="${Math.round(12 * MM_TW)}" ` +
+    `w:bottom="${Math.round(12 * MM_TW)}" w:left="${Math.round(12 * MM_TW)}"/></w:sectPr>`;
 
-  const limpio = (s) => String(s).replace(/[\\/*?:[\]]/g, "").trim();
-  descargar(`${limpio(curso.label)}-${limpio(ev.nombre) || "lista"}.doc`, "\ufeff" + doc,
-    "application/msword;charset=utf-8");
+  const documento = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${lineas.join("")}${sect}</w:body></w:document>`;
+
+  const tipos = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  const bytes = armarZip([
+    { nombre: "[Content_Types].xml", texto: tipos },
+    { nombre: "_rels/.rels", texto: rels },
+    { nombre: "word/document.xml", texto: documento },
+  ]);
+
+  const limpio = (t) => String(t).replace(/[\\/*?:[\]]/g, "").trim();
+  descargar(`${limpio(curso.label)}-${limpio(ev.nombre) || "lista"}.docx`, bytes,
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 }
 
 function descargar(nombre, contenido, tipo) {
