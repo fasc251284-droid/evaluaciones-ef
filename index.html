@@ -2893,6 +2893,40 @@ const unidadesDelCurso = (cursoId) => UNIDADES[cursoId] || [];
 const SUPABASE_URL = "https://oktinlfoxjdohjukhwqw.supabase.co";
 const SUPABASE_KEY = "sb_publishable_xcSV6janC_6H0PqWcMvrAg_lyCU6cj1";
 const TABLA = "evaluaciones_ef";
+
+/* ---- Guardado en el equipo, con aviso cuando ya no cabe ----
+   Safari corta cerca de los 5 MB. Antes esto fallaba en silencio y la
+   planilla se perdía sin que nadie se enterara. Ahora queda constancia. */
+let sinEspacioLocal = false;
+let avisoEspacioDado = false;
+
+function guardarLocal(clave, valor) {
+  try {
+    localStorage.setItem(clave, valor);
+    sinEspacioLocal = false;
+    avisoEspacioDado = false;
+    return true;
+  } catch (err) {
+    const lleno = err && (err.name === "QuotaExceededError" ||
+      err.name === "NS_ERROR_DOM_QUOTA_REACHED" || err.code === 22 || err.code === 1014);
+    if (lleno) sinEspacioLocal = true;
+    console.warn("No se pudo guardar en este equipo:", clave, err);
+    return false;
+  }
+}
+
+/* Cuánto ocupan los datos de la app en este equipo, en MB aproximados. */
+function espacioUsadoMB() {
+  let n = 0;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || k.indexOf(PREFIJO) !== 0) continue;
+      n += k.length + (localStorage.getItem(k) || "").length;
+    }
+  } catch {}
+  return Math.round((n * 2 / 1048576) * 10) / 10;
+}
 const PREFIJO = "evalef:";
 
 const CURSOS = [
@@ -3601,9 +3635,10 @@ const almacen = {
     try { return normalizar(JSON.parse(local)); } catch { return null; }
   },
   async escribir(cursoId, obj, forzar) {
-    try { localStorage.setItem(PREFIJO + cursoId, JSON.stringify(obj)); } catch {}
+    const enEquipo = guardarLocal(PREFIJO + cursoId, JSON.stringify(obj));
     const u = await usuarioActual();
-    if (!u) throw new Error("sin-sesion");
+    /* Sin espacio y sin sesión: la planilla no quedó en ninguna parte. */
+    if (!u) throw new Error(enEquipo ? "sin-sesion" : "sin-espacio");
 
     // Si el servidor cambió después de la última vez que leímos, otro
     // dispositivo escribió en medio: no se pisa sin preguntar.
@@ -3685,9 +3720,18 @@ async function guardar() {
   S.guardado = "guardando"; S.detalleError = ""; pintarEstado();
   try {
     await almacen.escribir(curso, datos);
-    S.guardado = "ok";
+    /* Si subió al servidor pero no cupo en el equipo, los datos están a salvo
+       igual: se avisa sin alarmar. */
+    S.guardado = sinEspacioLocal ? "solo-servidor" : "ok";
     marcarSubido(curso);
   } catch (e) {
+    if (e.message === "sin-espacio") {
+      S.guardado = "sin-espacio";
+      marcarSinSubir(curso, "sin-espacio");
+      avisarSinEspacio();
+      pintarEstado();
+      return;
+    }
     if (e.message === "conflicto") {
       S.guardado = "conflicto";
       marcarSinSubir(curso, "conflicto");
@@ -3760,6 +3804,23 @@ function avisarConflicto(cursoId) {
 }
 
 /* Reintenta subir todo lo que quedó pendiente. */
+/* Cuando el equipo ya no acepta más datos, lo urgente es que el profesor
+   saque un respaldo antes de seguir marcando. Se avisa una sola vez. */
+function avisarSinEspacio() {
+  if (avisoEspacioDado) return;
+  avisoEspacioDado = true;
+  abrirModal(`<h3>Este equipo se quedó sin espacio</h3>
+    <p class="sub" style="margin:6px 0 0">La planilla no alcanzó a guardarse y no hay
+    sesión abierta para subirla al servidor. Los datos de la app ocupan unos
+    ${espacioUsadoMB()} MB en este equipo.</p>
+    <p class="sub" style="margin:6px 0 0">Descarga un respaldo ahora y después inicia
+    sesión para subir los cursos.</p>
+    <div class="fila" style="margin-top:12px">
+      <button class="btn btn-lleno" data-accion="respaldo-todo">Descargar respaldo</button>
+      <button class="btn" data-accion="cerrar-modal">Cerrar</button>
+    </div>`);
+}
+
 async function reintentarPendientes() {
   const p = leerPendientes();
   const cursos = Object.keys(p);
@@ -3789,6 +3850,8 @@ function pintarEstado() {
     ok: ["", "Guardado automático"], guardando: ["trabajando", "Guardando…"],
     conflicto: ["error", "Hay otra versión"],
     pendiente: ["trabajando", "Guardando…"], local: ["error", "Solo en este equipo"],
+    "solo-servidor": ["trabajando", "Sin espacio en el equipo"],
+    "sin-espacio": ["error", "No hay espacio para guardar"],
     error: ["error", "No se pudo guardar"]
   };
   const pend = Object.keys(leerPendientes()).length;
@@ -6584,7 +6647,7 @@ document.addEventListener("input", (evt) => {
   else if (campo === "nivel-p") ev.escala.niveles[+el.dataset.k].p = Math.max(0, +el.value || 0);
   else if (campo === "pts") ev.criterios[+el.dataset.j].indicadores[+el.dataset.q].pts = Math.max(0, +el.value || 0);
   else if (campo === "alumno") S.datos.roster[+el.dataset.i] = el.value;
-  else if (campo === "docente") { localStorage.setItem(CLAVE_DOCENTE, el.value); return; }
+  else if (campo === "docente") { guardarLocal(CLAVE_DOCENTE, el.value); return; }
   else if (campo === "colegio") { try { localStorage.setItem(CLAVE_COLEGIO, el.value); } catch {} return; }
   else if (campo === "objeval") {
     ev.criterios[+el.dataset.j].objEval = el.value;
@@ -6622,7 +6685,7 @@ document.addEventListener("change", (evt) => {
       marcarCambio(); pintar(); return;
     }
     else if (a === "tema") {
-      localStorage.setItem(CLAVE_TEMA, el.value); aplicarTema(); pintar(); return;
+      guardarLocal(CLAVE_TEMA, el.value); aplicarTema(); pintar(); return;
     }
     else if (a === "ade-lista") {
       const ev = evalActual();
@@ -6694,7 +6757,8 @@ function pedirLogo() {
         const escala = Math.min(lado / img.width, lado / img.height);
         const w = img.width * escala, h = img.height * escala;
         g.drawImage(img, (lado - w) / 2, (lado - h) / 2, w, h);
-        try { localStorage.setItem(CLAVE_LOGO, c.toDataURL("image/png")); } catch {}
+        /* El logo es lo más pesado que se guarda: si no cabe, hay que avisar. */
+        if (!guardarLocal(CLAVE_LOGO, c.toDataURL("image/png"))) avisarSinEspacio();
         pintar();
       };
       img.src = lector.result;
