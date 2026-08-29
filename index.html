@@ -767,6 +767,15 @@ th.col-fija{background:var(--surface-2); z-index:3}
      Las columnas de marca no llevan medida a propósito: el navegador reparte
      entre ellas el espacio sobrante en partes iguales. */
   .hoja-impresion table.tabla-planilla{table-layout:fixed; width:100%}
+  /* Los anchos se aplican al colgroup, no sólo a las celdas: así valen aunque
+     la primera fila del encabezado sea el rótulo con colspan. */
+  .hoja-impresion col.c-n{width:7mm}
+  .hoja-impresion col.c-asis{width:9mm}
+  .hoja-impresion col.c-pts{width:11mm}
+  .hoja-impresion col.c-pct{width:10mm}
+  .hoja-impresion .tabla-planilla col.c-nota{width:11mm}
+  .hoja-impresion .tabla-consolidado col.c-nom{width:52mm}
+  .hoja-impresion .tabla-consolidado col.c-nota{width:auto}
   .hoja-impresion .tabla-planilla .c-n{width:7mm}
   .hoja-impresion .tabla-planilla .c-nom{width:38mm}
   .hoja-impresion .tabla-planilla .c-asis{width:9mm}
@@ -783,8 +792,14 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .hoja-impresion thead{display:table-header-group}
   /* Un encabezado nunca debe quedar solo al pie: si no alcanzan a caber filas
      debajo, la tabla entera arranca en la hoja siguiente. */
-  .hoja-impresion thead{break-after:avoid; page-break-after:avoid}
-  .hoja-impresion thead tr{break-inside:avoid; break-after:avoid}
+  /* Rótulo que viaja con el encabezado: en la segunda hoja la lista se
+     identifica sola y deja de parecer un trozo suelto. */
+  .hoja-impresion .fila-rotulo th{background:#fff; border:0; border-bottom:1.5px solid #0c3f63;
+    font-size:9.5px; font-weight:800; color:#0c3f63; padding:0 0 3px; letter-spacing:.01em}
+  /* No poner break-after:avoid sobre el thead: Safari deja de repetirlo en
+     cada hoja y la segunda página aparece sin encabezado, como cortada.
+     Basta con que la fila del encabezado no se parta por dentro. */
+  .hoja-impresion thead tr{break-inside:avoid}
   /* El cuadro de arriba viaja pegado a su tabla. */
   .hoja-impresion .ficha-hoja{break-inside:avoid; break-after:avoid; page-break-after:avoid}
   .hoja-impresion tfoot{display:table-footer-group}
@@ -6858,8 +6873,10 @@ function prepararImpresion(nMarcas) {
   const css = `
     @page{size:A4 ${orientacion}; margin:9mm}
     .hoja-impresion table{font-size:${fuente}px}
-    .hoja-impresion .tabla-planilla .c-nom{width:${anchoNom}mm}
-    .hoja-impresion .tabla-planilla .c-obs{width:${anchoObs}mm${anchoObs ? "" : "; display:none"}}
+    .hoja-impresion .tabla-planilla .c-nom,
+    .hoja-impresion .tabla-planilla col.c-nom{width:${anchoNom}mm}
+    .hoja-impresion .tabla-planilla .c-obs,
+    .hoja-impresion .tabla-planilla col.c-obs{width:${anchoObs}mm${anchoObs ? "" : "; display:none"}}
     ${anchoObs ? "" : ".hoja-impresion .tabla-planilla th.c-obs{display:none}"}
     .leyenda-oa{font-size:${fuenteLey}px}
     .leyenda-oa .rejilla-ind{grid-template-columns:repeat(${cajas}, 1fr)}
@@ -6961,7 +6978,14 @@ function imprimirNotasCurso() {
       <td class="izq"><b>${esc(ev.nombre)}</b></td>
       <td class="izq">${fechaLarga(ev.fecha)}${pesoDe(ev) !== 1 ? ` · peso ${pesoDe(ev)}` : ""}${
         rotuloTipo(ev) ? ` · ${rotuloTipo(ev)}` : ""}</td></tr>`).join("")}</tbody></table>
-    <table class="tabla-consolidado"><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
+    <table class="tabla-consolidado">
+      <colgroup>
+        <col class="c-n"><col class="c-nom">
+        ${evs.map(() => `<col class="c-nota">`).join("")}<col class="c-nota">
+      </colgroup>
+      <thead>
+      <tr class="fila-rotulo"><th colspan="${evs.length + 3}" class="izq">Consolidado · ${esc(curso.nombre)} · ${evs.length} lista${evs.length === 1 ? "" : "s"}</th></tr>
+      <tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
       ${evs.map((ev, k) => `<th class="c-nota">${k + 1}</th>`).join("")}<th class="c-nota">Prom.</th></tr></thead>
     <tbody>${filas.map((f, i) => `<tr><td class="c-n">${i + 1}</td><td class="c-nom izq">${esc(f.nom || "—")}</td>
       ${f.notas.map((x) => `<td class="c-nota">${x === null ? "—" : num1(x)}</td>`).join("")}
@@ -7001,7 +7025,14 @@ function imprimirConsolidado() {
           <th>Promedio del curso</th><td>${num1(promCurso)}</td>
           <th>Aprobación</th><td>${aprob} de ${proms.length}${proms.length ? ` · ${Math.round((aprob / proms.length) * 100)}%` : ""}</td></tr>
     </tbody></table>
-    <table class="tabla-consolidado"><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
+    <table class="tabla-consolidado">
+      <colgroup>
+        <col class="c-n"><col class="c-nom">
+        ${evs.map(() => `<col class="c-nota">`).join("")}<col class="c-nota">
+      </colgroup>
+      <thead>
+      <tr class="fila-rotulo"><th colspan="${evs.length + 3}" class="izq">Consolidado · ${esc(curso.nombre)} · ${evs.length} lista${evs.length === 1 ? "" : "s"}</th></tr>
+      <tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
       ${evs.map((ev, k) => `<th class="c-nota">${k + 1}</th>`).join("")}<th class="c-nota">Prom.</th></tr></thead>
     <tbody>${filas.map((f, i) => `<tr><td class="c-n">${i + 1}</td><td class="c-nom izq">${esc(f.nom || "—")}</td>
       ${f.notas.map((n) => `<td class="c-nota">${n === null ? "—" : num1(n)}</td>`).join("")}
@@ -7029,7 +7060,7 @@ function imprimir(enBlanco) {
     return m.length ? { n: n || `N° ${i + 1}`, lista: m } : null;
   }).filter(Boolean);
   const e = estadisticas(ev);
-  prepararImpresion(columnasPlanilla(ev).length * (esEscala(ev) ? 1 : 1));
+  prepararImpresion(columnasPlanilla(ev).length);
   $("#impresion").innerHTML = `
     ${membreteHTML()}
     <h1 class="titulo-hoja">${esc(ev.nombre)}</h1>
@@ -7062,7 +7093,17 @@ function imprimir(enBlanco) {
     ${conMed.length ? `<p class="nota-med"><b>Medidas remediales aplicadas.</b>
       ${conMed.map((x) => `${esc(x.n)}: ${x.lista.map((t) => esc(t)).join("; ")}`).join(" — ")}</p>` : ""}
     <table class="tabla-planilla">
-      <thead><tr>
+      <!-- Con table-layout:fixed los anchos los fija la primera fila. Como la
+           primera es el rótulo (un th con colspan), los anchos se declaran
+           aquí: el colgroup tiene prioridad y las columnas siguen parejas. -->
+      <colgroup>
+        <col class="c-n"><col class="c-nom"><col class="c-asis">
+        ${cols.map(() => `<col class="c-marca">`).join("")}
+        <col class="c-pts"><col class="c-pct"><col class="c-nota"><col class="c-obs">
+      </colgroup>
+      <thead>
+      <tr class="fila-rotulo"><th colspan="${cols.length + 7}" class="izq">${esc(ev.nombre)} · ${esc(curso.nombre)} · ${fechaLarga(ev.fecha)}</th></tr>
+      <tr>
         <th class="c-n">N°</th><th class="c-nom izq">Estudiante</th><th class="c-asis">As.</th>
         ${cols.map((c) => `<th class="c-marca">${c.j + 1}.${c.q + 1}</th>`).join("")}
         <th class="c-pts">Pts</th><th class="c-pct">%</th><th class="c-nota">Nota</th><th class="c-obs izq">Obs.</th>
