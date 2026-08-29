@@ -1453,6 +1453,24 @@ html,body,#raiz{max-width:100%;overflow-x:hidden}
 .progreso-persona b,.oa-item-v148 b,.seguimiento-alumno-v141 b,.caja-oas .oa-item[data-accion="ficha"] b,.nombre-estudiante-v151{color:var(--nombre-estudiante)!important;font-weight:800}
 :root[data-tema="oscuro"]{--nombre-estudiante:#7cc8ff}
 
+/* ===== v152 · nombre de estudiante: una sola regla en toda la app ===== */
+:root{--student-name-blue:#0a70b2}
+.student-name-v152,
+.student-name-v152 *{
+  font-family:var(--body)!important;
+  font-size:14px!important;
+  line-height:1.3!important;
+  font-weight:800!important;
+  color:var(--student-name-blue)!important;
+  letter-spacing:0!important;
+  text-transform:none!important;
+  font-style:normal!important;
+}
+input.student-name-v152,select.student-name-v152{font-family:var(--body)!important;font-size:14px!important;font-weight:800!important;color:var(--student-name-blue)!important}
+.student-number-v152{font-family:var(--mono)!important;font-size:11px!important;font-weight:500!important;color:#5b7383!important;letter-spacing:0!important}
+:root[data-tema="oscuro"]{--student-name-blue:#7cc8ff}
+:root[data-tema="oscuro"] .student-number-v152{color:#9ab0bd!important}
+
 
 </style>
 </head>
@@ -4613,7 +4631,7 @@ function vistaPlanilla(ev) {
           const r = resultado(ev, i);
           const est = ev.estado[i] || 0;
           return `<tr class="${est ? "fila-ausente" : ""}" data-fila="${i}">
-            <td class="izq col-fija"><span class="n-orden">${String(i + 1).padStart(2, "0")}</span> ${esc(nom || "—")}</td>
+            <td class="izq col-fija"><span class="n-orden student-number-v152">${String(i + 1).padStart(2, "0")}</span> <span class="student-name-v152">${esc(nom || "—")}</span></td>
             <td>${botonAsistencia(ev, i)}</td>
             ${cols.map((col) => {
               if (esEscala(ev)) {
@@ -4685,7 +4703,7 @@ function vistaPorCriterio(ev) {
       return `<div class="alumno">
         <div class="alumno-cab">
           <span class="n-orden">${String(i + 1).padStart(2, "0")}</span>
-          <span class="nombre">${esc(nombre || "—")}</span>
+          <span class="nombre student-name-v152">${esc(nombre || "—")}</span>
           <span class="nota ${r.nota === null ? "" : r.nota < 4 ? "roja" : "azul"}">${num1(r.nota)}</span>
           ${botonAsistencia(ev, i)}
         </div>
@@ -4713,14 +4731,14 @@ function vistaPorAlumno(ev) {
   <div class="tarjeta zona-desliz">
     <div class="fila fila-sep no-imprimir alumno-nav-cancha" style="margin-bottom:10px">
       <button class="btn btn-mini" data-accion="alumno-mover" data-d="-1" ${posActivo === 0 ? "disabled" : ""}>‹ Anterior</button>
-      <select data-accion="elegir-alumno" style="flex:1;min-width:140px">
+      <select class="student-name-v152" data-accion="elegir-alumno" style="flex:1;min-width:140px">
         ${activos.map((k) => `<option value="${k}" ${k === i ? "selected" : ""}>${esc(S.datos.roster[k] || "—")}</option>`).join("")}
       </select>
       <button class="btn btn-mini" data-accion="alumno-mover" data-d="1" ${posActivo === activos.length - 1 ? "disabled" : ""}>Siguiente ›</button>
     </div>
     <div class="fila fila-sep alumno-resumen-cancha" style="border-bottom:1px solid var(--line);padding-bottom:10px">
       <div>
-        <h2>${esc(S.datos.roster[i] || "—")}</h2>
+        <h2 style="font-family:var(--body);color:var(--student-name-blue);font-weight:800">${esc(S.datos.roster[i] || "—")}</h2>
         <p class="sub" style="margin:2px 0 0">${esEscala(ev) ? `${r.marcados} de ${totalIndicadores(ev)} indicadores evaluados` : `${r.logrados} de ${totalIndicadores(ev)} indicadores logrados`} · ${r.puntaje} de ${r.total} pts${r.sinMarca ? ` · ${r.sinMarca} sin marcar` : ""}</p>
       </div>
       <div class="fila">
@@ -4853,7 +4871,7 @@ function vistaResumen() {
       const falla = remedialesPara(ev, i);
       return `<details class="det-apoyo">
         <summary>
-          <span><b>${esc(nom || "N° " + (i + 1))}</b> · nota ${num1(r.nota)}</span>
+          <span><b class="student-name-v152">${esc(nom || "N° " + (i + 1))}</b> · nota ${num1(r.nota)}</span>
           <em>${peor ? `${esc(peor.c.oa || "Criterio " + (peor.j + 1))} · ${peor.pct}%` : ""}</em>
         </summary>
         ${falla.fallidos.length ? `<p class="rotulo-seccion" style="margin:8px 0 5px">No logró · ${falla.fallidos.length}</p>
@@ -4887,14 +4905,14 @@ function vistaResumen() {
         const nom = S.datos.roster[i];
         const est = ev.estado[i] || 0;
         if (est) return `<div class="logro-item">
-          <div class="rotulo"><span class="nombre-estudiante-v151"><b class="mono" style="font-size:11px">${String(i + 1).padStart(2, "0")}</b> ${esc(nom || "—")}</span>
+          <div class="rotulo"><span><b class="student-number-v152">${String(i + 1).padStart(2, "0")}</b> <span class="student-name-v152">${esc(nom || "—")}</span></span>
           <em>${est === 1 ? "ausente" : "justificado"}</em></div></div>`;
         const r = resultado(ev, i);
         const pct = r.total ? Math.round((r.puntaje / r.total) * 100) : null;
         return `<details class="logro-item det-alumno">
           <summary>
             <div class="rotulo">
-              <span class="nombre-estudiante-v151"><b class="mono" style="font-size:11px">${String(i + 1).padStart(2, "0")}</b> ${esc(nom || "—")}</span>
+              <span><b class="student-number-v152">${String(i + 1).padStart(2, "0")}</b> <span class="student-name-v152">${esc(nom || "—")}</span></span>
               <em>${pct === null ? "—" : pct + "%"}</em>
             </div>
             <div class="pista"><i class="${pct === null ? "" : pct < 60 ? "critica" : pct < 80 ? "baja" : ""}" style="width:${pct || 0}%"></i></div>
@@ -4945,7 +4963,7 @@ function vistaResumen() {
         const est = ev.estado[i] || 0;
         return `<div class="alumno-cab" style="padding:6px 0;border-top:1px solid var(--line)">
           <span class="n-orden">${String(i + 1).padStart(2, "0")}</span>
-          <span class="nombre">${esc(nom || "—")}</span>
+          <span class="nombre student-name-v152">${esc(nom || "—")}</span>
           ${est ? `<span class="sub">${est === 1 ? "Ausente" : "Justificado"}</span>`
             : `<span class="sub mono">${r.puntaje}/${r.total}</span>
                <span class="nota ${r.nota === null ? "" : r.nota < 4 ? "roja" : "azul"}">${num1(r.nota)}</span>`}
@@ -5065,7 +5083,7 @@ function quitarEstudianteDeSeguimiento(k, i) {
 
 function abrirFichaProgreso(i) {
   const nombre = S.datos.roster[i] || `Estudiante ${i + 1}`;
-  abrirModal(`<h3>Ficha de progreso · ${esc(nombre)}</h3><p class="sub" style="margin:4px 0 0">Seguimiento acumulado de las evaluaciones registradas en este curso.</p>${progresoEstudianteHTML(i)}<div class="fila" style="margin-top:14px"><button class="btn btn-lleno" data-accion="informe-alumno" data-i="${i}">Informe para el apoderado</button><button class="btn" data-accion="ficha" data-i="${i}">Ver historial completo</button><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
+  abrirModal(`<h3>Ficha de progreso</h3><p class="student-name-v152" style="margin:5px 0 2px">${esc(nombre)}</p><p class="sub" style="margin:0">Seguimiento acumulado de las evaluaciones registradas en este curso.</p>${progresoEstudianteHTML(i)}<div class="fila" style="margin-top:14px"><button class="btn btn-lleno" data-accion="informe-alumno" data-i="${i}">Informe para el apoderado</button><button class="btn" data-accion="ficha" data-i="${i}">Ver historial completo</button><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
 }
 
 function progresoGeneral(i) {
@@ -5189,7 +5207,7 @@ function vistaConsolidado() {
       <tbody>
         ${filas.map((f, i) => `<tr>
           <td class="izq col-fija"><span class="n-orden">${String(i + 1).padStart(2, "0")}</span>
-            <button class="obs-boton" data-accion="ficha" data-i="${i}" title="Ver sus observaciones">${esc(f.nom || "—")}</button>${adeDe(i).length ? `<span class="marca-dua" title="Con adecuaciones curriculares">DUA</span>` : ""}</td>
+            <button class="obs-boton student-name-v152" data-accion="ficha" data-i="${i}" title="Ver sus observaciones">${esc(f.nom || "—")}</button>${adeDe(i).length ? `<span class="marca-dua" title="Con adecuaciones curriculares">DUA</span>` : ""}</td>
           ${f.notas.map((n) => `<td class="mono" style="color:var(--verde-oscuro)">${n === null ? "—" : num1(n)}</td>`).join("")}
           <td><span class="nota ${f.prom === null ? "" : f.prom < 4 ? "roja" : "azul"}">${num1(f.prom)}</span></td>
         </tr>`).join("")}
@@ -5221,7 +5239,7 @@ function vistaCurso() {
       <div style="border-top:1px solid var(--line);padding:5px 0">
         <div class="alumno-cab">
           <span class="n-orden">${String(i + 1).padStart(2, "0")}</span>
-          <input type="text" data-campo="alumno" data-i="${i}" value="${esc(n)}" placeholder="Nombre y apellido" style="flex:1;padding:6px 8px;font-size:14px">
+          <input class="student-name-v152" type="text" data-campo="alumno" data-i="${i}" value="${esc(n)}" placeholder="Nombre y apellido" style="flex:1;padding:6px 8px">
           <button class="btn btn-mini ${adeDe(i).length ? "btn-lleno" : ""}" data-accion="adecuacion" data-i="${i}"
             title="Adecuaciones curriculares">DUA${adeDe(i).length ? ` ${adeDe(i).length}` : ""}</button>
           <button class="btn btn-mini btn-peligro" data-accion="borrar-alumno" data-i="${i}">×</button>
@@ -5280,7 +5298,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v151</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v152</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
@@ -5482,7 +5500,7 @@ document.addEventListener("click", async (evt) => {
   if (a === "modo-cancha-salir") { S.modoCancha = false; pintar(); window.scrollTo({top:0,behavior:'smooth'}); return; }
   if (a === "progreso-estudiante") {
     if (!S.datos.roster.length) { abrirModal(`<h3>Progreso por estudiante</h3><p class="sub">Primero debes agregar estudiantes a la nómina.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return; }
-    const filas = S.datos.roster.map((nom,i)=>{ const f=fichaDe(i), g=progresoGeneral(i); const ini=(nom||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase(); return `<button class="progreso-persona" data-accion="ver-progreso" data-i="${i}"><span class="avatar">${esc(ini||String(i+1))}</span><span><b>${esc(nom||`Estudiante ${i+1}`)}</b><small>${g.puntos.length} evaluación${g.puntos.length===1?'':'es'} con datos · promedio ${num1(f.prom)}</small></span><span class="flecha">›</span></button>`; }).join('');
+    const filas = S.datos.roster.map((nom,i)=>{ const f=fichaDe(i), g=progresoGeneral(i); const ini=(nom||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase(); return `<button class="progreso-persona" data-accion="ver-progreso" data-i="${i}"><span class="avatar">${esc(ini||String(i+1))}</span><span><b class="student-name-v152">${esc(nom||`Estudiante ${i+1}`)}</b><small>${g.puntos.length} evaluación${g.puntos.length===1?'':'es'} con datos · promedio ${num1(f.prom)}</small></span><span class="flecha">›</span></button>`; }).join('');
     abrirModal(`<h3>Progreso por estudiante</h3><p class="sub" style="margin:5px 0 10px">Selecciona un estudiante para ver su evolución, indicadores que requieren apoyo y mejoras observadas.</p><div class="progreso-seleccion">${filas}</div><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return;
   }
   if (a === "ver-progreso") {
@@ -5519,7 +5537,7 @@ document.addEventListener("click", async (evt) => {
   if (a === "ver-foco-estudiantes") {
     const f = focoDelCurso(ev), estudiantes = estudiantesDelFoco(ev, f);
     if (!f || !estudiantes.length) { abrirModal(`<h3>Sin estudiantes para mostrar</h3><p class="sub" style="margin:6px 0 0">No hay estudiantes marcados actualmente como requerimiento de refuerzo en este indicador.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return; }
-    abrirModal(`<h3>Estudiantes para reforzar</h3><p class="sub" style="margin:5px 0 10px"><b>${esc(f.rot)}</b> · ${esc(f.texto||"Indicador")}</p><div class="caja-oas">${estudiantes.map(x=>`<button class="oa-item" data-accion="ficha" data-i="${x.i}"><span><b>${esc(x.nombre)}</b>${x.nivel?`<br><span class="sub">${esc(x.nivel)}</span>`:""}</span></button>`).join("")}</div><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return;
+    abrirModal(`<h3>Estudiantes para reforzar</h3><p class="sub" style="margin:5px 0 10px"><b>${esc(f.rot)}</b> · ${esc(f.texto||"Indicador")}</p><div class="caja-oas">${estudiantes.map(x=>`<button class="oa-item" data-accion="ficha" data-i="${x.i}"><span><b class="student-name-v152">${esc(x.nombre)}</b>${x.nivel?`<br><span class="sub">${esc(x.nivel)}</span>`:""}</span></button>`).join("")}</div><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return;
   }
 
   if (a === "reevaluar-foco") {
@@ -5532,7 +5550,7 @@ document.addEventListener("click", async (evt) => {
       <div class="aviso-seguimiento-v141"><b>${esc(f.rot)} · ${esc(f.texto || "Indicador")}</b><br>${f.oa ? esc(f.oa) + " · " : ""}${f.pct}% de logro actual.</div>
       <label class="campo"><span>Nombre del seguimiento</span><input id="rf-nombre" value="${esc(`Seguimiento · ${ev.nombre || "Foco"}`)}"></label>
       <label class="campo" style="margin-top:8px"><span>Fecha</span><input id="rf-fecha" type="date" value="${hoy()}"></label>
-      <div class="seguimiento-lista-v141">${estudiantes.map((x) => `<div class="seguimiento-alumno-v141"><span><b>${esc(x.nombre)}</b><small>${esc(x.nivel || "Requiere apoyo")}</small></span><em class="seguimiento-estado-v141 apoyo">seguimiento</em></div>`).join("")}</div>
+      <div class="seguimiento-lista-v141">${estudiantes.map((x) => `<div class="seguimiento-alumno-v141"><span><b class="student-name-v152">${esc(x.nombre)}</b><small>${esc(x.nivel || "Requiere apoyo")}</small></span><em class="seguimiento-estado-v141 apoyo">seguimiento</em></div>`).join("")}</div>
       <div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="confirmar-reevaluacion-foco">Crear seguimiento</button><button class="btn" data-accion="cerrar-modal">Cancelar</button></div>`);
     return;
   }
@@ -5553,7 +5571,7 @@ document.addEventListener("click", async (evt) => {
     abrirModal(`<h3>Comparación del seguimiento</h3>
       <p class="sub" style="margin:4px 0 8px">Compara el desempeño del indicador entre <b>${esc(seg.origenNombre || "la evaluación anterior")}</b> y esta reevaluación.</p>
       <div class="seguimiento-resumen-v141"><div class="seguimiento-kpi-v141"><strong>${r.superaron}</strong><span>Superaron foco</span></div><div class="seguimiento-kpi-v141"><strong>${r.mejoraron}</strong><span>Mejoraron</span></div><div class="seguimiento-kpi-v141"><strong>${r.mantienen}</strong><span>Se mantienen</span></div><div class="seguimiento-kpi-v141"><strong>${r.apoyo}</strong><span>Aún con apoyo</span></div></div>
-      <div class="seguimiento-lista-v141">${r.items.map((x) => `<div class="seguimiento-alumno-v141"><span><b>${esc(x.nombre)}</b><small>Antes: ${x.antes === null ? "—" : Math.round(x.antes) + "%"} · Ahora: ${x.ahora === null ? "pendiente" : Math.round(x.ahora) + "%"}</small></span><em class="seguimiento-estado-v141 ${esc(x.cls)}">${esc(x.estado)}</em></div>`).join("")}</div>
+      <div class="seguimiento-lista-v141">${r.items.map((x) => `<div class="seguimiento-alumno-v141"><span><b class="student-name-v152">${esc(x.nombre)}</b><small>Antes: ${x.antes === null ? "—" : Math.round(x.antes) + "%"} · Ahora: ${x.ahora === null ? "pendiente" : Math.round(x.ahora) + "%"}</small></span><em class="seguimiento-estado-v141 ${esc(x.cls)}">${esc(x.estado)}</em></div>`).join("")}</div>
       <div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="ir-evaluacion">Continuar reevaluación</button><button class="btn btn-peligro-suave-v145" data-accion="borrar-seguimiento-completo">Eliminar seguimiento</button><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
     return;
   }
@@ -5578,7 +5596,7 @@ document.addEventListener("click", async (evt) => {
       const f = fichaDe(i);
       const conDatos = f.items.filter((x) => x.nota !== null).length;
       return `<button class="oa-item oa-item-v148" data-accion="informe-alumno" data-i="${i}">
-        <span><b>${esc(nom || `Estudiante ${i + 1}`)}</b>
+        <span><b class="student-name-v152">${esc(nom || `Estudiante ${i + 1}`)}</b>
         <span class="sub">${conDatos} evaluación${conDatos === 1 ? "" : "es"} con resultado · promedio ${num1(f.prom)}</span></span>
         <span class="flecha" aria-hidden="true">›</span>
       </button>`;
@@ -5722,8 +5740,9 @@ document.addEventListener("click", async (evt) => {
   if (a === "ficha") {
     const i = +btn.dataset.i, f = fichaDe(i);
     abrirModal(`
-      <h3>${esc(f.nombre)}</h3>
-      <p class="sub" style="margin:4px 0 10px">${f.items.length} listas · promedio ${num1(f.prom)} ·
+      <h3>Ficha del estudiante</h3>
+      <p class="student-name-v152" style="margin:5px 0 2px">${esc(f.nombre)}</p>
+      <p class="sub" style="margin:0 0 10px">${f.items.length} listas · promedio ${num1(f.prom)} ·
         ${f.conObs ? `${f.conObs} con observación` : "sin observaciones escritas"}</p>
       <div class="caja-oas">${fichaHTML(i)}</div>
       ${(() => {
@@ -5761,7 +5780,7 @@ document.addEventListener("click", async (evt) => {
     const i = +btn.dataset.i;
     abrirModal(`
       <h3>Observación</h3>
-      <p class="sub" style="margin:4px 0 10px">${esc(S.datos.roster[i])}</p>
+      <p class="student-name-v152" style="margin:5px 0 10px">${esc(S.datos.roster[i])}</p>
       <textarea id="txt-obs" rows="5" placeholder="Qué observaste y qué apoyo necesita">${esc(ev.obs[i] || "")}</textarea>
       <div class="fila" style="margin-top:9px">
         <button class="btn btn-mini" data-accion="pauta-obs">Usar pauta de retroalimentación</button>
@@ -6270,8 +6289,8 @@ document.addEventListener("click", async (evt) => {
       }).join("");
     abrirModal(`
       <h3>Adecuaciones curriculares</h3>
-      <p class="sub" style="margin:4px 0 10px">${esc(S.datos.roster[i] || "Estudiante " + (i + 1))} · Decreto 83/2015.
-        Las de acceso no modifican el objetivo; las de objetivos sí, y requieren registro en el PACI.</p>
+      <p class="student-name-v152" style="margin:5px 0 2px">${esc(S.datos.roster[i] || "Estudiante " + (i + 1))}</p>
+      <p class="sub" style="margin:0 0 10px">Decreto 83/2015. Las de acceso no modifican el objetivo; las de objetivos sí, y requieren registro en el PACI.</p>
       ${aplicadas.length ? `
         <p class="rotulo-seccion" style="margin-top:0">Aplicadas · ${aplicadas.length}</p>
         <div class="caja-aplicadas">
