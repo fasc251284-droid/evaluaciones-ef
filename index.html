@@ -3967,6 +3967,8 @@ function esqueletoHTML(nombre) {
    Redibujar la app completa en cada toque se siente lento con 25 estudiantes. */
 let relojResumen = null;
 let impresionEnCurso = false;
+/* Se pone en verdadero recién cuando window.print() ya fue llamado. */
+let impresionLanzada = false;
 let repintarTrasImpresion = false;
 let temporizadorLiberarImpresion = null;
 let clonImpresionSeguro = null;
@@ -3981,6 +3983,7 @@ function retirarClonImpresionSeguro() {
 function finalizarImpresionSegura() {
   if (!impresionEnCurso && !clonImpresionSeguro) return;
   impresionEnCurso = false;
+  impresionLanzada = false;
   document.body.classList.remove("impresion-en-curso");
   retirarClonImpresionSeguro();
   if (temporizadorLiberarImpresion) {
@@ -3995,6 +3998,28 @@ function finalizarImpresionSegura() {
 
 window.addEventListener("afterprint", finalizarImpresionSegura);
 window.addEventListener("beforeunload", retirarClonImpresionSeguro);
+
+/* ---- Salidas de emergencia de la impresión ----
+   En Safari de iOS, si cancelas o ignoras la hoja para compartir, "afterprint"
+   nunca llega y la app quedaba con la interfaz oculta. Estas vías la devuelven
+   a la normalidad apenas el usuario vuelve a tocar la pantalla.
+   El seguro impresionLanzada evita que se corten solas antes de tiempo:
+   sin él, el foco que se pierde al abrir el diálogo cancelaría la impresión. */
+const salirDeImpresion = () => { if (impresionEnCurso && impresionLanzada) finalizarImpresionSegura(); };
+
+try {
+  const consulta = window.matchMedia("print");
+  const alCambiar = (e) => { if (!e.matches) salirDeImpresion(); };
+  if (consulta.addEventListener) consulta.addEventListener("change", alCambiar);
+  else if (consulta.addListener) consulta.addListener(alCambiar);
+} catch {}
+
+/* Al volver a la app desde la hoja para compartir. */
+window.addEventListener("focus", salirDeImpresion);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) salirDeImpresion(); });
+/* Cualquier toque o tecla mientras la interfaz está oculta la restituye. */
+["pointerdown", "keydown"].forEach((evt) =>
+  window.addEventListener(evt, salirDeImpresion, true));
 
 function esperarImagenesImpresion(contenedor) {
   const imgs = [...contenedor.querySelectorAll("img")];
@@ -4043,12 +4068,15 @@ function imprimirVentanaSegura() {
           return;
         }
         try { window.print(); } catch (e) { finalizarImpresionSegura(); }
+        /* Desde aquí las salidas de emergencia ya pueden actuar. */
+        impresionLanzada = true;
       }, 120);
     }));
   });
 
-  // Respaldo por si afterprint no se dispara en alguna versión de iOS.
-  temporizadorLiberarImpresion = setTimeout(finalizarImpresionSegura, 600000);
+  // Respaldo final por si ninguna de las salidas anteriores alcanza a actuar.
+  // Eran 10 minutos: demasiado, la app quedaba inutilizable todo ese rato.
+  temporizadorLiberarImpresion = setTimeout(finalizarImpresionSegura, 45000);
 }
 
 function refrescarMarca(ev, i, j, q) {
