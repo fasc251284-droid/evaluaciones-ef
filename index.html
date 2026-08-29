@@ -1428,6 +1428,32 @@ html,body,#raiz{max-width:100%;overflow-x:hidden}
 :root[data-tema="oscuro"] .seccion-v147 .planilla .rot-crit{background:#2a4b5f;color:#e7f1f6}
 :root[data-tema="oscuro"] .seccion-v147 .planilla tbody td,:root[data-tema="oscuro"] .seccion-v147 .planilla tbody tr:nth-child(even) td,:root[data-tema="oscuro"] .seccion-v147 .planilla tbody tr:nth-child(even) td.col-fija{background:#14242d !important}
 
+/* ===== v150 · ajuste fino consolidado ===== */
+.seccion-consolidado-v147 .panel-portada-v147{padding-top:34px}
+.seccion-consolidado-v147 .panel-portada-v147 h2{margin-top:2px;margin-bottom:6px}
+.seccion-consolidado-v147 .metricas{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:stretch}
+.seccion-consolidado-v147 .metrica{min-height:62px;padding:8px 8px 7px;border-radius:11px}
+.seccion-consolidado-v147 .metrica b{font-size:18px;font-weight:850;color:#163f59}
+.seccion-consolidado-v147 .metrica span{font-size:10px;font-weight:800;color:#5b7180}
+.seccion-consolidado-v147 .obs-boton{color:#0a70b2 !important;font-weight:800;text-decoration:none}
+.seccion-consolidado-v147 .obs-boton:hover{text-decoration:underline}
+.seccion-consolidado-v147 .planilla thead th{padding-top:10px;padding-bottom:10px}
+.seccion-consolidado-v147 .planilla td{padding-top:9px;padding-bottom:9px}
+.seccion-consolidado-v147 .n-orden{color:#5a7485 !important}
+@media(max-width:620px){.seccion-consolidado-v147 .panel-portada-v147{padding-top:32px}.seccion-consolidado-v147 .metricas{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.seccion-consolidado-v147 .metrica{min-height:56px;padding:7px 6px}.seccion-consolidado-v147 .metrica b{font-size:17px}.seccion-consolidado-v147 .metrica span{font-size:9.5px}}
+:root[data-tema="oscuro"] .seccion-consolidado-v147 .obs-boton{color:#7cc8ff !important}
+:root[data-tema="oscuro"] .seccion-consolidado-v147 .metrica b{color:#e7f1f6}
+
+/* ===== v151 · nombres de estudiantes unificados: azul y negrita ===== */
+:root{--nombre-estudiante:#0a70b2}
+.planilla tbody td.izq.col-fija{color:var(--nombre-estudiante)!important;font-weight:800}
+.alumno .nombre,.seccion-resumen-v147 .alumno-cab .nombre{color:var(--nombre-estudiante)!important;font-weight:800}
+.seccion-consolidado-v147 .obs-boton{color:var(--nombre-estudiante)!important;font-weight:800}
+.seccion-curso-v147 input[data-campo="alumno"]{color:var(--nombre-estudiante)!important;font-weight:800}
+.progreso-persona b,.oa-item-v148 b,.seguimiento-alumno-v141 b,.caja-oas .oa-item[data-accion="ficha"] b,.nombre-estudiante-v151{color:var(--nombre-estudiante)!important;font-weight:800}
+:root[data-tema="oscuro"]{--nombre-estudiante:#7cc8ff}
+
+
 </style>
 </head>
 <body>
@@ -4861,14 +4887,14 @@ function vistaResumen() {
         const nom = S.datos.roster[i];
         const est = ev.estado[i] || 0;
         if (est) return `<div class="logro-item">
-          <div class="rotulo"><span><b class="mono" style="font-size:11px">${String(i + 1).padStart(2, "0")}</b> ${esc(nom || "—")}</span>
+          <div class="rotulo"><span class="nombre-estudiante-v151"><b class="mono" style="font-size:11px">${String(i + 1).padStart(2, "0")}</b> ${esc(nom || "—")}</span>
           <em>${est === 1 ? "ausente" : "justificado"}</em></div></div>`;
         const r = resultado(ev, i);
         const pct = r.total ? Math.round((r.puntaje / r.total) * 100) : null;
         return `<details class="logro-item det-alumno">
           <summary>
             <div class="rotulo">
-              <span><b class="mono" style="font-size:11px">${String(i + 1).padStart(2, "0")}</b> ${esc(nom || "—")}</span>
+              <span class="nombre-estudiante-v151"><b class="mono" style="font-size:11px">${String(i + 1).padStart(2, "0")}</b> ${esc(nom || "—")}</span>
               <em>${pct === null ? "—" : pct + "%"}</em>
             </div>
             <div class="pista"><i class="${pct === null ? "" : pct < 60 ? "critica" : pct < 80 ? "baja" : ""}" style="width:${pct || 0}%"></i></div>
@@ -5254,7 +5280,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v149</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v151</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
