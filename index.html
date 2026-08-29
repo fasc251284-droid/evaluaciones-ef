@@ -1422,6 +1422,9 @@ html,body,#raiz{max-width:100%;overflow-x:hidden}
 .seccion-consolidado-v147 .panel-portada-v147{padding-top:34px}
 .seccion-consolidado-v147 .panel-portada-v147 h2{margin-top:2px;margin-bottom:6px}
 .seccion-consolidado-v147 .metricas{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:stretch}
+/* El resumen usa exactamente la misma disposición que el consolidado: tres
+   tarjetas por fila, del mismo alto, sin que la tercera baje sola. */
+.seccion-resumen-v147 .metricas{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:stretch}
 .seccion-consolidado-v147 .metrica{min-height:62px;padding:8px 8px 7px;border-radius:11px}
 .seccion-consolidado-v147 .metrica b{font-size:var(--t-lg);font-weight:850;color:#163f59}
 .seccion-consolidado-v147 .metrica span{font-size:var(--t-xs);font-weight:800;color:#5b7180}
@@ -1431,6 +1434,9 @@ html,body,#raiz{max-width:100%;overflow-x:hidden}
 .seccion-consolidado-v147 .planilla td{padding-top:9px;padding-bottom:9px}
 .seccion-consolidado-v147 .n-orden{color:#5a7485 !important}
 @media(max-width:620px){.seccion-consolidado-v147 .panel-portada-v147{padding-top:32px}.seccion-consolidado-v147 .metricas{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.seccion-consolidado-v147 .metrica{min-height:56px;padding:7px 6px}.seccion-consolidado-v147 .metrica b{font-size:var(--t-lg)}.seccion-consolidado-v147 .metrica span{font-size:var(--t-xs)}}
+/* Mismas medidas para el resumen en pantalla chica, para que las tres
+   tarjetas quepan en una fila con el rótulo legible. */
+@media(max-width:620px){.seccion-resumen-v147 .metricas{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.seccion-resumen-v147 .metrica{min-height:56px;padding:7px 6px}.seccion-resumen-v147 .metrica b{font-size:var(--t-lg)}.seccion-resumen-v147 .metrica span{font-size:var(--t-xs)}}
 :root[data-tema="oscuro"] .seccion-consolidado-v147 .obs-boton{color:#7cc8ff !important}
 :root[data-tema="oscuro"] .seccion-consolidado-v147 .metrica b{color:#e7f1f6}
 
