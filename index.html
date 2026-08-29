@@ -1320,6 +1320,47 @@ html,body,#raiz{max-width:100%;overflow-x:hidden}
 :root[data-tema="oscuro"] .dashboard-v146 .lista-row-v146.activa{background:#163247;border-color:#4d9ac8}
 :root[data-tema="oscuro"] .dashboard-v146 .mis-listas-head-v146 h4{color:#e7f1f6}
 
+/* ===== v147 · colores unificados para Resumen, Consolidado y Nómina ===== */
+.seccion-v147{display:grid;gap:14px}
+.seccion-v147 .tarjeta{background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%);border:1px solid #d9e5ec;border-radius:18px;box-shadow:0 6px 18px rgba(20,62,88,.05)}
+.seccion-v147 .panel-portada-v147{position:relative;overflow:hidden;padding-top:26px}
+.seccion-v147 .panel-portada-v147::before{content:"";position:absolute;left:0;top:0;right:0;height:11px;background:linear-gradient(135deg,#073f70 0%,#0868a8 100%)}
+.seccion-v147 .panel-portada-v147::after{content:"";position:absolute;left:0;top:11px;right:0;height:3px;background:#e8a400}
+.seccion-v147 .tarjeta>h2{font-family:var(--display);font-size:22px;line-height:1.08;color:#0b2f50;margin-bottom:4px}
+.seccion-v147 .sub{color:#607686}
+.seccion-v147 .metricas{gap:10px}
+.seccion-v147 .metrica{min-height:92px;padding:12px 10px;border-radius:14px;border:1px solid transparent;display:flex;flex-direction:column;justify-content:center;box-shadow:0 4px 12px rgba(18,67,98,.035)}
+.seccion-v147 .metrica:nth-child(1){background:var(--dash-blue-soft);border-color:#b9dcf2}
+.seccion-v147 .metrica:nth-child(1) b{color:#086bb1}
+.seccion-v147 .metrica:nth-child(2){background:var(--dash-green-soft);border-color:#bde2c8}
+.seccion-v147 .metrica:nth-child(2) b{color:var(--dash-green)}
+.seccion-v147 .metrica:nth-child(3){background:var(--dash-purple-soft);border-color:#dac9ed}
+.seccion-v147 .metrica:nth-child(3) b{color:var(--dash-purple)}
+.seccion-v147 .metrica:nth-child(4){background:var(--dash-orange-soft);border-color:#f3c8aa}
+.seccion-v147 .metrica:nth-child(4) b{color:var(--dash-orange)}
+.seccion-v147 .metrica b{display:block;font-family:var(--display);font-size:28px;line-height:1;font-weight:850;letter-spacing:-.035em}
+.seccion-v147 .metrica span{font-size:11px;font-weight:800;color:#587180;letter-spacing:.02em}
+.seccion-v147 .btn{border-color:#d3e1ea}
+.seccion-v147 .btn-lleno{background:linear-gradient(135deg,#087bc2,#07569a);border-color:#07569a;color:#fff;box-shadow:0 5px 12px rgba(7,86,154,.16)}
+.seccion-v147 .obs-boton{color:#0a70b2;font-weight:700;text-decoration:none}
+.seccion-v147 .obs-boton:hover{text-decoration:underline}
+.seccion-v147 .envoltura-tabla{border:1px solid #d9e5ec;border-radius:18px;background:#fff;box-shadow:0 6px 18px rgba(20,62,88,.05)}
+.seccion-v147 th{background:#eef7fd;color:#456376}
+.seccion-v147 .col-fija{background:#fff}
+.seccion-v147 th.col-fija{background:#eef7fd}
+.seccion-v147 .vacio{padding:2px 2px 0}
+.seccion-v147 .vacio strong{display:block;font-family:var(--display);font-size:21px;color:#0b2f50;margin-bottom:6px}
+.seccion-v147 .fila-peligro{border-top-color:#eadfbe}
+.seccion-v147 .rotulo-seccion{color:#0c4c79}
+.seccion-v147 .det-apoyo,.seccion-v147 .det-alumno,.seccion-v147 .bloque-unidad{background:#fff}
+@media(max-width:620px){.seccion-v147 .metricas{grid-template-columns:repeat(2,minmax(0,1fr))}.seccion-v147 .tarjeta>h2{font-size:19px}}
+:root[data-tema="oscuro"] .seccion-v147 .tarjeta,:root[data-tema="oscuro"] .seccion-v147 .envoltura-tabla{background:#14242d;border-color:#304b59;box-shadow:none}
+:root[data-tema="oscuro"] .seccion-v147 .tarjeta>h2,:root[data-tema="oscuro"] .seccion-v147 .vacio strong{color:#e7f1f6}
+:root[data-tema="oscuro"] .seccion-v147 .sub,:root[data-tema="oscuro"] .seccion-v147 .metrica span{color:#aac0cd}
+:root[data-tema="oscuro"] .seccion-v147 th{background:#19313d;color:#b9d3df}
+:root[data-tema="oscuro"] .seccion-v147 .col-fija{background:#14242d}
+:root[data-tema="oscuro"] .seccion-v147 th.col-fija{background:#19313d}
+
 </style>
 </head>
 <body>
@@ -4629,11 +4670,11 @@ function vistaResumen() {
   const ev = evalActual();
   const activos = indicesEvaluables(ev);
   const n = activos.length;
-  if (!n) return `<div class="tarjeta"><div class="vacio">
+  if (!n) return `<div class="seccion-v147 seccion-resumen-v147"><div class="tarjeta panel-portada-v147"><div class="vacio">
     <strong>Todavía no hay resumen</strong>
     El resumen se arma con las marcas del curso. Primero carga la nómina y evalúa a tus estudiantes.
     <div style="margin-top:14px"><button class="btn btn-lleno" data-accion="pestana" data-v="curso">Cargar la nómina</button></div>
-  </div></div>`;
+  </div></div></div>`;
 
   const e = estadisticas(ev);
   const notas = [];
@@ -4669,7 +4710,8 @@ function vistaResumen() {
   }));
 
   return `
-  <div class="tarjeta">
+  <div class="seccion-v147 seccion-resumen-v147">
+  <div class="tarjeta panel-portada-v147">
     <h2>${esc(ev.nombre)}</h2>
     <p class="sub" style="margin:2px 0 12px">${fechaLarga(ev.fecha)} · ${esc((CURSOS.find((c) => c.id === S.cursoId) || {}).nombre)} · ${esEscala(ev) ? "escala de apreciación" : totalIndicadores(ev) + " indicadores"} · ${puntajeTotal(ev)} pts</p>
     <div class="metricas">
@@ -4985,7 +5027,7 @@ function graficoProgresoHTML(i) {
   const poly = xy.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
   const guias = [100,80,60,40].map(v => { const y=T+(100-v)*usableH/100; return `<line class="grid" x1="${L}" y1="${y}" x2="${W-R}" y2="${y}"/><text x="2" y="${y+3}">${v}</text>`; }).join('');
   const puntos = xy.map((p,n) => `<circle class="punto ${n===xy.length-1?'ultimo':''}" cx="${p.x}" cy="${p.y}" r="5"/><text class="valor" text-anchor="middle" x="${p.x}" y="${Math.max(10,p.y-9)}">${p.pct}%</text><text text-anchor="middle" x="${p.x}" y="${H-9}">${(p.fecha||'').slice(5).split('-').reverse().join('/') || n+1}</text>`).join('');
-  return `<div class="progreso-grafico"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución del porcentaje de logro">${guias}${xy.length>1?`<polyline class="linea" points="${poly}"/>`:''}${puntos}</svg></div>`;
+  return `<div class="progreso-grafico"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución del porcentaje de logro">${guias}${xy.length>1?`<polyline class="linea" points="${poly}"/>`:""}${puntos}</svg></div>`;
 }
 
 function progresoEstudianteHTML(i) {
@@ -5025,15 +5067,16 @@ function fichaHTML(i) {
 
 function vistaConsolidado() {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
-  if (!S.datos.roster.length) return `<div class="tarjeta"><div class="vacio">
+  if (!S.datos.roster.length) return `<div class="seccion-v147 seccion-consolidado-v147"><div class="tarjeta panel-portada-v147"><div class="vacio">
     <strong>Todavía no hay consolidado</strong>
     Aquí verás el promedio de cada estudiante cuando tengas listas evaluadas en este curso.
     <div style="margin-top:14px"><button class="btn btn-lleno" data-accion="pestana" data-v="curso">Cargar la nómina</button></div>
-  </div></div>`;
+  </div></div></div>`;
   const { evs, filas, promCurso, aprob, conNota } = datosConsolidado();
   const corto = (f) => (f ? f.slice(8, 10) + "/" + f.slice(5, 7) : "—");
   return `
-  <div class="tarjeta">
+  <div class="seccion-v147 seccion-consolidado-v147">
+  <div class="tarjeta panel-portada-v147">
     <h2>Consolidado de ${esc(curso.nombre)}</h2>
     <p class="sub" style="margin:2px 0 12px">${evs.length} listas · promedio de las notas registradas por estudiante. Las listas donde estuvo ausente no se promedian.
       Toca el nombre de un estudiante para ver todas sus observaciones juntas.</p>
@@ -5063,6 +5106,7 @@ function vistaConsolidado() {
   <div class="fila no-imprimir" style="margin-top:10px">
     <button class="btn btn-mini" data-accion="imprimir">Imprimir o guardar PDF</button>
     <button class="btn btn-mini" data-accion="excel">Descargar Excel</button>
+  </div>
   </div>`;
 }
 
@@ -5070,7 +5114,8 @@ function vistaConsolidado() {
 function vistaCurso() {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   return `
-  <div class="tarjeta">
+  <div class="seccion-v147 seccion-curso-v147">
+  <div class="tarjeta panel-portada-v147">
     <h2>Nómina de ${esc(curso.nombre)}</h2>
     <p class="sub" style="margin:2px 0 12px">${S.datos.roster.filter((n) => n.trim()).length} estudiantes
       ${S.datos.roster.filter((n) => !n.trim()).length ? `· ${S.datos.roster.filter((n) => !n.trim()).length} casilleros en blanco` : ""}.
@@ -5142,7 +5187,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v127</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v147</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
