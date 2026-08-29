@@ -7565,8 +7565,8 @@ function armarZip(archivos) {
   const u16 = (n) => [n & 0xff, (n >>> 8) & 0xff];
   const u32 = (n) => [n & 0xff, (n >>> 8) & 0xff, (n >>> 16) & 0xff, (n >>> 24) & 0xff];
 
-  for (const { nombre, texto } of archivos) {
-    const datos = cod.encode(texto);
+  for (const { nombre, texto, bin } of archivos) {
+    const datos = bin || cod.encode(texto);
     const nom = cod.encode(nombre);
     const crc = crc32(datos);
     const local = [...u32(0x04034b50), ...u16(20), ...u16(0), ...u16(0), ...u16(0), ...u16(0),
@@ -7619,6 +7619,57 @@ function wTabla(cab, filas, anchos) {
   return `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/>${bordes}</w:tblPr>${grid}${filaCab}${cuerpo}</w:tbl>`;
 }
 
+/* Convierte el escudo (data:image/png;base64,...) en bytes para el ZIP. */
+function bytesDeDataURL(url) {
+  const coma = String(url || "").indexOf(",");
+  if (coma < 0 || !/^data:image\/png/i.test(url)) return null;
+  try {
+    const bruto = atob(url.slice(coma + 1));
+    const b = new Uint8Array(bruto.length);
+    for (let i = 0; i < bruto.length; i++) b[i] = bruto.charCodeAt(i);
+    return b;
+  } catch { return null; }
+}
+
+const EMU = 36000;          // un milímetro en EMU, la unidad de las imágenes
+
+function wImagen(anchoMm, altoMm) {
+  const cx = Math.round(anchoMm * EMU), cy = Math.round(altoMm * EMU);
+  return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">` +
+    `<wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="1" name="escudo"/>` +
+    `<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">` +
+    `<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
+    `<pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
+    `<pic:nvPicPr><pic:cNvPr id="1" name="escudo"/><pic:cNvPicPr/></pic:nvPicPr>` +
+    `<pic:blipFill><a:blip r:embed="rId5"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>` +
+    `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>` +
+    `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>` +
+    `</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+}
+
+/* Celda con relleno de fondo, para imitar la ficha y el encabezado del PDF. */
+function wCeldaFondo(texto, ancho, fondo, opciones) {
+  const c = wCelda(texto, ancho, opciones);
+  return c.replace("<w:vAlign", `<w:shd w:val="clear" w:fill="${fondo}"/><w:vAlign`);
+}
+
+/* La ficha de datos del PDF: seis columnas parejas, rótulo y dato alternados. */
+function wFicha(pares, anchoTotal) {
+  const a = anchoTotal * 0.15, b = anchoTotal * 0.1833;
+  const bordes = `<w:tblBorders>${["top", "left", "bottom", "right", "insideH", "insideV"]
+    .map((x) => `<w:${x} w:val="single" w:sz="4" w:color="9BB8CA"/>`).join("")}</w:tblBorders>`;
+  const grid = `<w:tblGrid>${[a, b, a, b, a, b].map((w) => `<w:gridCol w:w="${Math.round(w)}"/>`).join("")}</w:tblGrid>`;
+  const filas = [];
+  for (let i = 0; i < pares.length; i += 3) {
+    const tres = pares.slice(i, i + 3);
+    while (tres.length < 3) tres.push(["", ""]);
+    filas.push("<w:tr>" + tres.map(([r, v]) =>
+      wCeldaFondo(r, a, "EAF3F9", { negrita: true, tam: 14, izq: true }) +
+      wCelda(v, b, { tam: 15, izq: true })).join("") + "</w:tr>");
+  }
+  return `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/>${bordes}</w:tblPr>${grid}${filas.join("")}</w:tbl>`;
+}
+
 function exportarWord() {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const ev = evalActual();
@@ -7627,30 +7678,65 @@ function exportarWord() {
   const { orientacion } = planImpresion(nMarcas);
   const m = medidasHoja(orientacion, 12);
   const e = estadisticas(ev);
+  const escudo = bytesDeDataURL(logoColegio());
 
-  // Reparto proporcional del ancho útil entre las columnas.
-  const anchoUtil = (m.anchoMm - 24) * MM_TW;
+  const anchoTotal = (m.anchoMm - 24) * MM_TW;
   const fijos = [0.04, 0.17, 0.05];
   const cola = [0.06, 0.05, 0.06, 0.14];
   const usado = [...fijos, ...cola].reduce((a, b) => a + b, 0);
   const porMarca = Math.max(0.02, (1 - usado) / Math.max(1, nMarcas));
-  const anchos = [...fijos, ...new Array(nMarcas).fill(porMarca), ...cola].map((p) => p * anchoUtil);
+  const anchos = [...fijos, ...new Array(nMarcas).fill(porMarca), ...cola].map((p) => p * anchoTotal);
 
-  const lineas = [
-    wParrafo(`${colegio()} · Educación Física y Salud · ${curso.nombre}`, { negrita: true, tam: 18, espacio: 20 }),
-    wParrafo(ev.nombre || "Lista", { negrita: true, tam: 30, espacio: 80 }),
-    wParrafo(`${curso.nombre} · ${fechaLarga(ev.fecha)} · ${esEscala(ev) ? `Escala 1–${nNiveles(ev)}` : "Lista de cotejo"}`, { tam: 16, espacio: 20 }),
-    wParrafo(`${total} pts · exigencia ${exigenciaValida(ev.exigencia)}% · promedio ${num1(e.prom)} · evalúa ${quienEvalua(ev)}`, { tam: 16, espacio: 20 }),
-    wParrafo(`Unidad: ${ev.oa || "—"}`, { tam: 16, espacio: 60 }),
-  ];
+  /* Mismo orden que la hoja de impresión: membrete, título, ficha, leyenda de
+     indicadores, notas al pie y por último la planilla. */
+  const partes = [];
+
+  partes.push(`<w:p><w:pPr><w:spacing w:after="40"/></w:pPr>` +
+    (escudo ? wImagen(13, 13) : "") +
+    `<w:r><w:rPr><w:b/><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve">  ${xesc(colegio())}</w:t></w:r>` +
+    `<w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:t xml:space="preserve">   Educación Física y Salud · ${xesc(curso.nombre)}</w:t></w:r></w:p>`);
+
+  partes.push(wParrafo(ev.nombre || "Lista", { negrita: true, tam: 30, espacio: 100 }));
+
+  partes.push(wFicha([
+    ["Curso", curso.nombre],
+    ["Asignatura", "Educación Física y Salud"],
+    ["Fecha", fechaLarga(ev.fecha)],
+    ["Instrumento", esEscala(ev) ? `Escala de apreciación 1–${nNiveles(ev)}` : "Lista de cotejo"],
+    ["Evalúa", quienEvalua(ev)],
+    ["Puntaje", `${total} pts · exigencia ${exigenciaValida(ev.exigencia)}%`],
+    ["Unidad", ev.oa || "—"],
+    ["Promedio", `${num1(e.prom)} · de 2,0 a 7,0`],
+    ["", ""],
+  ], anchoTotal));
+
+  partes.push(wParrafo("", { espacio: 80 }));
+
   ev.criterios.forEach((c, j) => {
-    lineas.push(wParrafo(`${c.oa || "Criterio " + (j + 1)} · ${c.texto || "—"}`, { negrita: true, tam: 16, espacio: 20 }));
-    c.indicadores.forEach((ind, q) => lineas.push(
-      wParrafo(`${j + 1}.${q + 1}  ${ind.texto || "sin redactar"}  (${esEscala(ev) ? `1–${nNiveles(ev)}` : ind.pts + " pts"})`, { tam: 15, espacio: 10 })));
+    partes.push(wParrafo(`${c.oa || "Criterio " + (j + 1)} · ${EJES[c.eje] || "criterio propio"}`, { negrita: true, tam: 16, espacio: 20 }));
+    partes.push(wParrafo(c.texto || "—", { tam: 15, espacio: 20 }));
+    if (c.objEval) partes.push(wParrafo(`Objetivo de evaluación: ${c.objEval}`, { tam: 15, espacio: 20 }));
+    c.indicadores.forEach((ind, q) => partes.push(
+      wParrafo(`${j + 1}.${q + 1}   ${ind.texto || "sin redactar"}   (${esEscala(ev) ? `1–${nNiveles(ev)}` : ind.pts + " pts"})`,
+        { tam: 15, espacio: 10 })));
+    partes.push(wParrafo("", { espacio: 40 }));
   });
-  lineas.push(wParrafo("", { espacio: 60 }));
-  lineas.push(wTabla(cab, filas, anchos));
-  lineas.push(wParrafo(`${nombreDocente() || ""}${nombreDocente() ? " · " : ""}Generado el ${fechaLarga(hoy())}`, { tam: 14, espacio: 0 }));
+
+  const conAde = S.datos.roster.map((n, i) => {
+    const a = ev.adecuaciones && ev.adecuaciones[i] ? ev.adecuaciones[i] : [];
+    return a.length ? `${n || "N° " + (i + 1)}: ${a.join("; ")}` : null;
+  }).filter(Boolean);
+  if (conAde.length) partes.push(wParrafo(`* Adecuaciones curriculares · Decreto 83/2015. ${conAde.join(" — ")}`, { tam: 14, espacio: 30 }));
+
+  const conMed = S.datos.roster.map((n, i) => {
+    const a = ev.medidas && ev.medidas[i] ? ev.medidas[i] : [];
+    return a.length ? `${n || "N° " + (i + 1)}: ${a.join("; ")}` : null;
+  }).filter(Boolean);
+  if (conMed.length) partes.push(wParrafo(`Medidas remediales aplicadas. ${conMed.join(" — ")}`, { tam: 14, espacio: 30 }));
+
+  partes.push(wParrafo(`${ev.nombre} · ${curso.nombre} · ${fechaLarga(ev.fecha)}`, { negrita: true, tam: 16, espacio: 40 }));
+  partes.push(wTabla(cab, filas, anchos));
+  partes.push(wParrafo(`${nombreDocente() || ""}${nombreDocente() ? " · " : ""}Generado el ${fechaLarga(hoy())}`, { tam: 14, espacio: 0 }));
 
   const sect = `<w:sectPr><w:pgSz w:w="${Math.round(m.anchoMm * MM_TW)}" w:h="${Math.round(m.altoMm * MM_TW)}"` +
     `${orientacion === "landscape" ? ' w:orient="landscape"' : ""}/>` +
@@ -7658,12 +7744,13 @@ function exportarWord() {
     `w:bottom="${Math.round(12 * MM_TW)}" w:left="${Math.round(12 * MM_TW)}"/></w:sectPr>`;
 
   const documento = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${lineas.join("")}${sect}</w:body></w:document>`;
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>${partes.join("")}${sect}</w:body></w:document>`;
 
   const tipos = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
 <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
 <Default Extension="xml" ContentType="application/xml"/>
+<Default Extension="png" ContentType="image/png"/>
 <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
 </Types>`;
 
@@ -7672,14 +7759,21 @@ function exportarWord() {
 <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
 </Relationships>`;
 
-  const bytes = armarZip([
+  const relsDoc = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${escudo ? '<Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/escudo.png"/>' : ""}
+</Relationships>`;
+
+  const piezas = [
     { nombre: "[Content_Types].xml", texto: tipos },
     { nombre: "_rels/.rels", texto: rels },
+    { nombre: "word/_rels/document.xml.rels", texto: relsDoc },
     { nombre: "word/document.xml", texto: documento },
-  ]);
+  ];
+  if (escudo) piezas.push({ nombre: "word/media/escudo.png", bin: escudo });
 
   const limpio = (t) => String(t).replace(/[\\/*?:[\]]/g, "").trim();
-  descargar(`${limpio(curso.label)}-${limpio(ev.nombre) || "lista"}.docx`, bytes,
+  descargar(`${limpio(curso.label)}-${limpio(ev.nombre) || "lista"}.docx`, armarZip(piezas),
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 }
 
