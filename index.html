@@ -1471,6 +1471,17 @@ input.student-name-v152,select.student-name-v152{font-family:var(--body)!importa
 :root[data-tema="oscuro"]{--student-name-blue:#7cc8ff}
 :root[data-tema="oscuro"] .student-number-v152{color:#9ab0bd!important}
 
+/* ===== v153 · aire superior en Resumen y Nómina ===== */
+.seccion-resumen-v147 .panel-portada-v147,
+.seccion-curso-v147 .panel-portada-v147{padding-top:34px}
+.seccion-resumen-v147 .panel-portada-v147>h2,
+.seccion-curso-v147 .panel-portada-v147>h2{margin-top:2px;margin-bottom:6px}
+@media(max-width:620px){
+  .seccion-resumen-v147 .panel-portada-v147,
+  .seccion-curso-v147 .panel-portada-v147{padding-top:32px}
+}
+
+
 
 </style>
 </head>
@@ -5298,7 +5309,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v152</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v153</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
