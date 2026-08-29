@@ -1444,6 +1444,15 @@ html,body,#raiz{max-width:100%;overflow-x:hidden}
 :root[data-tema="oscuro"] .seccion-consolidado-v147 .obs-boton{color:#7cc8ff !important}
 :root[data-tema="oscuro"] .seccion-consolidado-v147 .metrica b{color:#e7f1f6}
 
+/* ===== v154 · impresión robusta en iOS/Android ===== */
+@media print{
+  html,body{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}
+  #raiz{display:block!important;height:auto!important;overflow:visible!important}
+  #impresion.hoja-impresion{display:block!important;visibility:visible!important;opacity:1!important;position:static!important;width:auto!important;height:auto!important;min-height:1px!important;overflow:visible!important}
+  #impresion.hoja-impresion *{visibility:visible!important}
+}
+
+
 /* ===== v151 · nombres de estudiantes unificados: azul y negrita ===== */
 :root{--nombre-estudiante:#0a70b2}
 .planilla tbody td.izq.col-fija{color:var(--nombre-estudiante)!important;font-weight:800}
@@ -3888,6 +3897,44 @@ function esqueletoHTML(nombre) {
 /* Al marcar, solo cambia esa casilla y los totales de su fila.
    Redibujar la app completa en cada toque se siente lento con 25 estudiantes. */
 let relojResumen = null;
+let impresionEnCurso = false;
+let repintarTrasImpresion = false;
+let temporizadorLiberarImpresion = null;
+
+function finalizarImpresionSegura() {
+  if (!impresionEnCurso) return;
+  impresionEnCurso = false;
+  document.body.classList.remove("impresion-en-curso");
+  if (temporizadorLiberarImpresion) {
+    clearTimeout(temporizadorLiberarImpresion);
+    temporizadorLiberarImpresion = null;
+  }
+  if (repintarTrasImpresion) {
+    repintarTrasImpresion = false;
+    pintar();
+  }
+}
+
+window.addEventListener("afterprint", finalizarImpresionSegura);
+
+function imprimirVentanaSegura() {
+  const zona = $("#impresion");
+  if (!zona || !zona.innerHTML.trim()) {
+    finalizarImpresionSegura();
+    abrirModal('<h3>No se pudo preparar el PDF</h3><p class="sub" style="margin:6px 0 0">El informe quedó sin contenido. Cierra este mensaje e inténtalo nuevamente.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>');
+    return;
+  }
+  clearTimeout(relojResumen);
+  impresionEnCurso = true;
+  document.body.classList.add("impresion-en-curso");
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    setTimeout(() => {
+      try { window.print(); } catch (e) { finalizarImpresionSegura(); }
+    }, 220);
+  }));
+  temporizadorLiberarImpresion = setTimeout(finalizarImpresionSegura, 120000);
+}
+
 
 function refrescarMarca(ev, i, j, q) {
   const esc2 = (x) => String(x).replace(/"/g, "&quot;");
@@ -3926,6 +3973,7 @@ function refrescarMarca(ev, i, j, q) {
 }
 
 function pintar() {
+  if (impresionEnCurso) { repintarTrasImpresion = true; return; }
   document.body.classList.toggle("modo-cancha-activo", !!S.modoCancha);
   const raiz = $("#raiz");
   if (S.verificando) { raiz.innerHTML = `<div class="vacio" style="padding-top:60px">Verificando sesión…</div>`; return; }
@@ -5309,7 +5357,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v153</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v156</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
@@ -6761,7 +6809,7 @@ function imprimirNotasCurso() {
           <td class="c-asis">${med.length || "—"}</td></tr>`;
       }).join("")}</tbody></table>
       <p class="nota-med">El detalle de adecuaciones y medidas de cada estudiante está en su informe de aprendizaje.</p>` : ""}`;
-  setTimeout(() => window.print(), 60);
+  imprimirVentanaSegura();
 }
 
 function imprimirConsolidado() {
@@ -6778,7 +6826,7 @@ function imprimirConsolidado() {
       ${f.notas.map((n) => `<td class="c-nota">${n === null ? "—" : num1(n)}</td>`).join("")}
       <td class="c-nota">${num1(f.prom)}</td></tr>`).join("")}</tbody></table>
     <ol class="leyenda-oa" style="margin-top:6px">${evs.map((ev, k) => `<li><b>${k + 1}</b> ${esc(ev.nombre)} · ${fechaLarga(ev.fecha)}${pesoDe(ev) !== 1 ? ` · peso ${pesoDe(ev)}` : ""}</li>`).join("")}</ol>`;
-  setTimeout(() => window.print(), 60);
+  imprimirVentanaSegura();
 }
 
 function imprimir(enBlanco) {
@@ -6844,7 +6892,7 @@ function imprimir(enBlanco) {
         return `<td class="${clase}">${vaciar ? "" : esc(v)}</td>`;
       }).join("")}</tr>`).join("")}</tbody>
     </table>`;
-  setTimeout(() => window.print(), 60);
+  imprimirVentanaSegura();
 }
 
 /* Informe de logro: qué indicadores costaron al curso y cómo le fue a cada estudiante. */
@@ -6987,7 +7035,7 @@ function imprimirComparacion() {
     ${mayorBrecha && mayorBrecha.brecha >= 20 ? `<p class="nota-dua"><b>Mayor diferencia entre cursos:</b>
       indicador ${mayorBrecha.rot} · ${esc(mayorBrecha.texto || "")} · ${mayorBrecha.brecha} puntos de diferencia.
       Conviene revisar cómo se trabajó en cada curso.</p>` : ""}`;
-  setTimeout(() => window.print(), 60);
+  imprimirVentanaSegura();
 }
 
 function imprimirInforme() {
@@ -7070,7 +7118,7 @@ function imprimirInforme() {
       <td class="c-pts">${x.est ? "" : `${x.r.puntaje}/${x.r.total}`}</td>
       <td class="c-nota">${x.est ? "" : num1(x.r.nota)}</td>
       <td class="izq">${x.est ? "" : esc((x.medidas || []).join("; "))}</td></tr>`).join("")}</tbody></table>`;
-  setTimeout(() => window.print(), 60);
+  imprimirVentanaSegura();
 }
 
 /* Busca en todos los cursos las listas con nombre parecido al de la abierta,
@@ -7150,7 +7198,7 @@ function imprimirInformeAlumno(i) {
     <table class="tabla-firmas" style="margin-top:14px"><tbody>
       <tr><td class="firma">Profesor de Educación Física</td><td class="firma">Apoderado</td></tr>
     </tbody></table>`;
-  setTimeout(() => window.print(), 60);
+  imprimirVentanaSegura();
 }
 
 function imprimirFicha(i) {
@@ -7171,7 +7219,7 @@ function imprimirFicha(i) {
       <td class="c-nota">${x.est ? (x.est === 1 ? "A" : "J") : esc(num1(x.nota))}</td></tr>`).join("")}</tbody></table>
     ${f.conObs ? `<p class="nota-med">Este documento muestra solo las notas.
       Las observaciones de ${esc(f.nombre)} están en su informe de aprendizaje.</p>` : ""}`;
-  setTimeout(() => window.print(), 60);
+  imprimirVentanaSegura();
 }
 
 function descargar(nombre, contenido, tipo) {
