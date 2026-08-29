@@ -1444,6 +1444,25 @@ html,body,#raiz{max-width:100%;overflow-x:hidden}
 :root[data-tema="oscuro"] .seccion-consolidado-v147 .obs-boton{color:#7cc8ff !important}
 :root[data-tema="oscuro"] .seccion-consolidado-v147 .metrica b{color:#e7f1f6}
 
+/* ===== v157 · impresión aislada: evita PDF en blanco en iOS/PWA ===== */
+body.impresion-en-curso > #impresion-segura{
+  display:block!important;visibility:visible!important;opacity:1!important;
+  position:absolute!important;left:0!important;top:0!important;width:100%!important;
+  min-height:20px!important;box-sizing:border-box!important;padding:12px!important;
+  overflow:visible!important;background:#fff!important;color:#102b38!important;z-index:99999!important;
+}
+body.impresion-en-curso > #impresion-segura *{visibility:visible!important}
+@media print{
+  body.impresion-en-curso > *:not(#impresion-segura){display:none!important}
+  body.impresion-en-curso > #impresion-segura{
+    display:block!important;visibility:visible!important;opacity:1!important;
+    position:static!important;left:auto!important;top:auto!important;width:100%!important;
+    min-height:1px!important;padding:0!important;margin:0!important;overflow:visible!important;
+    background:#fff!important;color:#102b38!important;z-index:auto!important;
+  }
+  body.impresion-en-curso > #impresion-segura *{visibility:visible!important}
+}
+
 /* ===== v154 · impresión robusta en iOS/Android ===== */
 @media print{
   html,body{height:auto!important;min-height:0!important;overflow:visible!important;background:#fff!important}
@@ -3900,11 +3919,20 @@ let relojResumen = null;
 let impresionEnCurso = false;
 let repintarTrasImpresion = false;
 let temporizadorLiberarImpresion = null;
+let clonImpresionSeguro = null;
+
+function retirarClonImpresionSeguro() {
+  if (clonImpresionSeguro && clonImpresionSeguro.parentNode) clonImpresionSeguro.remove();
+  clonImpresionSeguro = null;
+  const viejo = document.getElementById("impresion-segura");
+  if (viejo) viejo.remove();
+}
 
 function finalizarImpresionSegura() {
-  if (!impresionEnCurso) return;
+  if (!impresionEnCurso && !clonImpresionSeguro) return;
   impresionEnCurso = false;
   document.body.classList.remove("impresion-en-curso");
+  retirarClonImpresionSeguro();
   if (temporizadorLiberarImpresion) {
     clearTimeout(temporizadorLiberarImpresion);
     temporizadorLiberarImpresion = null;
@@ -3916,6 +3944,21 @@ function finalizarImpresionSegura() {
 }
 
 window.addEventListener("afterprint", finalizarImpresionSegura);
+window.addEventListener("beforeunload", retirarClonImpresionSeguro);
+
+function esperarImagenesImpresion(contenedor) {
+  const imgs = [...contenedor.querySelectorAll("img")];
+  if (!imgs.length) return Promise.resolve();
+  return Promise.all(imgs.map((img) => {
+    if (img.complete) return Promise.resolve();
+    return new Promise((resolve) => {
+      const terminar = () => resolve();
+      img.addEventListener("load", terminar, { once:true });
+      img.addEventListener("error", terminar, { once:true });
+      setTimeout(terminar, 1200);
+    });
+  }));
+}
 
 function imprimirVentanaSegura() {
   const zona = $("#impresion");
@@ -3924,17 +3967,39 @@ function imprimirVentanaSegura() {
     abrirModal('<h3>No se pudo preparar el PDF</h3><p class="sub" style="margin:6px 0 0">El informe quedó sin contenido. Cierra este mensaje e inténtalo nuevamente.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>');
     return;
   }
+
   clearTimeout(relojResumen);
+  retirarClonImpresionSeguro();
+
+  // Se imprime una copia independiente, fuera de #raiz. Esto evita que Safari/iOS
+  // capture el contenedor interno mientras sigue oculto por la interfaz de la PWA.
+  clonImpresionSeguro = zona.cloneNode(true);
+  clonImpresionSeguro.id = "impresion-segura";
+  clonImpresionSeguro.removeAttribute("aria-hidden");
+  document.body.appendChild(clonImpresionSeguro);
+
   impresionEnCurso = true;
   document.body.classList.add("impresion-en-curso");
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    setTimeout(() => {
-      try { window.print(); } catch (e) { finalizarImpresionSegura(); }
-    }, 220);
-  }));
-  temporizadorLiberarImpresion = setTimeout(finalizarImpresionSegura, 120000);
-}
 
+  // Fuerza layout real antes de abrir la hoja de impresión.
+  void clonImpresionSeguro.offsetHeight;
+
+  esperarImagenesImpresion(clonImpresionSeguro).then(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (!clonImpresionSeguro || !clonImpresionSeguro.innerHTML.trim()) {
+          finalizarImpresionSegura();
+          abrirModal('<h3>No se pudo preparar el PDF</h3><p class="sub" style="margin:6px 0 0">El contenido desapareció antes de imprimir. Inténtalo nuevamente.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>');
+          return;
+        }
+        try { window.print(); } catch (e) { finalizarImpresionSegura(); }
+      }, 120);
+    }));
+  });
+
+  // Respaldo por si afterprint no se dispara en alguna versión de iOS.
+  temporizadorLiberarImpresion = setTimeout(finalizarImpresionSegura, 600000);
+}
 
 function refrescarMarca(ev, i, j, q) {
   const esc2 = (x) => String(x).replace(/"/g, "&quot;");
@@ -5357,7 +5422,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v156</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v157</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
