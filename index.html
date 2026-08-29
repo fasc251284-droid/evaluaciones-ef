@@ -4021,20 +4021,6 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) sali
 ["pointerdown", "keydown"].forEach((evt) =>
   window.addEventListener(evt, salirDeImpresion, true));
 
-function esperarImagenesImpresion(contenedor) {
-  const imgs = [...contenedor.querySelectorAll("img")];
-  if (!imgs.length) return Promise.resolve();
-  return Promise.all(imgs.map((img) => {
-    if (img.complete) return Promise.resolve();
-    return new Promise((resolve) => {
-      const terminar = () => resolve();
-      img.addEventListener("load", terminar, { once:true });
-      img.addEventListener("error", terminar, { once:true });
-      setTimeout(terminar, 1200);
-    });
-  }));
-}
-
 function imprimirVentanaSegura() {
   const zona = $("#impresion");
   if (!zona || !zona.innerHTML.trim()) {
@@ -4070,25 +4056,16 @@ function imprimirVentanaSegura() {
     impresionLanzada = true;
   };
 
-  /* ---- Por qué se imprime de inmediato ----
+  /* ---- Siempre se imprime dentro del toque ----
      Safari sólo acepta window.print() mientras dura el toque que lo originó.
-     Antes se esperaba una promesa, dos cuadros de animación y 120 ms más, así
-     que para el navegador la llamada ya no venía del usuario y aparecía
-     "Se impidió que este sitio imprima automáticamente". Si las imágenes ya
-     están cargadas —el caso normal, porque el escudo se guarda incrustado—
-     se imprime en el acto. Sólo si falta alguna se espera. */
-  const imgs = [...clonImpresionSeguro.querySelectorAll("img")];
-  const enMemoria = logoPrecargado && logoPrecargado.complete && logoPrecargado.naturalWidth > 0;
-  const listas = imgs.every((img) =>
-    (img.complete && img.naturalWidth > 0) || (enMemoria && img.src === logoPrecargado.src));
-
-  if (listas) {
-    lanzar();
-  } else {
-    esperarImagenesImpresion(clonImpresionSeguro).then(() => {
-      requestAnimationFrame(() => lanzar());
-    });
-  }
+     Cualquier espera previa —una promesa, un cuadro de animación, un
+     setTimeout— hace que el navegador lo tome como impresión automática y lo
+     bloquee con "Se impidió que este sitio imprima automáticamente".
+     Por eso aquí no se espera por nada, ni siquiera por las imágenes: el
+     escudo va incrustado en la propia página y el navegador lo dibuja al
+     tomar la hoja. Si alguna vez no alcanzara, se pierde el escudo en esa
+     copia, que es mucho menos grave que no poder imprimir. */
+  lanzar();
 
   // Respaldo final por si ninguna de las salidas anteriores alcanza a actuar.
   // Eran 10 minutos: demasiado, la app quedaba inutilizable todo ese rato.
@@ -6809,15 +6786,17 @@ function membreteHTML() {
     <span>Educación Física y Salud · ${esc(curso.nombre)}</span></span></div>`;
 }
 
-/* El escudo se crea de nuevo cada vez que se arma una hoja. Si no está
-   descodificado, la impresión tendría que esperarlo y perdería el toque del
-   usuario. Manteniéndolo vivo en memoria, la copia siguiente es inmediata. */
+/* El escudo se crea de nuevo cada vez que se arma una hoja. Se descodifica
+   apenas arranca la app para que ya esté dibujable cuando llegue la primera
+   impresión; decode() avisa cuando el mapa de píxeles está realmente listo,
+   cosa que "load" por sí solo no garantiza. */
 let logoPrecargado = null;
 function precargarLogo() {
   const src = logoColegio();
   if (!src || (logoPrecargado && logoPrecargado.src === src)) return;
   logoPrecargado = new Image();
   logoPrecargado.src = src;
+  if (logoPrecargado.decode) logoPrecargado.decode().catch(() => {});
 }
 
 /* Los informes son de texto, no de casillas: van en vertical, con anchos
