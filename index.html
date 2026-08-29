@@ -3992,7 +3992,12 @@ function finalizarImpresionSegura() {
   }
   if (repintarTrasImpresion) {
     repintarTrasImpresion = false;
-    pintar();
+    /* El repintado se deja para el tic siguiente a propósito. Si se hiciera
+       aquí mismo, y la limpieza viene de un toque sobre el botón de imprimir,
+       se redibujaría la app en pleno gesto: el botón que el usuario tiene
+       bajo el dedo desaparece y el click nunca llega a dispararse. Por eso la
+       segunda impresión seguida no respondía. */
+    setTimeout(pintar, 0);
   }
 }
 
