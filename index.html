@@ -792,6 +792,9 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .hoja-impresion thead{display:table-header-group}
   /* Un encabezado nunca debe quedar solo al pie: si no alcanzan a caber filas
      debajo, la tabla entera arranca en la hoja siguiente. */
+  /* Cada tabla de continuación abre hoja nueva: así siempre lleva su
+     encabezado arriba y ninguna queda partida por la mitad. */
+  .hoja-impresion .tabla-continua{break-before:page; page-break-before:always}
   /* Rótulo que viaja con el encabezado: en la segunda hoja la lista se
      identifica sola y deja de parecer un trozo suelto. */
   .hoja-impresion .fila-rotulo th{background:#fff; border:0; border-bottom:1.5px solid #0c3f63;
@@ -3915,6 +3918,31 @@ const CLAVE_COLEGIO = PREFIJO + "colegio";
 const colegio = () => localStorage.getItem(CLAVE_COLEGIO) || "Colegio Juan Pablo Segundo";
 
 const CLAVE_TEMA = PREFIJO + "tema";
+
+/* ---- Tamaño de hoja ----
+   Medidas en milímetros del lado corto y el lado largo. En Chile conviven la
+   carta y el oficio con la A4, y no son intercambiables: en apaisado la carta
+   es 18 mm más angosta que la A4 pero 6 mm más alta, así que cambia tanto el
+   ancho disponible para las columnas como cuántas filas entran por hoja. */
+const HOJAS = {
+  a4:     { nombre: "A4",     corto: 210, largo: 297 },
+  carta:  { nombre: "Carta",  corto: 216, largo: 279 },
+  oficio: { nombre: "Oficio", corto: 216, largo: 356 },
+};
+const CLAVE_HOJA = PREFIJO + "hoja";
+const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
+/* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
+function medidasHoja(orientacion, margen) {
+  const h = HOJAS[hojaGuardada()];
+  const apaisado = orientacion === "landscape";
+  return {
+    nombre: h.nombre,
+    anchoMm: (apaisado ? h.largo : h.corto),
+    altoMm: (apaisado ? h.corto : h.largo),
+    anchoUtil: (apaisado ? h.largo : h.corto) - margen * 2,
+    altoUtil: (apaisado ? h.corto : h.largo) - margen * 2,
+  };
+}
 const temaGuardado = () => localStorage.getItem(CLAVE_TEMA) || "auto";
 
 function aplicarTema() {
@@ -4884,7 +4912,8 @@ function vistaPlanilla(ev) {
   </div>
   <div class="fila no-imprimir" style="margin-top:10px">
     <button class="btn btn-mini" data-accion="imprimir">Imprimir o guardar PDF</button>
-    <button class="btn btn-mini" data-accion="excel">Descargar Excel</button>
+    <button class="btn btn-mini" data-accion="word">Descargar Word</button>
+      <button class="btn btn-mini" data-accion="excel">Descargar Excel</button>
   </div>`;
 }
 
@@ -5194,6 +5223,7 @@ function vistaResumen() {
     </div>
     <div class="fila no-imprimir" style="margin-top:14px">
       <button class="btn btn-mini" data-accion="imprimir">Imprimir o guardar PDF</button>
+      <button class="btn btn-mini" data-accion="word">Descargar Word</button>
       <button class="btn btn-mini" data-accion="excel">Descargar Excel</button>
     </div>
   </div>`;
@@ -5438,7 +5468,8 @@ function vistaConsolidado() {
   </div>
   <div class="fila no-imprimir" style="margin-top:10px">
     <button class="btn btn-mini" data-accion="imprimir">Imprimir o guardar PDF</button>
-    <button class="btn btn-mini" data-accion="excel">Descargar Excel</button>
+    <button class="btn btn-mini" data-accion="word">Descargar Word</button>
+      <button class="btn btn-mini" data-accion="excel">Descargar Excel</button>
   </div>
   </div>`;
 }
@@ -5503,6 +5534,12 @@ function vistaCurso() {
 
   <div class="tarjeta">
     <h2>Respaldo</h2>
+    <label class="campo" style="max-width:280px"><span>Tamaño de hoja</span>
+      <select data-campo="hoja">
+        ${Object.entries(HOJAS).map(([k, h]) => `<option value="${k}"${hojaGuardada() === k ? " selected" : ""}>${h.nombre} · ${h.corto}×${h.largo} mm</option>`).join("")}
+      </select>
+    </label>
+    <p class="sub" style="margin:-4px 0 12px">Se aplica a los PDF y al documento de Word. Ajusta el ancho de las columnas y cuántos estudiantes entran por hoja.</p>
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Excel">
     </label>
@@ -5699,6 +5736,7 @@ document.addEventListener("click", async (evt) => {
       </div>
       <div class="modal-v148-seccion">Informes y exportación</div>
       <div class="modal-v148-grid">
+        <button class="btn" data-icon="📝" data-accion="word">Exportar lista a Word</button>
         <button class="btn" data-icon="📊" data-accion="excel">Exportar curso a Excel</button>
         <button class="btn" data-icon="📝" data-accion="notas-curso">Informe de notas (PDF)</button>
         <button class="btn" data-icon="✅" data-accion="imprimir">PDF con marcas</button>
@@ -6638,6 +6676,7 @@ document.addEventListener("click", async (evt) => {
   if (a === "informe-comparacion") { cerrarModal(); imprimirComparacion(); return; }
   if (a === "notas-curso") { cerrarModal(); imprimirNotasCurso(); return; }
   if (a === "comparar-cursos") { compararEntreCursos(); return; }
+  if (a === "word") { cerrarModal(); exportarWord(); return; }
   if (a === "excel") { cerrarModal(); await exportarExcel(); return; }
   if (a === "cambiar-logo") { pedirLogo(); return; }
   if (a === "quitar-logo") { localStorage.removeItem(CLAVE_LOGO); pintar(); return; }
@@ -6720,7 +6759,9 @@ document.addEventListener("change", (evt) => {
       marcarCambio(); pintar(); return;
     }
     else if (a === "tema") {
-      guardarLocal(CLAVE_TEMA, el.value); aplicarTema(); pintar(); return;
+      guardarLocal(CLAVE_TEMA, el.value); aplicarTema(); pintar(); return;    }
+    else if (a === "hoja") {
+      guardarLocal(CLAVE_HOJA, el.value); pintar(); return;
     }
     else if (a === "ade-lista") {
       const ev = evalActual();
@@ -6833,8 +6874,9 @@ function hojaInforme(nFilas) {
   const n = nFilas || S.datos.roster.length || 0;
   const fuente = n <= 12 ? 11 : n <= 20 ? 10 : n <= 28 ? 9 : n <= 36 ? 8 : 7.5;
   const alto = n <= 12 ? 4 : n <= 20 ? 3 : n <= 28 ? 2 : 1.5;
+  const m = medidasHoja("portrait", 10);
   const css = `
-    @page{size:A4 portrait; margin:10mm}
+    @page{size:${m.anchoMm}mm ${m.altoMm}mm; margin:10mm}
     .hoja-impresion table{width:100%; table-layout:fixed; font-size:${fuente}px}
     .hoja-impresion td{padding-top:${alto}px; padding-bottom:${alto}px}
     .hoja-impresion th,.hoja-impresion td{overflow-wrap:anywhere; word-break:break-word}
@@ -6865,13 +6907,17 @@ function quitarHojaInforme() {
 function prepararImpresion(nMarcas) {
   quitarHojaInforme();
   const { orientacion, fuente, cajas, fuenteLey } = planImpresion(nMarcas);
+  const m = medidasHoja(orientacion, 9);
   // Con muchos indicadores hay que cederle ancho a las columnas de marca,
-  // o el rótulo 1.10 no alcanza a caber y se corta.
+  // o el rótulo 1.10 no alcanza a caber y se corta. El sobrante depende del
+  // tamaño de hoja: el oficio apaisado da 59 mm más que la A4, la carta 18 menos.
   const n = Math.max(0, nMarcas);
-  const anchoNom = n <= 12 ? 38 : n <= 20 ? 32 : n <= 30 ? 27 : 24;
-  const anchoObs = n <= 12 ? 32 : n <= 20 ? 24 : n <= 30 ? 18 : 0;
+  const holgura = m.anchoUtil - 279;               // respecto de la A4 apaisada
+  const anchoNom = Math.max(20, Math.round((n <= 12 ? 38 : n <= 20 ? 32 : n <= 30 ? 27 : 24) + holgura * 0.15));
+  const anchoObsBase = n <= 12 ? 32 : n <= 20 ? 24 : n <= 30 ? 18 : 0;
+  const anchoObs = anchoObsBase ? Math.max(14, Math.round(anchoObsBase + holgura * 0.25)) : 0;
   const css = `
-    @page{size:A4 ${orientacion}; margin:9mm}
+    @page{size:${m.anchoMm}mm ${m.altoMm}mm; margin:9mm}
     .hoja-impresion table{font-size:${fuente}px}
     .hoja-impresion .tabla-planilla .c-nom,
     .hoja-impresion .tabla-planilla col.c-nom{width:${anchoNom}mm}
@@ -6889,6 +6935,47 @@ function prepararImpresion(nMarcas) {
     document.head.appendChild(tag);
   }
   tag.textContent = css;
+}
+
+/* ---- Reparto de filas por hoja ----
+   Safari en iOS no repite el <thead> cuando una tabla se parte entre páginas:
+   la segunda hoja sale sin encabezado y parece un trozo cortado. Por eso la
+   lista no se parte sola: se corta aquí en tablas independientes, cada una con
+   su propio encabezado y un salto de página delante.
+
+   Los números están calibrados contra una impresión real: con 10 indicadores
+   en apaisado entraron 18 filas en la primera hoja, que es la que además carga
+   el membrete, la ficha, la leyenda de indicadores y las notas al pie. Se
+   descuenta espacio por cada fila de recuadros de la leyenda y por cada nota
+   al pie presente, y se deja un margen de seguridad: si el corte queda algo
+   corto sobra blanco al final de la hoja, que se ve prolijo; si queda largo,
+   vuelve el problema que se está resolviendo. */
+function trozosDeFilas(filas, nMarcas, ev) {
+  const { orientacion, cajas } = planImpresion(nMarcas);
+  const nInd = (ev.criterios || []).reduce((a, c) => a + (c.indicadores || []).length, 0);
+  const filasLeyenda = Math.ceil(nInd / Math.max(1, cajas));
+  const notasPie = ((ev.medidas || []).some((m) => m && m.length) ? 1 : 0)
+                 + ((ev.adecuaciones || []).some((m) => m && m.length) ? 1 : 0);
+
+  const m = medidasHoja(orientacion, 9);
+  /* La A4 apaisada da 192 mm de alto y ahí entran las cifras calibradas. Las
+     demás hojas se escalan por su alto real: el oficio vertical, por ejemplo,
+     tiene 338 mm y admite bastantes más filas. */
+  const factor = m.altoUtil / (orientacion === "landscape" ? 192 : 279);
+  const base = Math.round((orientacion === "landscape" ? 25 : 34) * factor);
+  const primera = Math.max(6, base - filasLeyenda * 2 - notasPie);
+  const resto = Math.round((orientacion === "landscape" ? 30 : 42) * factor);
+
+  if (filas.length <= primera) return [filas];
+  /* Las hojas de continuación se reparten parejas en vez de llenar cada una
+     al tope: si no, la última podía quedar con un solo estudiante. */
+  const sobrantes = filas.length - primera;
+  const hojas = Math.ceil(sobrantes / resto);
+  const porHoja = Math.ceil(sobrantes / hojas);
+
+  const trozos = [filas.slice(0, primera)];
+  for (let i = primera; i < filas.length; i += porHoja) trozos.push(filas.slice(i, i + porHoja));
+  return trozos;
 }
 
 function claseCol(k, n) {
@@ -7092,7 +7179,8 @@ function imprimir(enBlanco) {
       ${conAde.map((x) => `${esc(x.n)}: ${x.lista.map((t) => esc(t)).join("; ")}`).join(" — ")}</p>` : ""}
     ${conMed.length ? `<p class="nota-med"><b>Medidas remediales aplicadas.</b>
       ${conMed.map((x) => `${esc(x.n)}: ${x.lista.map((t) => esc(t)).join("; ")}`).join(" — ")}</p>` : ""}
-    <table class="tabla-planilla">
+    ${trozosDeFilas(filas, cols.length, ev).map((trozo, t) => `
+    <table class="tabla-planilla${t ? " tabla-continua" : ""}">
       <!-- Con table-layout:fixed los anchos los fija la primera fila. Como la
            primera es el rótulo (un th con colspan), los anchos se declaran
            aquí: el colgroup tiene prioridad y las columnas siguen parejas. -->
@@ -7102,18 +7190,18 @@ function imprimir(enBlanco) {
         <col class="c-pts"><col class="c-pct"><col class="c-nota"><col class="c-obs">
       </colgroup>
       <thead>
-      <tr class="fila-rotulo"><th colspan="${cols.length + 7}" class="izq">${esc(ev.nombre)} · ${esc(curso.nombre)} · ${fechaLarga(ev.fecha)}</th></tr>
+      <tr class="fila-rotulo"><th colspan="${cols.length + 7}" class="izq">${esc(ev.nombre)} · ${esc(curso.nombre)} · ${fechaLarga(ev.fecha)}${t ? " · continuación" : ""}</th></tr>
       <tr>
         <th class="c-n">N°</th><th class="c-nom izq">Estudiante</th><th class="c-asis">As.</th>
         ${cols.map((c) => `<th class="c-marca">${c.j + 1}.${c.q + 1}</th>`).join("")}
         <th class="c-pts">Pts</th><th class="c-pct">%</th><th class="c-nota">Nota</th><th class="c-obs izq">Obs.</th>
       </tr></thead>
-      <tbody>${filas.map((f) => `<tr>${f.map((v, k) => {
+      <tbody>${trozo.map((f) => `<tr>${f.map((v, k) => {
         const clase = claseCol(k, f.length);
         const vaciar = enBlanco && k !== 0 && k !== 1;        // se conservan número y nombre
         return `<td class="${clase}">${vaciar ? "" : esc(v)}</td>`;
       }).join("")}</tr>`).join("")}</tbody>
-    </table>`;
+    </table>`).join("")}`;
   imprimirVentanaSegura();
 }
 
@@ -7442,6 +7530,69 @@ function imprimirFicha(i) {
     ${f.conObs ? `<p class="nota-med">Este documento muestra solo las notas.
       Las observaciones de ${esc(f.nombre)} están en su informe de aprendizaje.</p>` : ""}`;
   imprimirVentanaSegura();
+}
+
+/* ---- Exportar a Word ----
+   Word abre documentos HTML con las etiquetas de Office como si fueran .doc
+   nativos: conserva tablas, negritas y configuración de página, y la tabla
+   queda editable. Se hace así a propósito, en vez de generar un .docx real,
+   porque un .docx obliga a cargar una librería desde internet y la app tiene
+   que servir igual en la cancha sin señal. */
+function exportarWord() {
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  const ev = evalActual();
+  const { cab, filas, total } = filasDeEvaluacion(ev);
+  const nMarcas = columnasPlanilla(ev).length;
+  const { orientacion } = planImpresion(nMarcas);
+  const m = medidasHoja(orientacion, 12);
+  const e = estadisticas(ev);
+
+  const fila = (celdas, etiqueta) => `<tr>${celdas.map((v, k) =>
+    `<${etiqueta} class="${k === 1 ? "izq" : ""}">${esc(v == null ? "" : v)}</${etiqueta}>`).join("")}</tr>`;
+
+  const cuerpo = `
+    <p class="membrete"><b>${esc(colegio())}</b><br>Educación Física y Salud · ${esc(curso.nombre)}</p>
+    <h1>${esc(ev.nombre)}</h1>
+    <table class="ficha">
+      <tr><td><b>Curso</b></td><td>${esc(curso.nombre)}</td><td><b>Fecha</b></td><td>${fechaLarga(ev.fecha)}</td></tr>
+      <tr><td><b>Instrumento</b></td><td>${esEscala(ev) ? `Escala de apreciación 1–${nNiveles(ev)}` : "Lista de cotejo"}</td>
+          <td><b>Evalúa</b></td><td>${esc(quienEvalua(ev))}</td></tr>
+      <tr><td><b>Puntaje</b></td><td>${total} pts · exigencia ${exigenciaValida(ev.exigencia)}%</td>
+          <td><b>Promedio</b></td><td>${num1(e.prom)}</td></tr>
+      <tr><td><b>Unidad</b></td><td colspan="3">${esc(ev.oa || "—")}</td></tr>
+    </table>
+    ${ev.criterios.map((c, j) => `
+      <p class="oa"><b>${esc(c.oa || "Criterio " + (j + 1))}</b> · ${esc(c.texto || "—")}</p>
+      <ul>${c.indicadores.map((ind, q) =>
+        `<li><b>${j + 1}.${q + 1}</b> ${esc(ind.texto || "sin redactar")} <i>(${esEscala(ev) ? `1–${nNiveles(ev)}` : ind.pts + " pts"})</i></li>`).join("")}</ul>`).join("")}
+    <table class="planilla">
+      <thead>${fila(cab, "th")}</thead>
+      <tbody>${filas.map((f) => fila(f, "td")).join("")}</tbody>
+    </table>
+    <p class="pie">${esc(nombreDocente() || "")}${nombreDocente() ? " · " : ""}Generado el ${fechaLarga(hoy())}</p>`;
+
+  const doc = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>${esc(ev.nombre)}</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>
+@page{size:${m.anchoMm}mm ${m.altoMm}mm; mso-page-orientation:${orientacion}; margin:12mm}
+body{font-family:Calibri,Arial,sans-serif; font-size:9pt; color:#102b38}
+.membrete{font-size:9pt; margin:0 0 4pt}
+h1{font-size:15pt; margin:0 0 6pt}
+table{border-collapse:collapse; width:100%}
+.ficha td{border:0.5pt solid #9bb8ca; padding:3pt 5pt; font-size:8.5pt}
+.oa{margin:8pt 0 2pt; font-size:9pt}
+ul{margin:0 0 6pt 14pt; padding:0}
+li{font-size:8.5pt; margin:0 0 1pt}
+.planilla th{border:0.5pt solid #6f93a8; background:#e8f1f7; padding:3pt 2pt; font-size:8pt; text-align:center}
+.planilla td{border:0.5pt solid #9bb8ca; padding:3pt 2pt; font-size:8pt; text-align:center}
+.planilla .izq{text-align:left}
+.pie{margin-top:8pt; font-size:8pt; color:#5b7383}
+</style></head><body>${cuerpo}</body></html>`;
+
+  const limpio = (s) => String(s).replace(/[\\/*?:[\]]/g, "").trim();
+  descargar(`${limpio(curso.label)}-${limpio(ev.nombre) || "lista"}.doc`, "\ufeff" + doc,
+    "application/msword;charset=utf-8");
 }
 
 function descargar(nombre, contenido, tipo) {
