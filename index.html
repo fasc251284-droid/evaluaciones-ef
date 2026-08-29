@@ -1403,6 +1403,31 @@ html,body,#raiz{max-width:100%;overflow-x:hidden}
 @media(min-width:700px){.modal-v148-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.modal h3{font-size:21px}.oa-item-v148{grid-template-columns:minmax(0,1fr) 14px}}
 
+/* ===== v149 · tipografía unificada, cabeceras visibles y cuadros más compactos ===== */
+.seccion-v147{color:#163f59}
+.seccion-v147 .tarjeta{padding:14px 14px 12px}
+.seccion-v147 .tarjeta>h2{font-size:19px;color:#163f59;margin-bottom:2px}
+.seccion-v147 .sub,.seccion-v147 p,.seccion-v147 span,.seccion-v147 label,.seccion-v147 .nombre,.seccion-v147 .n-orden,.seccion-v147 td,.seccion-v147 th,.seccion-v147 input,.seccion-v147 textarea,.seccion-v147 select,.seccion-v147 .obs-boton{color:#163f59}
+.seccion-v147 .metricas{gap:8px;margin-top:10px}
+.seccion-v147 .metrica{min-height:76px;padding:9px 8px;border-radius:12px;box-shadow:0 2px 8px rgba(18,67,98,.03)}
+.seccion-v147 .metrica b{font-size:22px;color:#163f59}
+.seccion-v147 .metrica span{font-size:10.5px;color:#163f59}
+.seccion-v147 .metrica:nth-child(1) b,.seccion-v147 .metrica:nth-child(2) b,.seccion-v147 .metrica:nth-child(3) b,.seccion-v147 .metrica:nth-child(4) b{color:#163f59}
+.seccion-v147 .envoltura-tabla.planilla{border-radius:16px;overflow:hidden}
+.seccion-v147 .planilla thead th,.seccion-v147 .planilla th.col-fija,.seccion-v147 th,.seccion-v147 th.col-fija{background:#eaf4fb !important;color:#163f59 !important;border-bottom:1px solid #cddce6}
+.seccion-v147 .planilla .rot-crit{background:#cfe4f3;color:#163f59}
+.seccion-v147 .planilla tbody td,.seccion-v147 .planilla tbody tr:nth-child(even) td,.seccion-v147 .planilla tbody tr:nth-child(even) td.col-fija{background:#fff;color:#163f59}
+.seccion-v147 .planilla tbody tr:nth-child(even) td{background:#f9fbfd}
+.seccion-v147 .planilla td .nota,.seccion-v147 .planilla td.mono,.seccion-v147 .planilla td .mono{color:#163f59 !important}
+.seccion-v147 .obs-boton{font-weight:700}
+.seccion-v147 .vacio strong,.seccion-v147 .titulo-unidad{color:#163f59}
+.seccion-v147 .fila .btn.btn-mini{min-height:38px}
+@media(max-width:620px){.seccion-v147 .tarjeta{padding:13px 12px 11px}.seccion-v147 .metrica{min-height:70px}.seccion-v147 .metrica b{font-size:20px}.seccion-v147 .tarjeta>h2{font-size:18px}}
+:root[data-tema="oscuro"] .seccion-v147,:root[data-tema="oscuro"] .seccion-v147 .tarjeta>h2,:root[data-tema="oscuro"] .seccion-v147 .sub,:root[data-tema="oscuro"] .seccion-v147 p,:root[data-tema="oscuro"] .seccion-v147 span,:root[data-tema="oscuro"] .seccion-v147 label,:root[data-tema="oscuro"] .seccion-v147 .nombre,:root[data-tema="oscuro"] .seccion-v147 .n-orden,:root[data-tema="oscuro"] .seccion-v147 td,:root[data-tema="oscuro"] .seccion-v147 th,:root[data-tema="oscuro"] .seccion-v147 input,:root[data-tema="oscuro"] .seccion-v147 textarea,:root[data-tema="oscuro"] .seccion-v147 select,:root[data-tema="oscuro"] .seccion-v147 .obs-boton{color:#e7f1f6 !important}
+:root[data-tema="oscuro"] .seccion-v147 .planilla thead th,:root[data-tema="oscuro"] .seccion-v147 .planilla th.col-fija,:root[data-tema="oscuro"] .seccion-v147 th,:root[data-tema="oscuro"] .seccion-v147 th.col-fija{background:#203846 !important;border-bottom-color:#35505e}
+:root[data-tema="oscuro"] .seccion-v147 .planilla .rot-crit{background:#2a4b5f;color:#e7f1f6}
+:root[data-tema="oscuro"] .seccion-v147 .planilla tbody td,:root[data-tema="oscuro"] .seccion-v147 .planilla tbody tr:nth-child(even) td,:root[data-tema="oscuro"] .seccion-v147 .planilla tbody tr:nth-child(even) td.col-fija{background:#14242d !important}
+
 </style>
 </head>
 <body>
@@ -5139,7 +5164,7 @@ function vistaConsolidado() {
         ${filas.map((f, i) => `<tr>
           <td class="izq col-fija"><span class="n-orden">${String(i + 1).padStart(2, "0")}</span>
             <button class="obs-boton" data-accion="ficha" data-i="${i}" title="Ver sus observaciones">${esc(f.nom || "—")}</button>${adeDe(i).length ? `<span class="marca-dua" title="Con adecuaciones curriculares">DUA</span>` : ""}</td>
-          ${f.notas.map((n) => `<td class="mono" style="color:${n === null ? "var(--line)" : n < 4 ? "var(--n1)" : "var(--ink)"}">${n === null ? "—" : num1(n)}</td>`).join("")}
+          ${f.notas.map((n) => `<td class="mono" style="color:var(--verde-oscuro)">${n === null ? "—" : num1(n)}</td>`).join("")}
           <td><span class="nota ${f.prom === null ? "" : f.prom < 4 ? "roja" : "azul"}">${num1(f.prom)}</span></td>
         </tr>`).join("")}
       </tbody>
@@ -5229,7 +5254,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v148</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v149</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
