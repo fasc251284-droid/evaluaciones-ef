@@ -4059,20 +4059,36 @@ function imprimirVentanaSegura() {
   // Fuerza layout real antes de abrir la hoja de impresión.
   void clonImpresionSeguro.offsetHeight;
 
-  esperarImagenesImpresion(clonImpresionSeguro).then(() => {
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      setTimeout(() => {
-        if (!clonImpresionSeguro || !clonImpresionSeguro.innerHTML.trim()) {
-          finalizarImpresionSegura();
-          abrirModal('<h3>No se pudo preparar el PDF</h3><p class="sub" style="margin:6px 0 0">El contenido desapareció antes de imprimir. Inténtalo nuevamente.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>');
-          return;
-        }
-        try { window.print(); } catch (e) { finalizarImpresionSegura(); }
-        /* Desde aquí las salidas de emergencia ya pueden actuar. */
-        impresionLanzada = true;
-      }, 120);
-    }));
-  });
+  const lanzar = () => {
+    if (!clonImpresionSeguro || !clonImpresionSeguro.innerHTML.trim()) {
+      finalizarImpresionSegura();
+      abrirModal('<h3>No se pudo preparar el PDF</h3><p class="sub" style="margin:6px 0 0">El contenido desapareció antes de imprimir. Inténtalo nuevamente.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>');
+      return;
+    }
+    try { window.print(); } catch (e) { finalizarImpresionSegura(); }
+    /* Desde aquí las salidas de emergencia ya pueden actuar. */
+    impresionLanzada = true;
+  };
+
+  /* ---- Por qué se imprime de inmediato ----
+     Safari sólo acepta window.print() mientras dura el toque que lo originó.
+     Antes se esperaba una promesa, dos cuadros de animación y 120 ms más, así
+     que para el navegador la llamada ya no venía del usuario y aparecía
+     "Se impidió que este sitio imprima automáticamente". Si las imágenes ya
+     están cargadas —el caso normal, porque el escudo se guarda incrustado—
+     se imprime en el acto. Sólo si falta alguna se espera. */
+  const imgs = [...clonImpresionSeguro.querySelectorAll("img")];
+  const enMemoria = logoPrecargado && logoPrecargado.complete && logoPrecargado.naturalWidth > 0;
+  const listas = imgs.every((img) =>
+    (img.complete && img.naturalWidth > 0) || (enMemoria && img.src === logoPrecargado.src));
+
+  if (listas) {
+    lanzar();
+  } else {
+    esperarImagenesImpresion(clonImpresionSeguro).then(() => {
+      requestAnimationFrame(() => lanzar());
+    });
+  }
 
   // Respaldo final por si ninguna de las salidas anteriores alcanza a actuar.
   // Eran 10 minutos: demasiado, la app quedaba inutilizable todo ese rato.
@@ -6787,9 +6803,21 @@ function pedirLogo() {
 /* Membrete con el escudo, para encabezar cada documento impreso. */
 function membreteHTML() {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  precargarLogo();
   return `<div class="membrete"><img src="${logoColegio()}" alt="">
     <span class="txt"><b>${esc(colegio())}</b>
     <span>Educación Física y Salud · ${esc(curso.nombre)}</span></span></div>`;
+}
+
+/* El escudo se crea de nuevo cada vez que se arma una hoja. Si no está
+   descodificado, la impresión tendría que esperarlo y perdería el toque del
+   usuario. Manteniéndolo vivo en memoria, la copia siguiente es inmediata. */
+let logoPrecargado = null;
+function precargarLogo() {
+  const src = logoColegio();
+  if (!src || (logoPrecargado && logoPrecargado.src === src)) return;
+  logoPrecargado = new Image();
+  logoPrecargado.src = src;
 }
 
 /* Los informes son de texto, no de casillas: van en vertical, con anchos
@@ -7507,6 +7535,9 @@ function pedirRestaurar() {
    ========================================================= */
 (async function iniciar() {
   aplicarTema();
+  /* Se descodifica el escudo desde ya: así la primera impresión tampoco
+     tiene que esperarlo y se dispara dentro del toque del usuario. */
+  precargarLogo();
   if (window.matchMedia) {
     window.matchMedia("(prefers-color-scheme: dark)")
       .addEventListener("change", () => { if (temaGuardado() === "auto") { aplicarTema(); pintar(); } });
