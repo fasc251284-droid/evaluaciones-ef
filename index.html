@@ -754,14 +754,39 @@ th.col-fija{background:var(--surface-2); z-index:3}
     width:1%; white-space:nowrap; overflow-wrap:normal; word-break:normal}
   .hoja-impresion th.c-marca{font-family:var(--mono); font-weight:700}
   .hoja-impresion .c-nom{width:22%; min-width:26mm}
-  .hoja-impresion .tabla-consolidado{width:auto}
+  .hoja-impresion .tabla-consolidado{width:100%; table-layout:fixed}
   .hoja-impresion .tabla-consolidado .c-nom{width:52mm; max-width:52mm}
-  .hoja-impresion .tabla-consolidado .c-nota{width:11mm}
+  /* Sin medida: todas las notas se reparten el resto en partes iguales, así
+     la columna que dice "—" mide lo mismo que la que trae la nota. */
+  .hoja-impresion .tabla-consolidado .c-nota{width:auto}
   .hoja-impresion .c-obs{width:100%}
+  /* ---- Columnas de ancho parejo ----
+     Con table-layout:auto cada columna se encogía al ancho de su contenido:
+     la que decía NL quedaba más ancha que la que estaba vacía y la planilla
+     se veía descuadrada. Con layout fijo el ancho ya no depende del texto.
+     Las columnas de marca no llevan medida a propósito: el navegador reparte
+     entre ellas el espacio sobrante en partes iguales. */
+  .hoja-impresion table.tabla-planilla{table-layout:fixed; width:100%}
+  .hoja-impresion .tabla-planilla .c-n{width:7mm}
+  .hoja-impresion .tabla-planilla .c-nom{width:38mm}
+  .hoja-impresion .tabla-planilla .c-asis{width:9mm}
+  .hoja-impresion .tabla-planilla .c-pts{width:11mm}
+  .hoja-impresion .tabla-planilla .c-pct{width:10mm}
+  .hoja-impresion .tabla-planilla .c-nota{width:11mm}
+  .hoja-impresion .tabla-planilla .c-obs{width:32mm}
+  .hoja-impresion .tabla-planilla .c-marca{width:auto; overflow-wrap:normal}
+  /* Una celda vacía debe ocupar el mismo alto que una escrita. */
+  .hoja-impresion .tabla-planilla td{height:1em}
   .hoja-impresion .izq{text-align:left}
   /* Con cursos grandes la tabla pasa de hoja: el encabezado se repite,
      ninguna fila se parte y los títulos no quedan solos al pie. */
   .hoja-impresion thead{display:table-header-group}
+  /* Un encabezado nunca debe quedar solo al pie: si no alcanzan a caber filas
+     debajo, la tabla entera arranca en la hoja siguiente. */
+  .hoja-impresion thead{break-after:avoid; page-break-after:avoid}
+  .hoja-impresion thead tr{break-inside:avoid; break-after:avoid}
+  /* El cuadro de arriba viaja pegado a su tabla. */
+  .hoja-impresion .ficha-hoja{break-inside:avoid; break-after:avoid; page-break-after:avoid}
   .hoja-impresion tfoot{display:table-footer-group}
   .hoja-impresion tr,.hoja-impresion td,.hoja-impresion th{break-inside:avoid; page-break-inside:avoid}
   .hoja-impresion table{break-inside:auto}
@@ -797,8 +822,12 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .tabla-firmas td.firma{text-align:center; padding-top:26px; border:0;
     border-top:1px solid #102b38; font-size:8.5px}
   .titulo-hoja{font-size:15px; margin:0 0 5px}
-  .hoja-impresion table.ficha-hoja{width:100%; table-layout:auto; margin:0 0 9px; font-size:9px}
-  .ficha-hoja th{width:1%; white-space:nowrap; text-align:left; vertical-align:middle;
+  .hoja-impresion table.ficha-hoja{width:100%; table-layout:fixed; margin:0 0 9px; font-size:9px}
+  /* Seis columnas fijas: los rótulos y los datos quedan alineados de una fila
+     a otra, sin importar cuánto texto tenga cada uno. */
+  .ficha-hoja th{width:15%}
+  .ficha-hoja td{width:18.33%}
+  .ficha-hoja th{white-space:normal; text-align:left; vertical-align:middle;
     background:var(--surface-2); font-size:7.5px; letter-spacing:.06em; text-transform:uppercase;
     color:#3a4a54; padding:4px 6px; border:1px solid var(--line); font-weight:700; line-height:1.2}
   .ficha-hoja td{text-align:left; vertical-align:middle; padding:4px 8px;
@@ -6775,9 +6804,17 @@ function quitarHojaInforme() {
 function prepararImpresion(nMarcas) {
   quitarHojaInforme();
   const { orientacion, fuente, cajas, fuenteLey } = planImpresion(nMarcas);
+  // Con muchos indicadores hay que cederle ancho a las columnas de marca,
+  // o el rótulo 1.10 no alcanza a caber y se corta.
+  const n = Math.max(0, nMarcas);
+  const anchoNom = n <= 12 ? 38 : n <= 20 ? 32 : n <= 30 ? 27 : 24;
+  const anchoObs = n <= 12 ? 32 : n <= 20 ? 24 : n <= 30 ? 18 : 0;
   const css = `
     @page{size:A4 ${orientacion}; margin:9mm}
     .hoja-impresion table{font-size:${fuente}px}
+    .hoja-impresion .tabla-planilla .c-nom{width:${anchoNom}mm}
+    .hoja-impresion .tabla-planilla .c-obs{width:${anchoObs}mm${anchoObs ? "" : "; display:none"}}
+    ${anchoObs ? "" : ".hoja-impresion .tabla-planilla th.c-obs{display:none}"}
     .leyenda-oa{font-size:${fuenteLey}px}
     .leyenda-oa .rejilla-ind{grid-template-columns:repeat(${cajas}, 1fr)}
     .leyenda-oa .oa-titulo{margin-top:${fuenteLey < 8 ? 4 : 7}px}`;
@@ -6904,10 +6941,20 @@ function imprimirConsolidado() {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const { evs, filas, promCurso } = datosConsolidado();
   prepararImpresion(evs.length + 1);
+  const proms = filas.map((f) => f.prom).filter((x) => x !== null);
+  const aprob = proms.filter((x) => x >= 4).length;
+  const sinNota = filas.filter((f) => f.prom === null).length;
   $("#impresion").innerHTML = `
     ${membreteHTML()}
-    <h1 style="font-size:15px">Consolidado · ${esc(curso.nombre)}</h1>
-    <p style="font-size:11px;margin:2px 0 6px">${evs.length} listas de cotejo · promedio del curso ${num1(promCurso)}</p>
+    <h1 class="titulo-hoja">Consolidado · ${esc(curso.nombre)}</h1>
+    <table class="ficha-hoja"><tbody>
+      <tr><th>Asignatura</th><td>Educación Física y Salud</td>
+          <th>Evaluaciones</th><td>${evs.length}</td>
+          <th>Fecha</th><td>${fechaLarga(hoy())}</td></tr>
+      <tr><th>Estudiantes</th><td>${filas.length}${sinNota ? ` · ${sinNota} sin nota` : ""}</td>
+          <th>Promedio del curso</th><td>${num1(promCurso)}</td>
+          <th>Aprobación</th><td>${aprob} de ${proms.length}${proms.length ? ` · ${Math.round((aprob / proms.length) * 100)}%` : ""}</td></tr>
+    </tbody></table>
     <table class="tabla-consolidado"><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
       ${evs.map((ev, k) => `<th class="c-nota">${k + 1}</th>`).join("")}<th class="c-nota">Prom.</th></tr></thead>
     <tbody>${filas.map((f, i) => `<tr><td class="c-n">${i + 1}</td><td class="c-nom izq">${esc(f.nom || "—")}</td>
@@ -6968,7 +7015,7 @@ function imprimir(enBlanco) {
       ${conAde.map((x) => `${esc(x.n)}: ${x.lista.map((t) => esc(t)).join("; ")}`).join(" — ")}</p>` : ""}
     ${conMed.length ? `<p class="nota-med"><b>Medidas remediales aplicadas.</b>
       ${conMed.map((x) => `${esc(x.n)}: ${x.lista.map((t) => esc(t)).join("; ")}`).join(" — ")}</p>` : ""}
-    <table>
+    <table class="tabla-planilla">
       <thead><tr>
         <th class="c-n">N°</th><th class="c-nom izq">Estudiante</th><th class="c-asis">As.</th>
         ${cols.map((c) => `<th class="c-marca">${c.j + 1}.${c.q + 1}</th>`).join("")}
