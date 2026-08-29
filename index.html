@@ -7653,20 +7653,21 @@ function wCeldaFondo(texto, ancho, fondo, opciones) {
   return c.replace("<w:vAlign", `<w:shd w:val="clear" w:fill="${fondo}"/><w:vAlign`);
 }
 
-/* La ficha de datos del PDF: seis columnas parejas, rótulo y dato alternados. */
-function wFicha(pares, anchoTotal) {
+/* La ficha de datos del PDF: seis columnas parejas, rótulo y dato alternados.
+   Cada fila recibe sus pares [rótulo, valor, tramos]; "tramos" indica cuántas
+   columnas ocupa el valor, para que un texto largo como la unidad se estire
+   en vez de dejar una celda vacía al final. */
+function wFicha(filasPares, anchoTotal) {
   const a = anchoTotal * 0.15, b = anchoTotal * 0.1833;
   const bordes = `<w:tblBorders>${["top", "left", "bottom", "right", "insideH", "insideV"]
     .map((x) => `<w:${x} w:val="single" w:sz="4" w:color="9BB8CA"/>`).join("")}</w:tblBorders>`;
   const grid = `<w:tblGrid>${[a, b, a, b, a, b].map((w) => `<w:gridCol w:w="${Math.round(w)}"/>`).join("")}</w:tblGrid>`;
-  const filas = [];
-  for (let i = 0; i < pares.length; i += 3) {
-    const tres = pares.slice(i, i + 3);
-    while (tres.length < 3) tres.push(["", ""]);
-    filas.push("<w:tr>" + tres.map(([r, v]) =>
-      wCeldaFondo(r, a, "EAF3F9", { negrita: true, tam: 14, izq: true }) +
-      wCelda(v, b, { tam: 15, izq: true })).join("") + "</w:tr>");
-  }
+  const filas = filasPares.map((pares) => "<w:tr>" + pares.map(([r, v, tramos]) => {
+    const n = tramos || 1;
+    const celdaRotulo = wCeldaFondo(r, a, "EAF3F9", { negrita: true, tam: 14, izq: true });
+    const celdaValor = wCeldaIndicador("", v, "", b + a * (n - 1), n);
+    return celdaRotulo + celdaValor;
+  }).join("") + "</w:tr>");
   return `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/>${bordes}</w:tblPr>${grid}${filas.join("")}</w:tbl>`;
 }
 
@@ -7752,15 +7753,15 @@ function exportarWord() {
   partes.push(wParrafo(ev.nombre || "Lista", { negrita: true, tam: 30, espacio: 100 }));
 
   partes.push(wFicha([
-    ["Curso", curso.nombre],
-    ["Asignatura", "Educación Física y Salud"],
-    ["Fecha", fechaLarga(ev.fecha)],
-    ["Instrumento", esEscala(ev) ? `Escala de apreciación 1–${nNiveles(ev)}` : "Lista de cotejo"],
-    ["Evalúa", quienEvalua(ev)],
-    ["Puntaje", `${total} pts · exigencia ${exigenciaValida(ev.exigencia)}%`],
-    ["Unidad", ev.oa || "—"],
-    ["Promedio", `${num1(e.prom)} · de 2,0 a 7,0`],
-    ["", ""],
+    [["Curso", curso.nombre],
+     ["Asignatura", "Educación Física y Salud"],
+     ["Fecha", fechaLarga(ev.fecha)]],
+    [["Instrumento", esEscala(ev) ? `Escala de apreciación 1–${nNiveles(ev)}` : "Lista de cotejo"],
+     ["Evalúa", quienEvalua(ev)],
+     ["Puntaje", `${total} pts · exigencia ${exigenciaValida(ev.exigencia)}%`]],
+    // La unidad se estira sobre tres columnas, igual que en la hoja impresa.
+    [["Unidad", ev.oa || "—", 3],
+     ["Promedio", `${num1(e.prom)} · de 2,0 a 7,0`]],
   ], anchoTotal));
 
   partes.push(wParrafo("", { espacio: 80 }));
