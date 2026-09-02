@@ -1378,6 +1378,12 @@ html,body,#raiz{max-width:100%;overflow-x:hidden}
 .modal-v148-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
 .modal-v148-grid .btn{width:100%;min-height:48px;display:grid;grid-template-columns:34px minmax(0,1fr) 18px;align-items:center;gap:10px;text-align:left;padding:10px 12px;border:1px solid #d3e1ea;background:#fff;border-radius:12px;font-weight:800;color:#163f59;box-shadow:0 3px 10px rgba(18,67,98,.03)}
 .modal-v148-grid .btn::before{content:attr(data-icon);display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:#eef7fd;color:#0874b9;font-size:var(--t-base);font-weight:900}
+/* Regreso al lugar de origen cuando se llegó por un salto entre pestañas. */
+.btn-volver{display:inline-flex; align-items:center; gap:4px; margin:0 0 10px;
+  padding:7px 13px 7px 9px; font-size:var(--t-xs); font-weight:750;
+  color:var(--azul-oscuro); background:var(--azul-claro); border:1px solid #b9d7e8}
+.btn-volver svg{width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2.4;
+  stroke-linecap:round; stroke-linejoin:round}
 /* Mismo recurso para los botones chicos de la barra de salidas: el icono va
    como pseudoelemento, así no se puede seleccionar ni se copia con el texto. */
 .btn-mini[data-icon]::before{content:attr(data-icon); margin-right:5px; font-size:var(--t-sm); line-height:1}
@@ -3683,6 +3689,8 @@ const S = {
   cursoId: localStorage.getItem(PREFIJO + "ultimoCurso") || "c6",
   datos: null, cargando: true, errorCarga: "",
   evalIdx: 0, pestana: "evaluar", modo: "planilla", criterioActivo: 0, alumnoActivo: 0,
+  /* Desde qué pestaña se llegó por un salto, para poder ofrecer la vuelta. */
+  volverA: null,
   ajustes: false, guardado: "ok", detalleError: "", modoCancha: false
 };
 
@@ -3892,6 +3900,28 @@ async function cargarCurso(id) {
    ========================================================= */
 /* Zonas que el profesor deja desplazadas y no deben volver al inicio al repintar. */
 const ZONAS_SCROLL = ".envoltura-tabla,.tiras,.tira-crit";
+
+/* ---- Memoria de posición por pestaña ----
+   Antes había una sola posición de scroll para toda la app: al cambiar de
+   pestaña se intentaba aplicar la de la anterior, y como cada lista tiene
+   otro largo, el navegador la recortaba al tope. Resultado: siempre volvías
+   al principio. Ahora cada pestaña recuerda dónde ibas. */
+const scrollPorPestana = {};
+
+function recordarPestana() {
+  scrollPorPestana[S.pestana] = window.scrollY;
+}
+
+function volverAPestana(nombre) {
+  const y = scrollPorPestana[nombre] || 0;
+  if (!y) { window.scrollTo(0, 0); return; }
+  // Se espera al siguiente cuadro: antes de dibujar, la página aún no tiene
+  // el alto definitivo y el navegador recortaría la posición.
+  requestAnimationFrame(() => {
+    const tope = Math.max(0, document.body.scrollHeight - window.innerHeight);
+    window.scrollTo(0, Math.min(y, tope));
+  });
+}
 
 function guardarScroll() {
   return {
@@ -4227,6 +4257,9 @@ function vistaApp() {
   <div class="envoltura">
     ${S.cargando ? esqueletoHTML(curso.nombre) : `
     ${S.errorCarga ? `<div class="aviso">No se pudieron traer los datos guardados. ${esc(S.errorCarga)}</div>` : ""}
+    ${S.volverA ? `<button class="btn btn-volver no-imprimir" data-accion="volver">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      Volver a ${NOMBRE_PESTANA[S.volverA] || "atrás"}</button>` : ""}
     <div class="solo-pantalla">${S.pestana === "evaluar" ? vistaEvaluar() : S.pestana === "resumen" ? vistaResumen()
       : S.pestana === "consolidado" ? vistaConsolidado() : vistaCurso()}</div>
     `}
@@ -5610,6 +5643,15 @@ function abrirModal(html) {
 }
 function cerrarModal() { $("#capa-modal").innerHTML = ""; }
 
+/* Varias acciones llevan a la pestaña Evaluar desde Resumen o Consolidado.
+   Antes eso dejaba al profesor sin regreso: había que buscar la pestaña de
+   nuevo y se perdía el lugar donde estaba. Aquí se anota de dónde venía. */
+const NOMBRE_PESTANA = { evaluar: "Evaluar", resumen: "Resumen", consolidado: "Consolidado", curso: "Nómina" };
+function saltarAPestana(destino) {
+  if (S.pestana !== destino) S.volverA = S.pestana;
+  S.pestana = destino;
+}
+
 let pendienteConfirmar = null;
 function confirmar(mensaje, alAceptar) {
   pendienteConfirmar = alAceptar;
@@ -5656,11 +5698,33 @@ document.addEventListener("click", async (evt) => {
   if (a === "curso") { S.menuCurso = false; await cargarCurso(btn.dataset.id); return; }
   if (a === "menu-curso") { S.menuCurso = !S.menuCurso; pintar(); return; }
   if (a === "cerrar-menu") { S.menuCurso = false; pintar(); return; }
-  if (a === "pestana") { S.pestana = btn.dataset.v; if (S.pestana !== "evaluar") S.modoCancha = false; pintar(); return; }
-  if (a === "modo") { S.modo = btn.dataset.v; pintar(); return; }
+  if (a === "volver") {
+    recordarPestana();
+    const destino = S.volverA || "evaluar";
+    S.pestana = destino; S.volverA = null;
+    pintar();
+    volverAPestana(destino);                 // te deja donde ibas leyendo
+    return;
+  }
+  if (a === "pestana") {
+    recordarPestana();                       // dónde ibas en la que dejas
+    S.pestana = btn.dataset.v; S.volverA = null;
+    if (S.pestana !== "evaluar") S.modoCancha = false;
+    pintar();
+    volverAPestana(S.pestana);               // dónde ibas en la que abres
+    return;
+  }
+  if (a === "modo") {
+    // Planilla, Por criterio y Por estudiante también recuerdan su posición.
+    scrollPorPestana["modo:" + S.modo] = window.scrollY;
+    S.modo = btn.dataset.v;
+    pintar();
+    volverAPestana("modo:" + S.modo);
+    return;
+  }
   if (a === "criterio") { S.criterioActivo = +btn.dataset.j; pintar(); return; }
   if (a === "ajustes") { cerrarModal(); S.ajustes = !S.ajustes; pintar(); return; }
-  if (a === "abrir-eval") { S.evalIdx = +btn.dataset.i; S.pestana = "evaluar"; S.criterioActivo = 0; pintar(); return; }
+  if (a === "abrir-eval") { S.evalIdx = +btn.dataset.i; saltarAPestana("evaluar"); S.criterioActivo = 0; pintar(); return; }
   if (a === "lista-menu") {
     const i = +btn.dataset.i, x = S.datos.evaluaciones[i];
     if (!x) return;
@@ -5678,7 +5742,7 @@ document.addEventListener("click", async (evt) => {
   if (a === "lista-seleccionar") {
     const i = +btn.dataset.i;
     if (!S.datos.evaluaciones[i]) return;
-    S.evalIdx = i; S.pestana = "evaluar"; S.criterioActivo = 0; cerrarModal(); pintar(); return;
+    S.evalIdx = i; saltarAPestana("evaluar"); S.criterioActivo = 0; cerrarModal(); pintar(); return;
   }
   if (a === "lista-renombrar") {
     const i = +btn.dataset.i, x = S.datos.evaluaciones[i];
@@ -5793,7 +5857,7 @@ document.addEventListener("click", async (evt) => {
   }
   if (a === "ir-evaluacion") {
     cerrarModal();
-    S.pestana = "evaluar"; S.modo = "planilla"; pintar();
+    saltarAPestana("evaluar"); S.modo = "planilla"; pintar();
     requestAnimationFrame(() => document.querySelector(".pestanas.no-imprimir")?.scrollIntoView({ behavior: "smooth", block: "start" }));
     return;
   }
