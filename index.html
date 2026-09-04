@@ -1439,7 +1439,13 @@ html,body,#raiz{max-width:100%;overflow-x:hidden}
 .seccion-v147 .metrica b{font-size:var(--t-xl);color:#163f59}
 .seccion-v147 .metrica span{font-size:var(--t-xs);color:#163f59}
 .seccion-v147 .metrica:nth-child(1) b,.seccion-v147 .metrica:nth-child(2) b,.seccion-v147 .metrica:nth-child(3) b,.seccion-v147 .metrica:nth-child(4) b{color:#163f59}
-.seccion-v147 .envoltura-tabla.planilla{border-radius:16px;overflow:hidden}
+/* Esta regla llevaba overflow:hidden para redondear las esquinas, pero de
+   paso anulaba el overflow-x:auto del contenedor y la tabla no se podía
+   correr al costado: con varias listas, las últimas notas quedaban fuera de
+   alcance. Se libera el eje horizontal y el vertical queda visible: recortar
+   en vertical rompería la columna de nombres, que va con position:sticky, y
+   la página ya se desplaza por su cuenta hacia abajo. */
+.seccion-v147 .envoltura-tabla.planilla{border-radius:16px; overflow-x:auto; overflow-y:visible}
 .seccion-v147 .planilla thead th,.seccion-v147 .planilla th.col-fija,.seccion-v147 th,.seccion-v147 th.col-fija{background:#eaf4fb !important;color:#163f59 !important;border-bottom:1px solid #cddce6}
 .seccion-v147 .planilla .rot-crit{background:#cfe4f3;color:#163f59}
 .seccion-v147 .planilla tbody td,.seccion-v147 .planilla tbody tr:nth-child(even) td,.seccion-v147 .planilla tbody tr:nth-child(even) td.col-fija{background:#fff;color:#163f59}
