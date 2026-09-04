@@ -683,6 +683,15 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .planilla tbody tr:nth-child(even) td{background:#f7fbfd}
 .planilla tbody tr:nth-child(even) td.col-fija{background:#f7fbfd}
 .planilla td.izq{min-width:170px}
+/* ---- Consolidado: la tabla tiene que poder desbordarse ----
+   Sin ancho mínimo, las columnas de cada lista se encogían para caber en la
+   pantalla: la tabla nunca superaba el ancho del contenedor y por eso no
+   había nada que desplazar al costado. Con un mínimo por columna, a partir
+   de unas pocas listas la tabla se sale y aparece el desplazamiento, con el
+   nombre del estudiante quedando fijo a la izquierda. */
+.seccion-consolidado-v147 .planilla table{width:max-content; min-width:100%}
+.seccion-consolidado-v147 .col-eval{min-width:62px; text-align:center}
+.seccion-consolidado-v147 .col-prom{min-width:72px; text-align:center}
 .celda-tap{width:52px; padding:3px 2px}
 .raya{color:var(--line)}
 .fila-ausente td{background:#eef2f4 !important; color:var(--soft)}
@@ -5489,15 +5498,15 @@ function vistaConsolidado() {
     <table>
       <thead><tr>
         <th class="izq col-fija">ESTUDIANTE</th>
-        ${evs.map((ev, k) => `<th title="${esc(ev.nombre)}"><span class="rot-crit">${k + 1}</span><br>${corto(ev.fecha)}</th>`).join("")}
-        <th>PROM.</th>
+        ${evs.map((ev, k) => `<th class="col-eval" title="${esc(ev.nombre)}"><span class="rot-crit">${k + 1}</span><br>${corto(ev.fecha)}</th>`).join("")}
+        <th class="col-prom">PROM.</th>
       </tr></thead>
       <tbody>
         ${filas.map((f, i) => `<tr>
           <td class="izq col-fija"><span class="n-orden">${String(i + 1).padStart(2, "0")}</span>
             <button class="obs-boton student-name-v152" data-accion="ficha" data-i="${i}" title="Ver sus observaciones">${esc(f.nom || "—")}</button>${adeDe(i).length ? `<span class="marca-dua" title="Con adecuaciones curriculares">DUA</span>` : ""}</td>
-          ${f.notas.map((n) => `<td class="mono" style="color:var(--azul-oscuro)">${n === null ? "—" : num1(n)}</td>`).join("")}
-          <td><span class="nota ${f.prom === null ? "" : f.prom < 4 ? "roja" : "azul"}">${num1(f.prom)}</span></td>
+          ${f.notas.map((n) => `<td class="mono col-eval" style="color:var(--azul-oscuro)">${n === null ? "—" : num1(n)}</td>`).join("")}
+          <td class="col-prom"><span class="nota ${f.prom === null ? "" : f.prom < 4 ? "roja" : "azul"}">${num1(f.prom)}</span></td>
         </tr>`).join("")}
       </tbody>
     </table>
