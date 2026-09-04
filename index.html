@@ -686,12 +686,12 @@ th.col-fija{background:var(--surface-2); z-index:3}
 /* ---- Consolidado: la tabla tiene que poder desbordarse ----
    Sin ancho mínimo, las columnas de cada lista se encogían para caber en la
    pantalla: la tabla nunca superaba el ancho del contenedor y por eso no
-   había nada que desplazar al costado. Con un mínimo por columna, a partir
-   de unas pocas listas la tabla se sale y aparece el desplazamiento, con el
-   nombre del estudiante quedando fijo a la izquierda. */
-.seccion-consolidado-v147 .planilla table{width:max-content; min-width:100%}
-.seccion-consolidado-v147 .col-eval{min-width:62px; text-align:center}
-.seccion-consolidado-v147 .col-prom{min-width:72px; text-align:center}
+   había nada que desplazar al costado. El ancho mínimo se calcula en el
+   marcado según cuántas listas haya; aquí sólo se impide que las celdas se
+   partan en dos líneas, que es la otra forma de encogerse. */
+.seccion-consolidado-v147 .col-eval{min-width:62px; text-align:center; white-space:nowrap}
+.seccion-consolidado-v147 .col-prom{min-width:78px; text-align:center; white-space:nowrap}
+.seccion-consolidado-v147 .planilla td.izq{white-space:nowrap}
 .celda-tap{width:52px; padding:3px 2px}
 .raya{color:var(--line)}
 .fila-ausente td{background:#eef2f4 !important; color:var(--soft)}
@@ -5495,7 +5495,10 @@ function vistaConsolidado() {
     </div>
   </div>
   <div class="envoltura-tabla planilla">
-    <table>
+    <!-- El ancho mínimo se calcula aquí, no con max-content: Safari lo aplica
+         de forma poco fiable en tablas y la tabla se encogía para caber, con
+         lo que nunca aparecía el desplazamiento lateral. -->
+    <table style="min-width:${170 + evs.length * 62 + 78}px">
       <thead><tr>
         <th class="izq col-fija">ESTUDIANTE</th>
         ${evs.map((ev, k) => `<th class="col-eval" title="${esc(ev.nombre)}"><span class="rot-crit">${k + 1}</span><br>${corto(ev.fecha)}</th>`).join("")}
