@@ -802,7 +802,9 @@ th.col-fija{background:var(--surface-2); z-index:3}
   /* Un encabezado nunca debe quedar solo al pie: si no alcanzan a caber filas
      debajo, la tabla entera arranca en la hoja siguiente. */
   /* Cada tabla de continuación abre hoja nueva: así siempre lleva su
-     encabezado arriba y ninguna queda partida por la mitad. */
+     encabezado arriba y ninguna queda partida por la mitad. El salto va sólo
+     aquí: ponerlo además en el párrafo del rótulo daba dos saltos forzados
+     seguidos y Safari devolvía la hoja en blanco. */
   .hoja-impresion .tabla-continua{break-before:page; page-break-before:always}
   /* Rótulo que viaja con el encabezado: en la segunda hoja la lista se
      identifica sola y deja de parecer un trozo suelto. */
@@ -7043,6 +7045,35 @@ function prepararImpresion(nMarcas) {
    al pie presente, y se deja un margen de seguridad: si el corte queda algo
    corto sobra blanco al final de la hoja, que se ve prolijo; si queda largo,
    vuelve el problema que se está resolviendo. */
+/* ---- Corte por hojas de los informes ----
+   Igual que en la planilla: Safari en iOS no repite el <thead> cuando una
+   tabla se parte, así que la segunda hoja salía sin encabezado y sin saber
+   a qué columna correspondía cada número. Aquí la lista se corta en tablas
+   independientes, cada una con su rótulo y su encabezado.
+
+   Los informes van en vertical con letra que ya se achica según el curso;
+   estas cifras salen de una impresión real: la primera hoja carga además el
+   membrete, la ficha y la tabla de indicadores. */
+function trozosInforme(filas, nIndicadores) {
+  const ind = Math.max(0, nIndicadores || 0);
+  const m = medidasHoja("portrait", 10);
+  const factor = m.altoUtil / 277;              // A4 vertical como referencia
+  /* Calibrado contra una impresión real: con 10 indicadores entraron 12
+     estudiantes en la primera hoja. Cada indicador consume algo más de una
+     fila porque su texto se parte, y las filas de estudiante también crecen
+     cuando el nivel o las medidas remediales ocupan dos líneas. */
+  const primera = Math.max(6, Math.round((26 - ind * 1.4) * factor));
+  const resto = Math.round(28 * factor);
+
+  if (filas.length <= primera) return [filas];
+  const sobrantes = filas.length - primera;
+  const hojas = Math.ceil(sobrantes / resto);
+  const porHoja = Math.ceil(sobrantes / hojas);
+  const trozos = [filas.slice(0, primera)];
+  for (let i = primera; i < filas.length; i += porHoja) trozos.push(filas.slice(i, i + porHoja));
+  return trozos;
+}
+
 function trozosDeFilas(filas, nMarcas, ev) {
   const { orientacion, cajas } = planImpresion(nMarcas);
   const nInd = (ev.criterios || []).reduce((a, c) => a + (c.indicadores || []).length, 0);
@@ -7508,19 +7539,22 @@ function imprimirInforme() {
     ${flojos.length ? `<p class="nota-med"><b>Indicadores prioritarios bajo 80%:</b>
       ${flojos.map((x) => `${x.rot} (${x.pct}% · ${nivelAprendizajePct(x.pct).label})`).join(" · ")}. Conviene retomarlos en la próxima clase.</p>` : ""}
 
-    <p class="rot-informe">Logro por estudiante</p>
-    <table><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
+    ${trozosInforme(porAlu, porInd.length).map((trozo, t) => `
+    ${t ? "" : `<p class="rot-informe">Logro por estudiante</p>`}
+    <table class="${t ? "tabla-continua" : ""}"><thead>
+      ${t ? `<tr class="fila-rotulo"><th colspan="8" class="izq">Logro por estudiante · continuación</th></tr>` : ""}
+      <tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
       <th class="col-barra">Logro</th><th class="c-pct">%</th><th style="width:13%">Nivel</th><th class="c-pts">Pts</th>
       <th class="c-nota">Nota</th><th class="izq">Medidas remediales</th></tr></thead>
-    <tbody>${porAlu.map((x, k) => `<tr>
-      <td class="c-n">${k + 1}</td>
+    <tbody>${trozo.map((x) => `<tr>
+      <td class="c-n">${x.i + 1}</td>
       <td class="c-nom izq">${esc(x.nom)}</td>
       <td>${x.est ? "" : barra(x.pct)}</td>
       <td class="c-pct">${x.est ? (x.est === 1 ? "A" : "J") : (x.pct === null ? "—" : x.pct + "%")}</td>
       <td class="${x.est || !x.nivel ? "" : x.nivel.clave === "logrado" ? "res-ok" : x.nivel.clave === "proceso" ? "res-proceso" : "res-no"}">${x.est ? "" : esc(x.nivel.label)}</td>
       <td class="c-pts">${x.est ? "" : `${x.r.puntaje}/${x.r.total}`}</td>
       <td class="c-nota">${x.est ? "" : num1(x.r.nota)}</td>
-      <td class="izq">${x.est ? "" : esc((x.medidas || []).join("; "))}</td></tr>`).join("")}</tbody></table>`;
+      <td class="izq">${x.est ? "" : esc((x.medidas || []).join("; "))}</td></tr>`).join("")}</tbody></table>`).join("")}`;
   imprimirVentanaSegura();
 }
 
