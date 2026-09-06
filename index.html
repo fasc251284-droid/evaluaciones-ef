@@ -835,8 +835,11 @@ th.col-fija{background:var(--surface-2); z-index:3}
     border-left:2px solid #175f85; background:#eef4f8}
   .rot-informe{font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
     color:#175f85; margin:12px 0 5px; padding-left:6px; border-left:3px solid #e0980f}
-  .barra-pdf{display:block; height:7px; background:#edf4f8; border-radius:4px; overflow:hidden}
-  .barra-pdf i{display:block; height:100%}
+  /* Sin print-color-adjust, el navegador omite los fondos al imprimir y la
+     columna Logro salía ancha y vacía. Con esto la barra sí se imprime. */
+  .barra-pdf{display:block; height:7px; background:#edf4f8; border-radius:4px; overflow:hidden;
+    print-color-adjust:exact; -webkit-print-color-adjust:exact}
+  .barra-pdf i{display:block; height:100%; print-color-adjust:exact; -webkit-print-color-adjust:exact}
   .oa-min{font-family:var(--mono); font-size:7.5px; color:#5b7383}
   .eval-titulo{font-size:9.5px; margin:9px 0 3px}
   .res-ok{color:#126b45; font-weight:700}
@@ -6962,17 +6965,22 @@ function hojaInforme(nFilas) {
   const m = medidasHoja("portrait", 10);
   const css = `
     @page{size:${m.anchoMm}mm ${m.altoMm}mm; margin:10mm}
-    .hoja-impresion table{width:100%; table-layout:fixed; font-size:${fuente}px}
+    /* La tabla se deja algo más angosta que la caja de la página: cuando el
+       navegador imprime con sus propios márgenes (Safari agrega encabezado y
+       pie), esa holgura evita que la última columna quede cortada. */
+    .hoja-impresion table{width:98%; table-layout:fixed; font-size:${fuente}px}
     .hoja-impresion td{padding-top:${alto}px; padding-bottom:${alto}px}
     .hoja-impresion th,.hoja-impresion td{overflow-wrap:anywhere; word-break:break-word}
     .hoja-impresion .c-n{width:7mm}
     .hoja-impresion .c-nom{width:34mm}
-    .hoja-impresion .c-pct{width:12mm}
-    .hoja-impresion .c-pts{width:14mm}
+    .hoja-impresion .c-pct{width:11mm}
+    .hoja-impresion .c-pts{width:13mm}
     .hoja-impresion .c-nota{width:12mm}
-    .hoja-impresion .c-asis{width:14mm}
-    .hoja-impresion .col-barra{width:22mm}
-    .hoja-impresion .col-barra-ancha{width:56mm}
+    .hoja-impresion .c-asis{width:12mm}
+    /* La barra no necesita 22 mm: con 15 se lee igual y el espacio ganado va
+       al texto del indicador, que es lo que de verdad hay que leer. */
+    .hoja-impresion .col-barra{width:15mm}
+    .hoja-impresion .col-barra-ancha{width:40mm}
     .leyenda-oa{font-size:9px}`;
   let tag = $("#css-informe");
   if (!tag) {
