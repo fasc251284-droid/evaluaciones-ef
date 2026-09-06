@@ -4111,8 +4111,19 @@ window.addEventListener("beforeunload", retirarClonImpresionSeguro);
    nunca llega y la app quedaba con la interfaz oculta. Estas vías la devuelven
    a la normalidad apenas el usuario vuelve a tocar la pantalla.
    El seguro impresionLanzada evita que se corten solas antes de tiempo:
-   sin él, el foco que se pierde al abrir el diálogo cancelaría la impresión. */
-const salirDeImpresion = () => { if (impresionEnCurso && impresionLanzada) finalizarImpresionSegura(); };
+   sin él, el foco que se pierde al abrir el diálogo cancelaría la impresión.
+
+   Además hay una espera de gracia: al abrirse la hoja para compartir, iOS
+   dispara focus y visibilitychange de inmediato. Si se limpiaba en ese
+   momento, se borraba la copia de la hoja mientras Safari todavía la estaba
+   componiendo y el PDF salía en blanco. Durante ese margen no se toca nada. */
+const GRACIA_IMPRESION = 2500;
+let momentoImpresion = 0;
+const salirDeImpresion = () => {
+  if (!impresionEnCurso || !impresionLanzada) return;
+  if (Date.now() - momentoImpresion < GRACIA_IMPRESION) return;
+  finalizarImpresionSegura();
+};
 
 try {
   const consulta = window.matchMedia("print");
@@ -4159,8 +4170,11 @@ function imprimirVentanaSegura() {
       return;
     }
     try { window.print(); } catch (e) { finalizarImpresionSegura(); }
-    /* Desde aquí las salidas de emergencia ya pueden actuar. */
+    /* Desde aquí las salidas de emergencia ya pueden actuar, pero recién
+       después del margen de gracia: iOS necesita ese rato para componer la
+       hoja y si se le quita antes, el PDF sale vacío. */
     impresionLanzada = true;
+    momentoImpresion = Date.now();
   };
 
   /* ---- Siempre se imprime dentro del toque ----
