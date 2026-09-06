@@ -3991,6 +3991,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
+const VERSION_APP = "v194";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -5275,10 +5276,10 @@ function vistaResumen() {
                 </div>`;
               }).join("")}`;
             }).join("")}
-            <div class="fila acciones-alumno no-imprimir">
-              <button class="btn btn-mini" data-icon="📄" data-accion="pdf-indicadores" data-i="${i}">Imprimir o guardar PDF</button>
-              <button class="btn btn-mini" data-icon="📝" data-accion="word-indicadores" data-i="${i}">Descargar Word</button>
-            </div>
+          </div>
+          <div class="fila acciones-alumno no-imprimir">
+            <button class="btn btn-mini" data-icon="📄" data-accion="pdf-indicadores" data-i="${i}">Imprimir o guardar PDF</button>
+            <button class="btn btn-mini" data-icon="📝" data-accion="word-indicadores" data-i="${i}">Descargar Word</button>
           </div>
         </details>`;
       }).join("")}
@@ -5626,6 +5627,7 @@ function vistaCurso() {
       </select>
     </label>
     <p class="sub" style="margin:-4px 0 12px">Se aplica a los PDF y al documento de Word. Ajusta el ancho de las columnas y cuántos estudiantes entran por hoja.</p>
+    <p class="sub" style="margin:-4px 0 12px">Versión instalada: <b class="mono">${VERSION_APP}</b>. Sirve para confirmar que el equipo tomó la última actualización.</p>
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Word">
     </label>
@@ -7620,20 +7622,29 @@ function imprimirIndicadores(i) {
   const est = ev.estado[i] || 0;
   const r = resultado(ev, i);
   const filas = detalleIndicadores(ev, i);
+  const ade = adeDeLista(ev, i) || [];
+  const med = (ev.medidas && ev.medidas[i]) || [];
   prepararImpresion(0);
   hojaInforme(filas.length + 6);
 
   $("#impresion").innerHTML = `
     ${membreteHTML()}
-    <h1 class="titulo-hoja">${esc(nom)}</h1>
+    <h1 class="titulo-hoja">Informe individual · ${esc(nom)}</h1>
+    <!-- Misma ficha de seis columnas del consolidado: tres filas, con la
+         unidad estirada sobre tres columnas para que no quede hueco. -->
     <table class="ficha-hoja"><tbody>
       <tr><th>Curso</th><td>${esc(curso.nombre)}</td>
-          <th>Lista</th><td>${esc(ev.nombre || "—")}</td>
+          <th>Asignatura</th><td>Educación Física y Salud</td>
           <th>Fecha</th><td>${fechaLarga(ev.fecha)}</td></tr>
+      <tr><th>Estudiante</th><td>${esc(nom)}</td>
+          <th>Instrumento</th><td>${esEscala(ev) ? `Escala de apreciación 1–${nNiveles(ev)}` : "Lista de cotejo"}</td>
+          <th>Evalúa</th><td>${esc(quienEvalua(ev))}</td></tr>
+      <tr><th>Lista</th><td colspan="3">${esc(ev.nombre || "—")}</td>
+          <th>Logro</th><td>${est ? (est === 1 ? "Ausente" : "Justificado") : `${r.total ? Math.round((r.puntaje / r.total) * 100) : 0}% · ${nivelAprendizajePct(r.total ? Math.round((r.puntaje / r.total) * 100) : 0).label}`}</td></tr>
     </tbody></table>
     <table class="tabla-detalle">
       <thead>
-        <tr class="fila-rotulo"><th colspan="4" class="izq">${esc(nom)} · ${esc(ev.nombre || "Lista")} · ${fechaLarga(ev.fecha)}</th></tr>
+        <tr class="fila-rotulo"><th colspan="4" class="izq">Logro por indicador · ${esc(nom)} · ${esc(ev.nombre || "Lista")}</th></tr>
         <tr><th class="c-n">N°</th><th class="izq">Indicador</th>
             <th style="width:32mm">Resultado</th><th class="c-pts">Pts</th></tr>
       </thead>
@@ -7652,7 +7663,11 @@ function imprimirIndicadores(i) {
           <td class="c-pts"><b>${est ? "—" : num1(r.nota)}</b></td>
         </tr>
       </tbody>
-    </table>`;
+    </table>
+    ${ade.length ? `<p class="nota-dua"><b>* Adecuaciones curriculares · Decreto 83/2015.</b>
+      ${ade.map((t) => esc(t)).join("; ")}</p>` : ""}
+    ${med.length ? `<p class="nota-med"><b>Medidas remediales aplicadas.</b>
+      ${med.map((t) => esc(t)).join("; ")}</p>` : ""}`;
   imprimirVentanaSegura();
 }
 
@@ -7678,8 +7693,20 @@ function exportarWordIndicadores(i) {
 
   const partes = [
     wParrafo(`${colegio()} · Educación Física y Salud · ${curso.nombre}`, { negrita: true, tam: 18, espacio: 20 }),
-    wParrafo(nom, { negrita: true, tam: 30, espacio: 60 }),
-    wParrafo(`${ev.nombre || "Lista"} · ${fechaLarga(ev.fecha)} · ${esEscala(ev) ? `Escala 1–${nNiveles(ev)}` : "Lista de cotejo"}`, { tam: 16, espacio: 80 }),
+    wParrafo(`Informe individual · ${nom}`, { negrita: true, tam: 30, espacio: 80 }),
+    // Misma ficha de seis columnas que el consolidado.
+    wFicha([
+      [["Curso", curso.nombre],
+       ["Asignatura", "Educación Física y Salud"],
+       ["Fecha", fechaLarga(ev.fecha)]],
+      [["Estudiante", nom],
+       ["Instrumento", esEscala(ev) ? `Escala de apreciación 1–${nNiveles(ev)}` : "Lista de cotejo"],
+       ["Evalúa", quienEvalua(ev)]],
+      [["Lista", ev.nombre || "—", 3],
+       ["Logro", est ? (est === 1 ? "Ausente" : "Justificado")
+         : `${r.total ? Math.round((r.puntaje / r.total) * 100) : 0}%`]],
+    ], anchoTotal),
+    wParrafo("", { espacio: 80 }),
     wTabla(cab, cuerpo, anchos),
     wParrafo(`${nombreDocente() || ""}${nombreDocente() ? " · " : ""}Generado el ${fechaLarga(hoy())}`, { tam: 14, espacio: 0 }),
   ];
