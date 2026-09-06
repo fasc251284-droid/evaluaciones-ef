@@ -350,6 +350,10 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .det-alumno summary::-webkit-details-marker{display:none}
 .det-alumno summary .rotulo em::after{content:" ▸"; font-size:var(--t-xs); opacity:.6}
 .det-alumno[open] summary .rotulo em::after{content:" ▾"}
+/* Botones al final del detalle de cada estudiante: se separan del listado de
+   indicadores con una línea, para que no se confundan con una fila más. */
+.acciones-alumno{margin-top:10px; padding-top:10px; border-top:1px solid var(--line);
+  display:flex; flex-wrap:wrap; gap:8px}
 .por-indicador{margin:8px 0 4px; padding:9px 11px; background:var(--surface-2);
   border-radius:var(--r-s); border:1px solid var(--line)}
 .sub-criterio{display:flex; justify-content:space-between; gap:10px; margin:9px 0 5px;
@@ -808,6 +812,11 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .hoja-impresion .tabla-continua{break-before:page; page-break-before:always}
   /* Rótulo que viaja con el encabezado: en la segunda hoja la lista se
      identifica sola y deja de parecer un trozo suelto. */
+  /* Fila de cierre con la nota: va al final de la tabla, junto al puntaje,
+     porque es el dato que más se busca y arriba se perdía entre el resto. */
+  .hoja-impresion .fila-nota td{border-top:1.5px solid #0c3f63; background:#eef6fb;
+    font-size:11px; padding-top:5px; padding-bottom:5px}
+  .hoja-impresion .tabla-detalle{width:98%; table-layout:fixed}
   .hoja-impresion .fila-rotulo th{background:#fff; border:0; border-bottom:1.5px solid #0c3f63;
     font-size:9.5px; font-weight:800; color:#0c3f63; padding:0 0 3px; letter-spacing:.01em}
   /* No poner break-after:avoid sobre el thead: Safari deja de repetirlo en
@@ -5266,6 +5275,10 @@ function vistaResumen() {
                 </div>`;
               }).join("")}`;
             }).join("")}
+            <div class="fila acciones-alumno no-imprimir">
+              <button class="btn btn-mini" data-icon="📄" data-accion="pdf-indicadores" data-i="${i}">Imprimir o guardar PDF</button>
+              <button class="btn btn-mini" data-icon="📝" data-accion="word-indicadores" data-i="${i}">Descargar Word</button>
+            </div>
           </div>
         </details>`;
       }).join("")}
@@ -6780,6 +6793,8 @@ document.addEventListener("click", async (evt) => {
   if (a === "informe-comparacion") { cerrarModal(); imprimirComparacion(); return; }
   if (a === "notas-curso") { cerrarModal(); imprimirNotasCurso(); return; }
   if (a === "comparar-cursos") { compararEntreCursos(); return; }
+  if (a === "pdf-indicadores") { imprimirIndicadores(+btn.dataset.i); return; }
+  if (a === "word-indicadores") { exportarWordIndicadores(+btn.dataset.i); return; }
   if (a === "word") { cerrarModal(); exportarWord(); return; }
   if (a === "excel") { cerrarModal(); await exportarExcel(); return; }
   if (a === "cambiar-logo") { pedirLogo(); return; }
@@ -7574,6 +7589,128 @@ function imprimirInforme() {
 
 /* Busca en todos los cursos las listas con nombre parecido al de la abierta,
    para ver cómo resultó la misma unidad en cada nivel. */
+/* ---- Detalle de un estudiante, indicador por indicador ----
+   Devuelve una fila por indicador con su resultado, más la nota. La usan el
+   PDF y el Word, para que los dos digan exactamente lo mismo. */
+function detalleIndicadores(ev, i) {
+  const filas = [];
+  ev.criterios.forEach((c, j) => {
+    c.indicadores.forEach((ind, q) => {
+      let logro, pts;
+      if (esEscala(ev)) {
+        const v = nivelDe(ev, i, j, q);
+        logro = v ? descriptorDe(ev, c, v - 1) || `Nivel ${v}` : "Sin marcar";
+        pts = v ? `${puntosNivel(ev, v)}` : "—";
+      } else {
+        const v = marcaDe(ev, i, j, q);
+        logro = v === 1 ? "Logrado" : v === 2 ? "No logrado" : "Sin marcar";
+        pts = v === 1 ? `${ind.pts}` : v === 2 ? "0" : "—";
+      }
+      filas.push({ rot: `${j + 1}.${q + 1}`, texto: ind.texto || `Indicador ${q + 1}`,
+        oa: c.oa || "", logro, pts, clave: logro === "Logrado" ? "ok" : logro === "No logrado" ? "no" : "" });
+    });
+  });
+  return filas;
+}
+
+function imprimirIndicadores(i) {
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  const ev = evalActual();
+  const nom = S.datos.roster[i] || `N° ${i + 1}`;
+  const est = ev.estado[i] || 0;
+  const r = resultado(ev, i);
+  const filas = detalleIndicadores(ev, i);
+  prepararImpresion(0);
+  hojaInforme(filas.length + 6);
+
+  $("#impresion").innerHTML = `
+    ${membreteHTML()}
+    <h1 class="titulo-hoja">${esc(nom)}</h1>
+    <table class="ficha-hoja"><tbody>
+      <tr><th>Curso</th><td>${esc(curso.nombre)}</td>
+          <th>Lista</th><td>${esc(ev.nombre || "—")}</td>
+          <th>Fecha</th><td>${fechaLarga(ev.fecha)}</td></tr>
+    </tbody></table>
+    <table class="tabla-detalle">
+      <thead>
+        <tr class="fila-rotulo"><th colspan="4" class="izq">${esc(nom)} · ${esc(ev.nombre || "Lista")} · ${fechaLarga(ev.fecha)}</th></tr>
+        <tr><th class="c-n">N°</th><th class="izq">Indicador</th>
+            <th style="width:32mm">Resultado</th><th class="c-pts">Pts</th></tr>
+      </thead>
+      <tbody>
+        ${filas.map((f) => `<tr>
+          <td class="c-n mono">${f.rot}</td>
+          <td class="izq">${esc(f.texto)}</td>
+          <td class="${f.clave === "ok" ? "res-ok" : f.clave === "no" ? "res-no" : ""}">${esc(f.logro)}</td>
+          <td class="c-pts">${f.pts}</td></tr>`).join("")}
+        <!-- La nota cierra la tabla, junto al puntaje, no en el resumen de
+             arriba: es el dato que más se busca al leer la hoja. -->
+        <tr class="fila-nota">
+          <td></td>
+          <td class="izq"><b>Nota final</b></td>
+          <td>${est ? (est === 1 ? "Ausente" : "Justificado") : `${r.puntaje} de ${r.total} pts`}</td>
+          <td class="c-pts"><b>${est ? "—" : num1(r.nota)}</b></td>
+        </tr>
+      </tbody>
+    </table>`;
+  imprimirVentanaSegura();
+}
+
+/* Misma hoja del estudiante, en Word. Usa detalleIndicadores igual que el
+   PDF, así los dos documentos dicen exactamente lo mismo. */
+function exportarWordIndicadores(i) {
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  const ev = evalActual();
+  const nom = S.datos.roster[i] || `N° ${i + 1}`;
+  const est = ev.estado[i] || 0;
+  const r = resultado(ev, i);
+  const filas = detalleIndicadores(ev, i);
+  const m = medidasHoja("portrait", 12);
+  const anchoTotal = (m.anchoMm - 24) * MM_TW;
+  const anchos = [0.09, 0.53, 0.26, 0.12].map((p) => p * anchoTotal);
+
+  const cab = ["N°", "Indicador", "Resultado", "Pts"];
+  const cuerpo = filas.map((f) => [f.rot, f.texto, f.logro, f.pts]);
+  // La nota cierra la tabla, al lado del puntaje, no en un resumen arriba.
+  cuerpo.push(["", "Nota final",
+    est ? (est === 1 ? "Ausente" : "Justificado") : `${r.puntaje} de ${r.total} pts`,
+    est ? "—" : num1(r.nota)]);
+
+  const partes = [
+    wParrafo(`${colegio()} · Educación Física y Salud · ${curso.nombre}`, { negrita: true, tam: 18, espacio: 20 }),
+    wParrafo(nom, { negrita: true, tam: 30, espacio: 60 }),
+    wParrafo(`${ev.nombre || "Lista"} · ${fechaLarga(ev.fecha)} · ${esEscala(ev) ? `Escala 1–${nNiveles(ev)}` : "Lista de cotejo"}`, { tam: 16, espacio: 80 }),
+    wTabla(cab, cuerpo, anchos),
+    wParrafo(`${nombreDocente() || ""}${nombreDocente() ? " · " : ""}Generado el ${fechaLarga(hoy())}`, { tam: 14, espacio: 0 }),
+  ];
+
+  const sect = `<w:sectPr><w:pgSz w:w="${Math.round(m.anchoMm * MM_TW)}" w:h="${Math.round(m.altoMm * MM_TW)}"/>` +
+    `<w:pgMar w:top="${Math.round(12 * MM_TW)}" w:right="${Math.round(12 * MM_TW)}" ` +
+    `w:bottom="${Math.round(12 * MM_TW)}" w:left="${Math.round(12 * MM_TW)}"/></w:sectPr>`;
+
+  const documento = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${partes.join("")}${sect}</w:body></w:document>`;
+
+  const tipos = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  const limpio = (t) => String(t).replace(/[\\/*?:[\]]/g, "").trim();
+  descargar(`${limpio(nom)}-${limpio(ev.nombre) || "lista"}.docx`, armarZip([
+    { nombre: "[Content_Types].xml", texto: tipos },
+    { nombre: "_rels/.rels", texto: rels },
+    { nombre: "word/document.xml", texto: documento },
+  ]), "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+}
+
 function imprimirInformeAlumno(i) {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const f = fichaDe(i);
