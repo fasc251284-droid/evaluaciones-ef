@@ -3991,7 +3991,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v194";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v195";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -6849,8 +6849,21 @@ document.addEventListener("input", (evt) => {
     ajustarAlto(el);
     marcarCambio(); return;
   }
-  else if (campo === "exigencia") { ev.exigencia = Math.min(100, Math.max(10, +el.value || EXIGENCIA)); marcarCambio(); pintar(); return; }
-  else if (campo === "peso") { ev.peso = Math.min(10, Math.max(0, +el.value || 0)); marcarCambio(); pintar(); return; }
+  /* Ni peso ni exigencia repintan al escribir: hacerlo destruía el campo en
+     plena pulsación y no se podía llegar a valores como 2.5, porque al teclear
+     el 2 la app ya se había redibujado. El valor se guarda y el repintado
+     queda para cuando el campo pierde el foco (evento change).
+     Tampoco se toca el estado con el campo vacío: antes eso lo dejaba en 0. */
+  else if (campo === "exigencia") {
+    if (el.value.trim() === "") return;
+    ev.exigencia = Math.min(100, Math.max(10, +el.value || EXIGENCIA));
+    marcarCambio(); return;
+  }
+  else if (campo === "peso") {
+    if (el.value.trim() === "") return;
+    ev.peso = Math.min(10, Math.max(0, +el.value || 0));
+    marcarCambio(); return;
+  }
   else if (campo === "descriptor") {
     const c = ev.criterios[+el.dataset.j];
     c.descriptores = c.descriptores || [];
@@ -6862,6 +6875,16 @@ document.addEventListener("input", (evt) => {
 });
 
 document.addEventListener("change", (evt) => {
+  /* Peso y exigencia se repintan aquí, al salir del campo, y no en cada
+     pulsación: así el consolidado toma el valor nuevo sin estorbar mientras
+     se escribe. Si el campo quedó vacío, se repone el valor guardado. */
+  const num = evt.target.closest("[data-campo]");
+  if (num && (num.dataset.campo === "peso" || num.dataset.campo === "exigencia")) {
+    const ev = evalActual();
+    if (ev) num.value = num.dataset.campo === "peso" ? pesoDe(ev) : exigenciaValida(ev.exigencia);
+    pintar();
+    return;
+  }
   const el = evt.target.closest("[data-accion]");
   if (el) {
     const a = el.dataset.accion;
