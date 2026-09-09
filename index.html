@@ -352,6 +352,12 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .det-alumno[open] summary .rotulo em::after{content:" ▾"}
 /* Botones al final del detalle de cada estudiante: se separan del listado de
    indicadores con una línea, para que no se confundan con una fila más. */
+/* Indicador de sincronización cuando hay cursos sin subir: se vuelve un
+   control tocable, con la flecha de reintento a la vista. */
+.estado-tocable{cursor:pointer; border-radius:999px; padding:3px 9px 3px 7px;
+  background:rgba(255,255,255,.16)}
+.estado-tocable:active{background:rgba(255,255,255,.28)}
+.flecha-reintentar{margin-left:6px; font-weight:800}
 .acciones-alumno{margin-top:10px; padding-top:10px; border-top:1px solid var(--line);
   display:flex; flex-wrap:wrap; gap:8px}
 .por-indicador{margin:8px 0 4px; padding:9px 11px; background:var(--surface-2);
@@ -3908,7 +3914,19 @@ function pintarEstado() {
   const pend = Object.keys(leerPendientes()).length;
   let [cls, txt] = mapa[S.guardado] || mapa.ok;
   if (pend && S.guardado !== "guardando") { cls = "error"; txt = `${pend} curso${pend > 1 ? "s" : ""} sin subir`; }
-  c.innerHTML = `<span class="punto ${cls}"></span><span>${esc(txt)}</span>`;
+  /* Con cursos pendientes el indicador se vuelve tocable: antes el aviso salía
+     aquí pero el botón para reintentar estaba escondido en Ajustes, así que no
+     había forma de actuar desde donde se ve el problema. */
+  if (pend) {
+    c.setAttribute("data-accion", "reintentar");
+    c.classList.add("estado-tocable");
+    c.title = "Tocar para intentar subir ahora";
+  } else {
+    c.removeAttribute("data-accion");
+    c.classList.remove("estado-tocable");
+    c.removeAttribute("title");
+  }
+  c.innerHTML = `<span class="punto ${cls}"></span><span>${esc(txt)}</span>${pend ? `<span class="flecha-reintentar">↻</span>` : ""}`;
 }
 
 /* ===== Carga de curso ===== */
@@ -3991,7 +4009,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v195";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v196";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -5645,7 +5663,7 @@ function vistaCurso() {
         </div>
       </div>`;
     })()}
-    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · v157</p>
+    <p class="sub" style="margin:0 0 10px">Evaluaciones EF y Salud · listas de cotejo y escalas · 1° a 8° básico · ${VERSION_APP}</p>
     <label class="campo"><span>Establecimiento</span>
       <input type="text" data-campo="colegio" value="${esc(colegio())}" placeholder="Nombre del colegio">
       <span class="sub">El nombre y el escudo encabezan cada hoja impresa.</span></label>
