@@ -358,6 +358,13 @@ th.col-fija{background:var(--surface-2); z-index:3}
   background:rgba(255,255,255,.16)}
 .estado-tocable:active{background:rgba(255,255,255,.28)}
 .flecha-reintentar{margin-left:6px; font-weight:800}
+/* Objetivo detectado al importar: se destaca para poder revisarlo antes de
+   confirmar, que es cuando todavía se puede corregir el documento. */
+.objetivo-importado{display:block; margin:0 0 10px; padding:9px 11px;
+  background:var(--azul-claro); border-left:3px solid var(--azul); border-radius:var(--r-s)}
+.objetivo-importado b{display:block; font-size:var(--t-xs); text-transform:uppercase;
+  letter-spacing:.04em; color:var(--azul-oscuro); margin-bottom:2px}
+.objetivo-importado span{font-size:var(--t-sm); line-height:1.4}
 .acciones-alumno{margin-top:10px; padding-top:10px; border-top:1px solid var(--line);
   display:flex; flex-wrap:wrap; gap:8px}
 .por-indicador{margin:8px 0 4px; padding:9px 11px; background:var(--surface-2);
@@ -3587,8 +3594,17 @@ async function leerArchivoInstrumento(file) {
 
 function resumenImportacionHTML(ev) {
   const inds = ev.criterios.flatMap((c) => c.indicadores.map((i) => ({ oa: c.oa, criterio: c.texto, texto: i.texto })));
+  /* Se muestra el objetivo detectado antes de importar: si el documento no lo
+     traía o quedó mal reconocido, conviene verlo aquí y no después. */
+  const c0 = ev.criterios[0] || {};
+  const objetivo = [c0.oa, c0.texto && c0.texto !== "Indicadores importados" ? c0.texto : ""]
+    .filter(Boolean).join(" · ");
   return `<h3>Revisar lista importada</h3>
     <p class="sub" style="margin:4px 0 8px"><b>${esc(ev.nombre)}</b> · ${ev.criterios.length} criterio${ev.criterios.length === 1 ? "" : "s"} · ${inds.length} indicadores.</p>
+    <div class="objetivo-importado">
+      <b>Objetivo</b>
+      <span>${objetivo ? esc(objetivo) : "No se encontró en el documento. Lo puedes escribir después en Ajustes de la lista."}</span>
+    </div>
     <div class="importar-preview-v140">${inds.slice(0, 12).map((x, i) => `<div><b>${i + 1}.</b> ${esc(x.texto)}${x.oa ? ` <span class="sub">· ${esc(x.oa)}</span>` : ""}</div>`).join("")}${inds.length > 12 ? `<div class="sub">… y ${inds.length - 12} indicadores más.</div>` : ""}</div>
     <p class="sub" style="margin:8px 0 0">Se creará una lista nueva. Las listas y marcas existentes no se modificarán.</p>
     <div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="confirmar-importacion-lista">Importar</button><button class="btn" data-accion="cerrar-modal">Cancelar</button></div>`;
@@ -4294,7 +4310,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v203";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v204";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
