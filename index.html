@@ -3405,10 +3405,11 @@ async function criteriosDesdeWord(file) {
   const indicadores = indicadoresDesdeWord(filas);
   if (!indicadores.length) throw new Error("word-sin-contenido");
   const oa = oaDesdeWord(filas, filas.flat().join(" "));
-  /* Se arma una tabla de dos columnas y la interpreta el lector de siempre,
-     que es el que resuelve el OA contra el currículum del curso. */
-  const texto = ["OA\tIndicador", ...indicadores.map((t) => `${oa}\t${t}`)].join("\n");
-  return criteriosDesdeFilasImportadas(filasDesdeTextoImportacion(texto));
+  /* Se entregan las filas ya armadas en vez de rearmar un texto con
+     tabuladores: el lector de texto recorta cada línea, y cuando el OA venía
+     vacío el recorte se comía el tabulador inicial, el indicador caía en la
+     columna equivocada y la importación quedaba sin indicadores. */
+  return criteriosDesdeFilasImportadas(indicadores.map((t) => ({ OA: oa, Indicador: t })));
 }
 
 async function leerArchivoInstrumento(file) {
@@ -4149,7 +4150,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v200";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v201";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -6377,7 +6378,7 @@ document.addEventListener("click", async (evt) => {
         err && err.message === "word-sin-contenido" ? "El Word no trae texto que pueda leer. Deja los indicadores en una tabla o uno por párrafo." :
         err && err.message === "xlsx-no-disponible" ? "No se pudo cargar el lector de Excel. Conéctate a internet o guarda el archivo como CSV." :
         err && err.message === "estructura-json" ? "El JSON no contiene una estructura de lista reconocible." :
-        "No pude encontrar indicadores válidos en el archivo. Revisa que exista una columna llamada Indicador.";
+        "No pude encontrar indicadores válidos en el archivo. En Excel o CSV revisa que exista una columna llamada Indicador; en Word, que los indicadores estén en una tabla o uno por párrafo.";
       abrirModal(`<h3>No se pudo importar</h3><p class="sub" style="margin:6px 0 0">${esc(msg)}</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="importar-lista">Intentar de nuevo</button><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
     }
     return;
