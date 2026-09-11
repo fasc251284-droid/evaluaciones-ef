@@ -3279,10 +3279,129 @@ async function asegurarXLSXImportacion() {
    Un .docx es un ZIP con XML adentro, así que se abre a mano en vez de cargar
    una librería: la app tiene que servir sin señal. Para descomprimir se usa
    DecompressionStream, que traen los navegadores actuales. */
+/* Descompresor deflate crudo, escrito a mano para no depender de
+   DecompressionStream, que no existe en iOS anterior a 16.4. */
+
+function inflarCrudo(datos) {
+  let pos = 0, bit = 0;
+  const salida = [];
+
+  const leerBit = () => {
+    const v = (datos[pos] >> bit) & 1;
+    bit++;
+    if (bit === 8) { bit = 0; pos++; }
+    return v;
+  };
+  const leerBits = (n) => {
+    let v = 0;
+    for (let i = 0; i < n; i++) v |= leerBit() << i;
+    return v;
+  };
+
+  /* Un árbol de Huffman canónico se describe sólo con los largos de código. */
+  const armarArbol = (largos) => {
+    const maxLargo = Math.max(...largos);
+    const conteo = new Array(maxLargo + 1).fill(0);
+    largos.forEach((l) => { if (l) conteo[l]++; });
+    const primero = new Array(maxLargo + 2).fill(0);
+    let codigo = 0;
+    for (let l = 1; l <= maxLargo; l++) { primero[l] = codigo; codigo = (codigo + conteo[l]) << 1; }
+    const mapa = new Map();
+    const siguiente = primero.slice();
+    largos.forEach((l, simbolo) => {
+      if (!l) return;
+      mapa.set(`${l}:${siguiente[l]}`, simbolo);
+      siguiente[l]++;
+    });
+    return { mapa, maxLargo };
+  };
+
+  const leerSimbolo = ({ mapa, maxLargo }) => {
+    let codigo = 0;
+    for (let l = 1; l <= maxLargo; l++) {
+      codigo = (codigo << 1) | leerBit();
+      const s = mapa.get(`${l}:${codigo}`);
+      if (s !== undefined) return s;
+    }
+    throw new Error("deflate-corrupto");
+  };
+
+  const BASE_LARGO = [3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258];
+  const EXTRA_LARGO = [0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0];
+  const BASE_DIST = [1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577];
+  const EXTRA_DIST = [0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13];
+
+  let ultimo = 0;
+  do {
+    ultimo = leerBit();
+    const tipo = leerBits(2);
+
+    if (tipo === 0) {                      // tramo sin comprimir
+      if (bit) { bit = 0; pos++; }
+      const largo = datos[pos] | (datos[pos + 1] << 8);
+      pos += 4;
+      for (let i = 0; i < largo; i++) salida.push(datos[pos++]);
+      continue;
+    }
+
+    let arbolLit, arbolDist;
+    if (tipo === 1) {                      // árboles fijos
+      const l = new Array(288);
+      for (let i = 0; i < 144; i++) l[i] = 8;
+      for (let i = 144; i < 256; i++) l[i] = 9;
+      for (let i = 256; i < 280; i++) l[i] = 7;
+      for (let i = 280; i < 288; i++) l[i] = 8;
+      arbolLit = armarArbol(l);
+      arbolDist = armarArbol(new Array(30).fill(5));
+    } else if (tipo === 2) {               // árboles guardados en el propio tramo
+      const nLit = leerBits(5) + 257;
+      const nDist = leerBits(5) + 1;
+      const nCod = leerBits(4) + 4;
+      const orden = [16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15];
+      const largosCod = new Array(19).fill(0);
+      for (let i = 0; i < nCod; i++) largosCod[orden[i]] = leerBits(3);
+      const arbolCod = armarArbol(largosCod);
+
+      const largos = [];
+      while (largos.length < nLit + nDist) {
+        const s = leerSimbolo(arbolCod);
+        if (s < 16) largos.push(s);
+        else if (s === 16) { const r = 3 + leerBits(2); const p = largos[largos.length - 1]; for (let i = 0; i < r; i++) largos.push(p); }
+        else if (s === 17) { const r = 3 + leerBits(3); for (let i = 0; i < r; i++) largos.push(0); }
+        else { const r = 11 + leerBits(7); for (let i = 0; i < r; i++) largos.push(0); }
+      }
+      arbolLit = armarArbol(largos.slice(0, nLit));
+      arbolDist = armarArbol(largos.slice(nLit));
+    } else throw new Error("deflate-corrupto");
+
+    for (;;) {
+      const s = leerSimbolo(arbolLit);
+      if (s === 256) break;
+      if (s < 256) { salida.push(s); continue; }
+      const idx = s - 257;
+      const largo = BASE_LARGO[idx] + leerBits(EXTRA_LARGO[idx]);
+      const ds = leerSimbolo(arbolDist);
+      const dist = BASE_DIST[ds] + leerBits(EXTRA_DIST[ds]);
+      const inicio = salida.length - dist;
+      for (let i = 0; i < largo; i++) salida.push(salida[inicio + i]);
+    }
+  } while (!ultimo);
+
+  return new Uint8Array(salida);
+}
+
+
+/* Se prefiere la API del navegador por rapidez; si no existe o falla, se usa
+   el descompresor propio de arriba. */
 async function inflarTramo(bytes) {
-  const ds = new DecompressionStream("deflate-raw");
-  const flujo = new Blob([bytes]).stream().pipeThrough(ds);
-  return new Uint8Array(await new Response(flujo).arrayBuffer());
+  if (typeof DecompressionStream === "function") {
+    try {
+      const ds = new DecompressionStream("deflate-raw");
+      const flujo = new Blob([bytes]).stream().pipeThrough(ds);
+      return new Uint8Array(await new Response(flujo).arrayBuffer());
+    } catch (e) { console.warn("DecompressionStream falló, se usa el propio:", e); }
+  }
+  return inflarCrudo(bytes);
 }
 
 async function archivoDeZip(buffer, buscado) {
@@ -4150,7 +4269,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v201";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v202";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
