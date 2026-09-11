@@ -3275,6 +3275,86 @@ async function asegurarXLSXImportacion() {
   return window.XLSX;
 }
 
+/* ---- Lectura de instrumentos en Word ----
+   Un .docx es un ZIP con XML adentro, así que se abre a mano en vez de cargar
+   una librería: la app tiene que servir sin señal. Para descomprimir se usa
+   DecompressionStream, que traen los navegadores actuales. */
+async function inflarTramo(bytes) {
+  const ds = new DecompressionStream("deflate-raw");
+  const flujo = new Blob([bytes]).stream().pipeThrough(ds);
+  return new Uint8Array(await new Response(flujo).arrayBuffer());
+}
+
+async function archivoDeZip(buffer, buscado) {
+  const d = new DataView(buffer);
+  const b = new Uint8Array(buffer);
+  let fin = -1;
+  for (let i = b.length - 22; i >= 0 && i > b.length - 66000; i--) {
+    if (d.getUint32(i, true) === 0x06054b50) { fin = i; break; }
+  }
+  if (fin < 0) throw new Error("word-ilegible");
+  const total = d.getUint16(fin + 10, true);
+  let p = d.getUint32(fin + 16, true);
+  const dec = new TextDecoder();
+
+  for (let k = 0; k < total; k++) {
+    if (d.getUint32(p, true) !== 0x02014b50) break;
+    const metodo = d.getUint16(p + 10, true);
+    const comprimido = d.getUint32(p + 20, true);
+    const largoNom = d.getUint16(p + 28, true);
+    const largoExtra = d.getUint16(p + 30, true);
+    const largoCom = d.getUint16(p + 32, true);
+    const offset = d.getUint32(p + 42, true);
+    const nombre = dec.decode(b.subarray(p + 46, p + 46 + largoNom));
+    if (nombre === buscado) {
+      // Los campos de la cabecera local pueden medir distinto que los del índice.
+      const nl = d.getUint16(offset + 26, true);
+      const el = d.getUint16(offset + 28, true);
+      const ini = offset + 30 + nl + el;
+      const datos = b.subarray(ini, ini + comprimido);
+      if (metodo === 0) return dec.decode(datos);
+      if (metodo === 8) return dec.decode(await inflarTramo(datos));
+      throw new Error("word-ilegible");
+    }
+    p += 46 + largoNom + largoExtra + largoCom;
+  }
+  throw new Error("word-ilegible");
+}
+
+const desescaparXml = (s) => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+  .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+
+function textoDeNodoWord(xml) {
+  const partes = [...xml.matchAll(/<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g)].map((m) => m[1]);
+  return desescaparXml(partes.join("")).replace(/\s+/g, " ").trim();
+}
+
+/* Si el documento trae tablas, cada fila de tabla es una fila de datos con sus
+   columnas. Si no, se toma un indicador por párrafo. */
+function filasDesdeWord(xml) {
+  const cuerpo = xml.slice(xml.indexOf("<w:body>"), xml.lastIndexOf("</w:body>"));
+  const filas = [];
+  for (const t of [...cuerpo.matchAll(/<w:tbl>([\s\S]*?)<\/w:tbl>/g)].map((m) => m[1])) {
+    for (const f of [...t.matchAll(/<w:tr[\s>][\s\S]*?<\/w:tr>/g)].map((m) => m[0])) {
+      const celdas = [...f.matchAll(/<w:tc>([\s\S]*?)<\/w:tc>/g)].map((m) => textoDeNodoWord(m[1]));
+      if (celdas.some((c) => c)) filas.push(celdas);
+    }
+  }
+  if (filas.length) return filas;
+  return [...cuerpo.matchAll(/<w:p[\s>][\s\S]*?<\/w:p>/g)]
+    .map((m) => textoDeNodoWord(m[0])).filter((t) => t).map((t) => [t]);
+}
+
+/* Las filas del Word se pasan por el mismo camino que las de Excel: se arma un
+   texto con tabulaciones y lo interpreta el lector que ya existía. */
+async function criteriosDesdeWord(file) {
+  const xml = await archivoDeZip(await file.arrayBuffer(), "word/document.xml");
+  const filas = filasDesdeWord(xml);
+  if (!filas.length) throw new Error("word-sin-contenido");
+  const texto = filas.map((f) => f.join("\t")).join("\n");
+  return criteriosDesdeFilasImportadas(filasDesdeTextoImportacion(texto));
+}
+
 async function leerArchivoInstrumento(file) {
   if (!file) throw new Error("sin-archivo");
   const nombre = (file.name || "Lista importada").replace(/\.[^.]+$/, "");
@@ -3290,6 +3370,10 @@ async function leerArchivoInstrumento(file) {
     const hoja = libro.Sheets[libro.SheetNames[0]];
     const filas = XLSX.utils.sheet_to_json(hoja, { defval: "" });
     const criterios = criteriosDesdeFilasImportadas(filas);
+    return evaluacionDesdeCriteriosImportados(criterios, nombre, hoy(), null);
+  }
+  if (ext === "docx") {
+    const criterios = await criteriosDesdeWord(file);
     return evaluacionDesdeCriteriosImportados(criterios, nombre, hoy(), null);
   }
   if (["csv","tsv","txt"].includes(ext)) {
@@ -4009,7 +4093,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v197";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v198";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -6209,8 +6293,8 @@ document.addEventListener("click", async (evt) => {
       <p class="sub" style="margin:4px 0 10px">Carga un instrumento preparado y conviértelo en una lista editable de este curso.</p>
       <div class="importar-lista-v140">
         <div class="importar-caja"><h4>Desde un archivo</h4>
-          <p>Compatible con Excel (.xlsx/.xls), CSV, TXT y JSON. En Excel/CSV usa columnas como <b>OA</b>, <b>Criterio</b>, <b>Indicador</b> y <b>Puntaje</b>. Solo “Indicador” es obligatorio.</p>
-          <input id="archivo-importar-lista" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt,.json,application/json,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+          <p>Compatible con <b>Word (.docx)</b>, Excel (.xlsx/.xls), CSV, TXT y JSON. Usa columnas como <b>OA</b>, <b>Criterio</b>, <b>Indicador</b> y <b>Puntaje</b>. Solo “Indicador” es obligatorio. En Word sirve una tabla con esas columnas, o un indicador por párrafo.</p>
+          <input id="archivo-importar-lista" type="file" accept=".docx,.xlsx,.xls,.csv,.tsv,.txt,.json,application/json,text/csv,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
           <div class="fila" style="margin-top:10px"><button class="btn btn-lleno" data-accion="leer-importacion-lista">Leer archivo</button></div>
         </div>
         <div class="importar-caja"><h4>Pegar indicadores</h4>
@@ -6232,7 +6316,9 @@ document.addEventListener("click", async (evt) => {
       abrirModal(resumenImportacionHTML(IMPORTACION_PENDIENTE));
     } catch (err) {
       console.error(err);
-      const msg = err && err.message === "formato-no-compatible" ? "Ese formato todavía no es compatible. Usa Excel, CSV, TXT o JSON." :
+      const msg = err && err.message === "formato-no-compatible" ? "Ese formato todavía no es compatible. Usa Word, Excel, CSV, TXT o JSON." :
+        err && err.message === "word-ilegible" ? "No pude abrir ese Word. Asegúrate de que sea .docx y no .doc: si es antiguo, ábrelo en Word y usa Guardar como para dejarlo en .docx." :
+        err && err.message === "word-sin-contenido" ? "El Word no trae texto que pueda leer. Deja los indicadores en una tabla o uno por párrafo." :
         err && err.message === "xlsx-no-disponible" ? "No se pudo cargar el lector de Excel. Conéctate a internet o guarda el archivo como CSV." :
         err && err.message === "estructura-json" ? "El JSON no contiene una estructura de lista reconocible." :
         "No pude encontrar indicadores válidos en el archivo. Revisa que exista una columna llamada Indicador.";
