@@ -4009,7 +4009,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v196";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v197";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -8051,7 +8051,83 @@ function wRejilla(items, columnas, anchoTotal) {
   return `<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/>${bordes}</w:tblPr>${grid}${filas.join("")}</w:tbl>`;
 }
 
+/* Consolidado en Word: el promedio de todas las listas del curso. Antes el
+   botón de Word en esa pestaña exportaba la lista abierta, no el consolidado,
+   porque sólo el PDF tenía el desvío. */
+function exportarWordConsolidado() {
+  const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
+  const { evs, filas, promCurso } = datosConsolidado();
+  const proms = filas.map((f) => f.prom).filter((x) => x !== null);
+  const aprob = proms.filter((x) => x >= 4).length;
+  const sinNota = filas.filter((f) => f.prom === null).length;
+
+  // Con muchas listas conviene apaisado, igual que en el PDF.
+  const orientacion = evs.length > 6 ? "landscape" : "portrait";
+  const m = medidasHoja(orientacion, 12);
+  const anchoTotal = (m.anchoMm - 24) * MM_TW;
+  const propNom = evs.length > 8 ? 0.24 : 0.34;
+  const propProm = 0.1;
+  const porLista = Math.max(0.03, (1 - propNom - propProm - 0.05) / Math.max(1, evs.length));
+  const anchos = [0.05 * anchoTotal, propNom * anchoTotal,
+    ...new Array(evs.length).fill(porLista * anchoTotal), propProm * anchoTotal];
+
+  const cab = ["N°", "Estudiante", ...evs.map((ev, k) => `${k + 1}`), "Prom."];
+  const cuerpo = filas.map((f, i) => [String(i + 1), f.nom,
+    ...f.notas.map((n) => (n === null ? "—" : num1(n))),
+    f.prom === null ? "—" : num1(f.prom)]);
+
+  const partes = [
+    wParrafo(`${colegio()} · Educación Física y Salud · ${curso.nombre}`, { negrita: true, tam: 18, espacio: 20 }),
+    wParrafo(`Consolidado · ${curso.nombre}`, { negrita: true, tam: 30, espacio: 60 }),
+    wFicha([
+      [["Asignatura", "Educación Física y Salud"],
+       ["Evaluaciones", String(evs.length)],
+       ["Fecha", fechaLarga(hoy())]],
+      [["Estudiantes", `${filas.length}${sinNota ? ` · ${sinNota} sin nota` : ""}`],
+       ["Promedio", num1(promCurso)],
+       ["Aprobación", `${aprob} de ${proms.length}${proms.length ? ` · ${Math.round((aprob / proms.length) * 100)}%` : ""}`]],
+    ], anchoTotal),
+    wParrafo("", { espacio: 60 }),
+    // Referencia de qué es cada número de columna.
+    wRejilla(evs.map((ev, k) => ({ numero: `${k + 1}`, texto: ev.nombre || `Lista ${k + 1}`,
+      puntaje: `${fechaLarga(ev.fecha)} · peso ${pesoDe(ev)}` })), 2, anchoTotal),
+    wParrafo("", { espacio: 60 }),
+    wTabla(cab, cuerpo, anchos),
+    wParrafo(`${nombreDocente() || ""}${nombreDocente() ? " · " : ""}Generado el ${fechaLarga(hoy())}`, { tam: 14, espacio: 0 }),
+  ];
+
+  const sect = `<w:sectPr><w:pgSz w:w="${Math.round(m.anchoMm * MM_TW)}" w:h="${Math.round(m.altoMm * MM_TW)}"` +
+    `${orientacion === "landscape" ? ' w:orient="landscape"' : ""}/>` +
+    `<w:pgMar w:top="${Math.round(12 * MM_TW)}" w:right="${Math.round(12 * MM_TW)}" ` +
+    `w:bottom="${Math.round(12 * MM_TW)}" w:left="${Math.round(12 * MM_TW)}"/></w:sectPr>`;
+
+  const documento = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${partes.join("")}${sect}</w:body></w:document>`;
+
+  const tipos = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  const limpio = (t) => String(t).replace(/[\\/*?:[\]]/g, "").trim();
+  descargar(`Consolidado-${limpio(curso.label)}.docx`, armarZip([
+    { nombre: "[Content_Types].xml", texto: tipos },
+    { nombre: "_rels/.rels", texto: rels },
+    { nombre: "word/document.xml", texto: documento },
+  ]), "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+}
+
 function exportarWord() {
+  // Mismo desvío que tiene el PDF: en la pestaña Consolidado se exporta el
+  // consolidado, no la lista que quedó abierta en Evaluar.
+  if (S.pestana === "consolidado") return exportarWordConsolidado();
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   const ev = evalActual();
   const { filas: filasBrutas, total, cols } = filasDeEvaluacion(ev);
