@@ -3345,13 +3345,69 @@ function filasDesdeWord(xml) {
     .map((m) => textoDeNodoWord(m[0])).filter((t) => t).map((t) => [t]);
 }
 
-/* Las filas del Word se pasan por el mismo camino que las de Excel: se arma un
-   texto con tabulaciones y lo interpreta el lector que ya existía. */
+/* Líneas que no son indicadores: encabezados sueltos y el renglón del objetivo. */
+const CODIGO_OA = /EF\s?0?\d{1,2}\s?OA\s?0?\d{1,2}/i;
+function esLineaDescartable(t) {
+  const s = (t || "").trim();
+  if (!s) return true;
+  if (/^(n°|n|indicador(es)?|descriptor(es)?|desempeño|desempeno|criterio|oa|objetivo|puntaje|puntos|pts)$/i.test(s)) return true;
+  // El renglón del objetivo trae el código y es un título, no una conducta.
+  if (CODIGO_OA.test(s) && s.length < 80) return true;
+  return false;
+}
+
+/* Del Word se toman los indicadores; el criterio y el puntaje se ignoran y el
+   objetivo se recoge aparte, para el campo de arriba de la lista. */
+function indicadoresDesdeWord(filas) {
+  if (!filas.length) return [];
+
+  // Sin tabla, cada párrafo es un indicador.
+  if (filas.every((f) => f.length <= 1)) {
+    return filas.map((f) => (f[0] || "").trim()).filter((t) => !esLineaDescartable(t));
+  }
+
+  // Con tabla: si hay encabezado con "indicador", se usa esa columna.
+  const primera = filas[0].map((c) => (c || "").toLowerCase());
+  let col = primera.findIndex((c) => c.includes("indicador"));
+  let desde = 0;
+  if (col >= 0) {
+    desde = 1;
+  } else {
+    /* Sin encabezado reconocible se elige la columna con el texto más largo en
+       promedio: el indicador es siempre la frase, no el código ni el puntaje. */
+    const anchos = filas[0].map((_, k) =>
+      filas.reduce((a, f) => a + ((f[k] || "").length), 0) / filas.length);
+    col = anchos.indexOf(Math.max(...anchos));
+    if (primera.some((c) => ["oa", "criterio", "puntaje", "pts", "n°"].includes(c.trim()))) desde = 1;
+  }
+
+  return filas.slice(desde).map((f) => (f[col] || "").trim()).filter((t) => !esLineaDescartable(t));
+}
+
+function oaDesdeWord(filas, xmlPlano) {
+  // Primero, una columna cuyo encabezado hable de OA u objetivo.
+  if (filas.length > 1) {
+    const cab = filas[0].map((c) => (c || "").toLowerCase().trim());
+    const k = cab.findIndex((c) => c === "oa" || c.includes("objetivo") || c.includes("código oa") || c.includes("codigo oa"));
+    if (k >= 0) {
+      const v = filas.slice(1).map((f) => (f[k] || "").trim()).find(Boolean);
+      if (v) return v;
+    }
+  }
+  // Si no, se busca un código del tipo EF03 OA 01 en cualquier parte del texto.
+  const m = String(xmlPlano || "").match(/EF\s?0?\d{1,2}\s?OA\s?0?\d{1,2}/i);
+  return m ? m[0].toUpperCase().replace(/\s+/g, " ") : "";
+}
+
 async function criteriosDesdeWord(file) {
   const xml = await archivoDeZip(await file.arrayBuffer(), "word/document.xml");
   const filas = filasDesdeWord(xml);
-  if (!filas.length) throw new Error("word-sin-contenido");
-  const texto = filas.map((f) => f.join("\t")).join("\n");
+  const indicadores = indicadoresDesdeWord(filas);
+  if (!indicadores.length) throw new Error("word-sin-contenido");
+  const oa = oaDesdeWord(filas, filas.flat().join(" "));
+  /* Se arma una tabla de dos columnas y la interpreta el lector de siempre,
+     que es el que resuelve el OA contra el currículum del curso. */
+  const texto = ["OA\tIndicador", ...indicadores.map((t) => `${oa}\t${t}`)].join("\n");
   return criteriosDesdeFilasImportadas(filasDesdeTextoImportacion(texto));
 }
 
@@ -4093,7 +4149,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v198";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v200";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -6293,7 +6349,7 @@ document.addEventListener("click", async (evt) => {
       <p class="sub" style="margin:4px 0 10px">Carga un instrumento preparado y conviértelo en una lista editable de este curso.</p>
       <div class="importar-lista-v140">
         <div class="importar-caja"><h4>Desde un archivo</h4>
-          <p>Compatible con <b>Word (.docx)</b>, Excel (.xlsx/.xls), CSV, TXT y JSON. Usa columnas como <b>OA</b>, <b>Criterio</b>, <b>Indicador</b> y <b>Puntaje</b>. Solo “Indicador” es obligatorio. En Word sirve una tabla con esas columnas, o un indicador por párrafo.</p>
+          <p>Compatible con <b>Word (.docx)</b>, Excel (.xlsx/.xls), CSV, TXT y JSON. En Excel/CSV usa columnas como <b>OA</b>, <b>Criterio</b>, <b>Indicador</b> y <b>Puntaje</b>. <b>Del Word se toman el objetivo y los indicadores</b>, sea una tabla o un indicador por párrafo. El código del OA se reconoce solo y va al campo de arriba; el puntaje lo defines en Ajustes de la lista.</p>
           <input id="archivo-importar-lista" type="file" accept=".docx,.xlsx,.xls,.csv,.tsv,.txt,.json,application/json,text/csv,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
           <div class="fila" style="margin-top:10px"><button class="btn btn-lleno" data-accion="leer-importacion-lista">Leer archivo</button></div>
         </div>
