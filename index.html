@@ -3464,57 +3464,77 @@ function filasDesdeWord(xml) {
     .map((m) => textoDeNodoWord(m[0])).filter((t) => t).map((t) => [t]);
 }
 
-/* Líneas que no son indicadores: encabezados sueltos y el renglón del objetivo. */
+/* ---- Qué es indicador y qué no ----
+   Las listas de cotejo suelen traer un encabezado de formulario (Curso, Fecha,
+   Profesor, con líneas para rellenar), el objetivo, títulos de columna y la
+   leyenda L / NL. Nada de eso es un indicador. */
 const CODIGO_OA = /EF\s?0?\d{1,2}\s?OA\s?0?\d{1,2}/i;
+const ETIQUETA_OBJETIVO = /^(objetivo(\s+(de\s+)?(aprendizaje|evaluaci[oó]n))?|oa|aprendizaje\s+esperado|meta)\s*[:.\-–]\s*/i;
+const ETIQUETA_FORMULARIO = /^(curso|profesor(a|\(a\))?|docente|fecha|nombre|asignatura|nivel|unidad|establecimiento|colegio|puntaje|nota)\s*[:.\-–]?\s*/i;
+const TITULO_COLUMNA = /^(n°|n|indicador(es)?(\s+observabl?es?)?|descriptor(es)?|desempeño|desempeno|criterio|conducta|logrado|no\s*logrado|s[ií]|no|l|nl|observaciones?|puntaje|puntos|pts)$/i;
+
 function esLineaDescartable(t) {
   const s = (t || "").trim();
   if (!s) return true;
-  if (/^(n°|n|indicador(es)?|descriptor(es)?|desempeño|desempeno|criterio|oa|objetivo|puntaje|puntos|pts)$/i.test(s)) return true;
-  // El renglón del objetivo trae el código y es un título, no una conducta.
+  if (TITULO_COLUMNA.test(s)) return true;
+  // Campos del formulario, con o sin línea para rellenar.
+  if (ETIQUETA_FORMULARIO.test(s) && (s.length < 60 || /_{3,}/.test(s))) return true;
+  if (/^_{3,}$/.test(s.replace(/\s/g, ""))) return true;
+  // El objetivo va a su propio campo, no a la lista.
+  if (ETIQUETA_OBJETIVO.test(s)) return true;
   if (CODIGO_OA.test(s) && s.length < 80) return true;
+  // Títulos del documento: sin verbo conjugado y en mayúsculas.
+  if (s.length < 45 && s === s.toUpperCase() && /[A-ZÁÉÍÓÚÑ]/.test(s)) return true;
   return false;
 }
 
-/* Del Word se toman los indicadores; el criterio y el puntaje se ignoran y el
-   objetivo se recoge aparte, para el campo de arriba de la lista. */
+/* Del Word se toman los indicadores; el resto se descarta y el objetivo se
+   recoge aparte, para el campo de arriba de la lista. */
 function indicadoresDesdeWord(filas) {
   if (!filas.length) return [];
 
-  // Sin tabla, cada párrafo es un indicador.
   if (filas.every((f) => f.length <= 1)) {
     return filas.map((f) => (f[0] || "").trim()).filter((t) => !esLineaDescartable(t));
   }
 
-  // Con tabla: si hay encabezado con "indicador", se usa esa columna.
   const primera = filas[0].map((c) => (c || "").toLowerCase());
-  let col = primera.findIndex((c) => c.includes("indicador"));
+  let col = primera.findIndex((c) => c.includes("indicador") || c.includes("descriptor") || c.includes("conducta"));
   let desde = 0;
   if (col >= 0) {
     desde = 1;
   } else {
-    /* Sin encabezado reconocible se elige la columna con el texto más largo en
-       promedio: el indicador es siempre la frase, no el código ni el puntaje. */
     const anchos = filas[0].map((_, k) =>
       filas.reduce((a, f) => a + ((f[k] || "").length), 0) / filas.length);
     col = anchos.indexOf(Math.max(...anchos));
-    if (primera.some((c) => ["oa", "criterio", "puntaje", "pts", "n°"].includes(c.trim()))) desde = 1;
+    if (primera.some((c) => TITULO_COLUMNA.test(c.trim()))) desde = 1;
   }
 
   return filas.slice(desde).map((f) => (f[col] || "").trim()).filter((t) => !esLineaDescartable(t));
 }
 
-function oaDesdeWord(filas, xmlPlano) {
-  // Primero, una columna cuyo encabezado hable de OA u objetivo.
+/* El objetivo puede venir de tres formas: una columna con ese encabezado, un
+   renglón que empieza con "Objetivo:", o un código EF00 OA 00 suelto. */
+function oaDesdeWord(filas) {
+  const planas = filas.flat().map((c) => (c || "").trim()).filter(Boolean);
+
+  // Renglón rotulado: se devuelve lo que viene después de los dos puntos.
+  for (const t of planas) {
+    if (ETIQUETA_OBJETIVO.test(t)) {
+      const resto = t.replace(ETIQUETA_OBJETIVO, "").trim();
+      if (resto) return resto;
+    }
+  }
+  // Columna rotulada dentro de una tabla.
   if (filas.length > 1) {
     const cab = filas[0].map((c) => (c || "").toLowerCase().trim());
-    const k = cab.findIndex((c) => c === "oa" || c.includes("objetivo") || c.includes("código oa") || c.includes("codigo oa"));
+    const k = cab.findIndex((c) => c === "oa" || c.includes("objetivo"));
     if (k >= 0) {
       const v = filas.slice(1).map((f) => (f[k] || "").trim()).find(Boolean);
       if (v) return v;
     }
   }
-  // Si no, se busca un código del tipo EF03 OA 01 en cualquier parte del texto.
-  const m = String(xmlPlano || "").match(/EF\s?0?\d{1,2}\s?OA\s?0?\d{1,2}/i);
+  // Código del currículum en cualquier parte.
+  const m = planas.join(" ").match(CODIGO_OA);
   return m ? m[0].toUpperCase().replace(/\s+/g, " ") : "";
 }
 
@@ -3523,12 +3543,17 @@ async function criteriosDesdeWord(file) {
   const filas = filasDesdeWord(xml);
   const indicadores = indicadoresDesdeWord(filas);
   if (!indicadores.length) throw new Error("word-sin-contenido");
-  const oa = oaDesdeWord(filas, filas.flat().join(" "));
+  const objetivo = oaDesdeWord(filas);
+  /* Un código del currículum va al campo OA, que lo busca y trae su texto y su
+     eje. Un objetivo escrito a mano va al campo Criterio: si se mandara como
+     OA saldría en mayúsculas y sin encontrar coincidencia. */
+  const esCodigo = CODIGO_OA.test(objetivo) && objetivo.length < 20;
+  const fila = esCodigo ? { OA: objetivo } : { Criterio: objetivo };
   /* Se entregan las filas ya armadas en vez de rearmar un texto con
-     tabuladores: el lector de texto recorta cada línea, y cuando el OA venía
-     vacío el recorte se comía el tabulador inicial, el indicador caía en la
-     columna equivocada y la importación quedaba sin indicadores. */
-  return criteriosDesdeFilasImportadas(indicadores.map((t) => ({ OA: oa, Indicador: t })));
+     tabuladores: el lector de texto recorta cada línea, y cuando el objetivo
+     venía vacío el recorte se comía el tabulador inicial, el indicador caía en
+     la columna equivocada y la importación quedaba sin indicadores. */
+  return criteriosDesdeFilasImportadas(indicadores.map((t) => ({ ...fila, Indicador: t })));
 }
 
 async function leerArchivoInstrumento(file) {
@@ -4269,7 +4294,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v202";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v203";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
