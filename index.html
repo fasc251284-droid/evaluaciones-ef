@@ -3487,8 +3487,10 @@ function esLineaDescartable(t) {
   // Campos del formulario, con o sin línea para rellenar.
   if (ETIQUETA_FORMULARIO.test(s) && (s.length < 60 || /_{3,}/.test(s))) return true;
   if (/^_{3,}$/.test(s.replace(/\s/g, ""))) return true;
-  // El objetivo va a su propio campo, no a la lista.
+  // El objetivo va a su propio campo, no a la lista. También el rótulo suelto,
+  // sin texto detrás, que es como queda cuando el valor está en la celda de al lado.
   if (ETIQUETA_OBJETIVO.test(s)) return true;
+  if (/^(objetivo|objetivos)(\s+(de\s+)?(aprendizaje|evaluaci[oó]n))?$/i.test(s)) return true;
   if (CODIGO_OA.test(s) && s.length < 80) return true;
   // Títulos del documento: sin verbo conjugado y en mayúsculas.
   if (s.length < 45 && s === s.toUpperCase() && /[A-ZÁÉÍÓÚÑ]/.test(s)) return true;
@@ -3524,11 +3526,19 @@ function indicadoresDesdeWord(filas) {
 function oaDesdeWord(filas) {
   const planas = filas.flat().map((c) => (c || "").trim()).filter(Boolean);
 
-  // Renglón rotulado: se devuelve lo que viene después de los dos puntos.
-  for (const t of planas) {
-    if (ETIQUETA_OBJETIVO.test(t)) {
-      const resto = t.replace(ETIQUETA_OBJETIVO, "").trim();
-      if (resto) return resto;
+  /* Renglón rotulado. El texto puede venir pegado al rótulo ("Objetivo: X"),
+     o en la celda o el renglón siguiente, que es como suelen quedar las
+     plantillas de Word. En ese caso se toma el siguiente trozo con texto,
+     siempre que no sea otro rótulo ni un título de columna. */
+  for (let i = 0; i < planas.length; i++) {
+    if (!ETIQUETA_OBJETIVO.test(planas[i])) continue;
+    const resto = planas[i].replace(ETIQUETA_OBJETIVO, "").trim();
+    if (resto) return resto;
+    for (let k = i + 1; k < Math.min(i + 4, planas.length); k++) {
+      const sig = planas[k];
+      if (!sig || TITULO_COLUMNA.test(sig) || ETIQUETA_FORMULARIO.test(sig)) continue;
+      if (/^_{3,}$/.test(sig.replace(/\s/g, ""))) continue;
+      return sig;
     }
   }
   // Columna rotulada dentro de una tabla.
@@ -3548,9 +3558,12 @@ function oaDesdeWord(filas) {
 async function criteriosDesdeWord(file) {
   const xml = await archivoDeZip(await file.arrayBuffer(), "word/document.xml");
   const filas = filasDesdeWord(xml);
-  const indicadores = indicadoresDesdeWord(filas);
-  if (!indicadores.length) throw new Error("word-sin-contenido");
   const objetivo = oaDesdeWord(filas);
+  /* El texto del objetivo se quita de la lista: al venir en una celda o un
+     renglón aparte, sin su rótulo, se colaba como si fuera el indicador 1. */
+  const indicadores = indicadoresDesdeWord(filas)
+    .filter((t) => !objetivo || t.trim() !== objetivo.trim());
+  if (!indicadores.length) throw new Error("word-sin-contenido");
   /* Un código del currículum va al campo OA, que lo busca y trae su texto y su
      eje. Un objetivo escrito a mano va al campo Criterio: si se mandara como
      OA saldría en mayúsculas y sin encontrar coincidencia. */
@@ -4310,7 +4323,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v204";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v205";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
