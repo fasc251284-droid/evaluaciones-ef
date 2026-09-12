@@ -3457,6 +3457,16 @@ function textoDeNodoWord(xml) {
 
 /* Si el documento trae tablas, cada fila de tabla es una fila de datos con sus
    columnas. Si no, se toma un indicador por párrafo. */
+/* Los párrafos sueltos, incluso cuando el documento trae tablas: el encabezado
+   de una lista de cotejo (nombre, curso, objetivo) suele ir fuera de la tabla,
+   y antes se perdía entero porque al haber tablas se ignoraban los párrafos. */
+function parrafosDeWord(xml) {
+  const cuerpo = xml.slice(xml.indexOf("<w:body>"), xml.lastIndexOf("</w:body>"));
+  const sinTablas = cuerpo.replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g, "");
+  return [...sinTablas.matchAll(/<w:p[\s>][\s\S]*?<\/w:p>/g)]
+    .map((m) => textoDeNodoWord(m[0])).filter(Boolean);
+}
+
 function filasDesdeWord(xml) {
   const cuerpo = xml.slice(xml.indexOf("<w:body>"), xml.lastIndexOf("</w:body>"));
   const filas = [];
@@ -3476,7 +3486,9 @@ function filasDesdeWord(xml) {
    Profesor, con líneas para rellenar), el objetivo, títulos de columna y la
    leyenda L / NL. Nada de eso es un indicador. */
 const CODIGO_OA = /EF\s?0?\d{1,2}\s?OA\s?0?\d{1,2}/i;
-const ETIQUETA_OBJETIVO = /^(objetivo(\s+(de\s+)?(aprendizaje|evaluaci[oó]n))?|oa|aprendizaje\s+esperado|meta)\s*[:.\-–]\s*/i;
+/* Acepta "Objetivo:", "Objetivo de aprendizaje:", "Objetivo de la clase:" y
+   cualquier otro calificador corto antes de los dos puntos. */
+const ETIQUETA_OBJETIVO = /^(objetivos?|oa|aprendizajes?\s+esperados?|meta)\b[^:]{0,40}[:.\-–]\s*/i;
 const ETIQUETA_FORMULARIO = /^(curso|profesor(a|\(a\))?|docente|fecha|nombre|asignatura|nivel|unidad|establecimiento|colegio|puntaje|nota)\s*[:.\-–]?\s*/i;
 const TITULO_COLUMNA = /^(n°|n|indicador(es)?(\s+observabl?es?)?|descriptor(es)?|desempeño|desempeno|criterio|conducta|logrado|no\s*logrado|s[ií]|no|l|nl|observaciones?|puntaje|puntos|pts)$/i;
 
@@ -3558,7 +3570,10 @@ function oaDesdeWord(filas) {
 async function criteriosDesdeWord(file) {
   const xml = await archivoDeZip(await file.arrayBuffer(), "word/document.xml");
   const filas = filasDesdeWord(xml);
-  const objetivo = oaDesdeWord(filas);
+  /* El objetivo se busca en los párrafos sueltos y en las celdas: en las
+     plantillas reales el encabezado va fuera de la tabla. */
+  const parrafos = parrafosDeWord(xml).map((t) => [t]);
+  const objetivo = oaDesdeWord([...parrafos, ...filas]);
   /* El texto del objetivo se quita de la lista: al venir en una celda o un
      renglón aparte, sin su rótulo, se colaba como si fuera el indicador 1. */
   const indicadores = indicadoresDesdeWord(filas)
@@ -4323,7 +4338,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v205";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v206";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
