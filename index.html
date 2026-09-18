@@ -4357,7 +4357,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v209";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v210";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -7513,24 +7513,44 @@ function trozosTabla(filas, primera, resto) {
   return trozos;
 }
 
-function trozosInforme(filas, nIndicadores) {
-  const ind = Math.max(0, nIndicadores || 0);
-  const m = medidasHoja("portrait", 10);
-  const factor = m.altoUtil / 277;              // A4 vertical como referencia
-  /* Calibrado contra una impresión real: con 10 indicadores entraron 12
-     estudiantes en la primera hoja. Cada indicador consume algo más de una
-     fila porque su texto se parte, y las filas de estudiante también crecen
-     cuando el nivel o las medidas remediales ocupan dos líneas. */
-  const primera = Math.max(6, Math.round((26 - ind * 1.4) * factor));
-  const resto = Math.round(28 * factor);
+/* ---- Corte por hojas del informe de logro ----
+   La primera hoja la comparte con el membrete, la ficha y la tabla de
+   indicadores, que puede ser enorme: 15 indicadores largos ocupan casi toda
+   la página y dejan sitio para muy pocos estudiantes. Por eso no se cuenta
+   por cantidad sino por altura estimada.
 
-  if (filas.length <= primera) return [filas];
-  const sobrantes = filas.length - primera;
-  const hojas = Math.ceil(sobrantes / resto);
-  const porHoja = Math.ceil(sobrantes / hojas);
-  const trozos = [filas.slice(0, primera)];
-  for (let i = primera; i < filas.length; i += porHoja) trozos.push(filas.slice(i, i + porHoja));
-  return trozos;
+   Calibrado contra una impresión real: con 15 indicadores de unos 75
+   caracteres entraron 4 estudiantes en la hoja 1. De ahí sale un presupuesto
+   de unas 46 líneas por hoja con esta letra. */
+function trozosInforme(filas, indicadores) {
+  const m = medidasHoja("portrait", 10);
+  const lineasPagina = Math.round(46 * (m.altoUtil / 277));
+
+  // Lo que ocupa la tabla de indicadores: su texto se parte cerca de 60 caracteres.
+  const textos = Array.isArray(indicadores) ? indicadores : [];
+  const lineasInd = textos.reduce((a, t) => a + Math.max(1, Math.ceil(String(t || "").length / 60)), 0)
+    || (typeof indicadores === "number" ? indicadores : 0);
+
+  // 10 líneas para membrete, ficha y títulos; 2 para el encabezado de la tabla.
+  const primera = Math.max(2, lineasPagina - 10 - lineasInd - 2);
+  const resto = Math.max(8, lineasPagina - 2);
+
+  /* Cada estudiante ocupa una línea, o dos si sus medidas remediales se
+     parten; se estima igual que en las demás tablas. */
+  const lineasDe = (f) => Math.max(1, Math.ceil(String((f.medidas || []).join("; ")).length / 45));
+
+  const trozos = [];
+  let actual = [], usado = 0, presupuesto = primera;
+  for (const f of filas) {
+    const l = lineasDe(f);
+    if (actual.length && usado + l > presupuesto) {
+      trozos.push(actual);
+      actual = []; usado = 0; presupuesto = resto;
+    }
+    actual.push(f); usado += l;
+  }
+  if (actual.length) trozos.push(actual);
+  return trozos.length ? trozos : [filas];
 }
 
 function trozosDeFilas(filas, nMarcas, ev) {
@@ -7648,18 +7668,19 @@ function imprimirNotasCurso() {
       <td class="izq"><b>${esc(ev.nombre)}</b></td>
       <td class="izq">${fechaLarga(ev.fecha)}${pesoDe(ev) !== 1 ? ` · peso ${pesoDe(ev)}` : ""}${
         rotuloTipo(ev) ? ` · ${rotuloTipo(ev)}` : ""}</td></tr>`).join("")}</tbody></table>
-    <table class="tabla-consolidado">
+    ${trozosTabla(filas.map((f, i) => ({ ...f, n: i + 1 })), 18, 34).map((trozo, t) => `
+    <table class="tabla-consolidado${t ? " tabla-continua" : ""}">
       <colgroup>
         <col class="c-n"><col class="c-nom">
         ${evs.map(() => `<col class="c-nota">`).join("")}<col class="c-nota">
       </colgroup>
       <thead>
-      <tr class="fila-rotulo"><th colspan="${evs.length + 3}" class="izq">Consolidado · ${esc(curso.nombre)} · ${evs.length} lista${evs.length === 1 ? "" : "s"}</th></tr>
+      <tr class="fila-rotulo"><th colspan="${evs.length + 3}" class="izq">Consolidado · ${esc(curso.nombre)} · ${evs.length} lista${evs.length === 1 ? "" : "s"}${t ? " · continuación" : ""}</th></tr>
       <tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
       ${evs.map((ev, k) => `<th class="c-nota">${k + 1}</th>`).join("")}<th class="c-nota">Prom.</th></tr></thead>
-    <tbody>${filas.map((f, i) => `<tr><td class="c-n">${i + 1}</td><td class="c-nom izq">${esc(f.nom || "—")}</td>
+    <tbody>${trozo.map((f) => `<tr><td class="c-n">${f.n}</td><td class="c-nom izq">${esc(f.nom || "—")}</td>
       ${f.notas.map((x) => `<td class="c-nota">${x === null ? "—" : num1(x)}</td>`).join("")}
-      <td class="c-nota"><b>${num1(f.prom)}</b></td></tr>`).join("")}</tbody></table>
+      <td class="c-nota"><b>${num1(f.prom)}</b></td></tr>`).join("")}</tbody></table>`).join("")}
 
     ${bajos.length ? `<p class="rot-informe">Requieren apoyo · ${bajos.length}</p>
       <table><thead><tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
@@ -7918,14 +7939,17 @@ function imprimirComparacion() {
     <p class="nota-med">El curso marcado con · es desde el que se generó este informe.</p>
 
     <p class="rot-informe">Logro por indicador en cada curso</p>
-    <table><thead><tr><th class="c-n">N°</th><th class="izq">Indicador</th>
+    ${trozosPorAltura(filasInd, (f) => f.texto, 30, 44).map((trozo, t) => `
+    <table class="${t ? "tabla-continua" : ""}"><thead>
+      ${t ? `<tr class="fila-rotulo"><th colspan="${orden.length + 3}" class="izq">Logro por indicador · continuación</th></tr>` : ""}
+      <tr><th class="c-n">N°</th><th class="izq">Indicador</th>
       ${orden.map((x) => `<th class="c-pct">${esc(x.curso.label)}</th>`).join("")}
       <th class="c-pct">Brecha</th></tr></thead>
-    <tbody>${filasInd.map((f) => `<tr>
+    <tbody>${trozo.map((f) => `<tr>
       <td class="c-n mono">${f.rot}</td>
       <td class="izq">${esc(f.texto || "sin redactar")}</td>
       ${f.porCurso.map((v) => `<td class="c-pct">${v === null ? "—" : v + "%"}</td>`).join("")}
-      <td class="c-pct">${f.brecha === null ? "—" : f.brecha}</td></tr>`).join("")}</tbody></table>
+      <td class="c-pct">${f.brecha === null ? "—" : f.brecha}</td></tr>`).join("")}</tbody></table>`).join("")}
     ${mayorBrecha && mayorBrecha.brecha >= 20 ? `<p class="nota-dua"><b>Mayor diferencia entre cursos:</b>
       indicador ${mayorBrecha.rot} · ${esc(mayorBrecha.texto || "")} · ${mayorBrecha.brecha} puntos de diferencia.
       Conviene revisar cómo se trabajó en cada curso.</p>` : ""}`;
@@ -7987,21 +8011,24 @@ function imprimirInforme() {
           <th>Logro del curso</th><td>${pctCursoObservado === null ? "—" : pctCursoObservado + "%"} · ${nivelAprendizajePct(pctCursoObservado).label}</td></tr>
     </tbody></table>
 
-    <p class="rot-informe">Logro por indicador</p>
+    ${trozosPorAltura(porInd, (x) => x.texto, 26, 44).map((trozo, t) => `
+    <p class="rot-informe${t ? " tabla-continua" : ""}">Logro por indicador${t ? " · continuación" : ""}</p>
     <table><thead><tr><th class="c-n">N°</th><th class="izq">Indicador</th>
       <th class="col-barra">Logro</th><th class="c-pct">%</th><th class="c-asis">Sin marcar</th></tr></thead>
-    <tbody>${porInd.map((x) => `<tr>
+    <tbody>${trozo.map((x) => `<tr>
       <td class="c-n mono">${x.rot}</td>
       <td class="izq">${esc(x.texto || "sin redactar")}${x.oa ? ` <span class="oa-min">${esc(x.oa)}</span>` : ""}</td>
       <td>${barra(x.pct)}</td>
       <td class="c-pct">${x.pct === null ? "—" : x.pct + "%"}</td>
-      <td class="c-asis">${x.sin || ""}</td></tr>`).join("")}</tbody></table>
+      <td class="c-asis">${x.sin || ""}</td></tr>`).join("")}</tbody></table>`).join("")}
     ${flojos.length ? `<p class="nota-med"><b>Indicadores prioritarios bajo 80%:</b>
       ${flojos.map((x) => `${x.rot} (${x.pct}% · ${nivelAprendizajePct(x.pct).label})`).join(" · ")}. Conviene retomarlos en la próxima clase.</p>` : ""}
 
-    ${trozosInforme(porAlu, porInd.length).map((trozo, t) => `
-    ${t ? "" : `<p class="rot-informe">Logro por estudiante</p>`}
-    <table class="${t ? "tabla-continua" : ""}"><thead>
+    ${trozosPorAltura(porAlu, (x) => `${x.nom} ${(x.medidas || []).join(" ")}`, 38, 44).map((trozo, t) => `
+    <p class="rot-informe tabla-continua">Logro por estudiante${t ? " · continuación" : ""}</p>
+    <!-- El salto de página lo lleva sólo el rótulo: si lo llevara también la
+         tabla serían dos saltos seguidos y Safari devuelve una hoja vacía. -->
+    <table><thead>
       ${t ? `<tr class="fila-rotulo"><th colspan="8" class="izq">Logro por estudiante · continuación</th></tr>` : ""}
       <tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
       <th class="col-barra">Logro</th><th class="c-pct">%</th><th style="width:13%">Nivel</th><th class="c-pts">Pts</th>
@@ -8226,11 +8253,14 @@ function imprimirInformeAlumno(i) {
       <p class="eval-titulo"><b>${esc(d.ev.nombre)}</b> · ${fechaLarga(d.ev.fecha)} ·
         nota ${num1(d.r.nota)} · ${d.pct === null ? "—" : d.pct + "%"} de logro ·
         <span class="${d.nivel.clave === "logrado" ? "res-ok" : d.nivel.clave === "proceso" ? "res-proceso" : d.nivel.clave === "apoyo" ? "res-no" : ""}">${esc(d.nivel.label)}</span></p>
-      <table><thead><tr><th class="c-n">N°</th><th class="izq">Indicador</th><th style="width:22%">Resultado</th></tr></thead>
-      <tbody>${d.filas.map((x) => `<tr>
+      ${trozosPorAltura(d.filas, (x) => x.texto, 34, 44).map((trozo, t) => `
+      <table class="${t ? "tabla-continua" : ""}"><thead>
+        ${t ? `<tr class="fila-rotulo"><th colspan="3" class="izq">${esc(d.ev.nombre)} · continuación</th></tr>` : ""}
+        <tr><th class="c-n">N°</th><th class="izq">Indicador</th><th style="width:22%">Resultado</th></tr></thead>
+      <tbody>${trozo.map((x) => `<tr>
         <td class="c-n mono">${x.rot}</td>
         <td class="izq">${esc(x.texto || "sin redactar")}</td>
-        <td class="${x.ok === true ? "res-ok" : x.ok === "proceso" ? "res-proceso" : x.ok === false ? "res-no" : ""}">${esc(x.estado)}</td></tr>`).join("")}</tbody></table>
+        <td class="${x.ok === true ? "res-ok" : x.ok === "proceso" ? "res-proceso" : x.ok === false ? "res-no" : ""}">${esc(x.estado)}</td></tr>`).join("")}</tbody></table>`).join("")}
       ${d.medidas.length ? `<p class="nota-med"><b>Apoyo entregado:</b> ${d.medidas.map((t) => esc(t)).join("; ")}</p>` : ""}
       ${(d.ev.obs[i] || "").trim() ? `<p class="obs-informe"><b>Observación:</b> ${esc(d.ev.obs[i])}</p>` : ""}`).join("")}
 
