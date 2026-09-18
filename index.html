@@ -4379,7 +4379,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v214";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v215";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -7492,7 +7492,9 @@ function hojaInforme(nFilas) {
        número de página). Sin margen no tiene dónde ponerlos. La separación se
        traslada al relleno del documento, más abajo. */
     @page{size:${m.anchoMm}mm ${m.altoMm}mm; margin:0}
-    .hoja-impresion{padding:10mm}
+    /* box-sizing: sin esto el relleno se suma al ancho y el documento
+       queda más ancho que la hoja, cortando las columnas de la derecha. */
+    .hoja-impresion{padding:10mm; box-sizing:border-box; width:100%}
     /* La tabla se deja algo más angosta que la caja de la página: cuando el
        navegador imprime con sus propios márgenes (Safari agrega encabezado y
        pie), esa holgura evita que la última columna quede cortada. */
@@ -7539,7 +7541,9 @@ function prepararImpresion(nMarcas) {
   const anchoObs = anchoObsBase ? Math.max(14, Math.round(anchoObsBase + holgura * 0.25)) : 0;
   const css = `
     @page{size:${m.anchoMm}mm ${m.altoMm}mm; margin:0}
-    .hoja-impresion{padding:9mm}
+    /* box-sizing: sin esto el relleno se suma al ancho y el documento
+       queda más ancho que la hoja, cortando las columnas de la derecha. */
+    .hoja-impresion{padding:9mm; box-sizing:border-box; width:100%}
     .hoja-impresion table{font-size:${fuente}px}
     .hoja-impresion .tabla-planilla .c-nom,
     .hoja-impresion .tabla-planilla col.c-nom{width:${anchoNom}mm}
