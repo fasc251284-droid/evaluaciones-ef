@@ -846,6 +846,13 @@ th.col-fija{background:var(--surface-2); z-index:3}
   .hoja-impresion .fila-nota td{border-top:1.5px solid #0c3f63; background:#eef6fb;
     font-size:11px; padding-top:5px; padding-bottom:5px}
   .hoja-impresion .tabla-detalle{width:98%; table-layout:fixed}
+  /* El indicador se lleva el ancho: es el único texto largo de la tabla.
+     Las otras tres columnas llevan un número o una palabra. */
+  .hoja-impresion col.col-num{width:12mm}
+  .hoja-impresion col.col-ind{width:auto}
+  .hoja-impresion col.col-res{width:28mm}
+  .hoja-impresion col.col-pts{width:13mm}
+  .hoja-impresion .tabla-detalle .c-n{text-align:center}
   .hoja-impresion .fila-rotulo th{background:#fff; border:0; border-bottom:1.5px solid #0c3f63;
     font-size:9.5px; font-weight:800; color:#0c3f63; padding:0 0 3px; letter-spacing:.01em}
   /* No poner break-after:avoid sobre el thead: Safari deja de repetirlo en
@@ -4357,7 +4364,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v210";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v212";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -4515,6 +4522,43 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) sali
 ["pointerdown", "keydown"].forEach((evt) =>
   window.addEventListener(evt, salirDeImpresion, true));
 
+/* ---- Anchos de columna, para todas las tablas de una vez ----
+   Las tablas de impresión usan table-layout:fixed, y ahí los anchos los define
+   la primera fila. Como casi todas empiezan con el rótulo (una sola celda con
+   colspan), las columnas salían todas iguales: el N° ocupaba lo mismo que el
+   indicador y se desperdiciaban hojas.
+
+   En vez de corregir tabla por tabla, aquí se recorren todas antes de imprimir
+   y se les arma un <colgroup> a partir de las clases de su fila de encabezado.
+   Cualquier tabla nueva queda cubierta sin tocar nada más. */
+const ANCHO_COLUMNA = {
+  "c-n": 12, "c-nom": 34, "c-asis": 9, "c-pts": 13, "c-pct": 12,
+  "c-nota": 12, "c-obs": 32, "c-marca": 0, "col-barra": 15,
+  "col-res": 28, "col-num": 12, "col-pts": 13,
+};
+
+function ajustarAnchosImpresion(zona) {
+  zona.querySelectorAll("table").forEach((tabla) => {
+    if (tabla.querySelector("colgroup")) return;          // ya trae los suyos
+    // La fila de encabezado real es la que tiene más de una celda.
+    const filas = [...tabla.querySelectorAll("thead tr")];
+    const cab = filas.find((f) => f.children.length > 1);
+    if (!cab) return;
+
+    const cg = document.createElement("colgroup");
+    [...cab.children].forEach((th) => {
+      const col = document.createElement("col");
+      const clase = [...th.classList].find((c) => c in ANCHO_COLUMNA);
+      const mm = clase ? ANCHO_COLUMNA[clase] : 0;
+      // 0 o sin clase conocida: se deja libre y se reparte el sobrante, que es
+      // lo que corresponde a la columna de texto y a las de marca.
+      if (mm) col.style.width = `${mm}mm`;
+      cg.appendChild(col);
+    });
+    tabla.insertBefore(cg, tabla.firstChild);
+  });
+}
+
 function imprimirVentanaSegura() {
   const zona = $("#impresion");
   if (!zona || !zona.innerHTML.trim()) {
@@ -4525,6 +4569,9 @@ function imprimirVentanaSegura() {
 
   clearTimeout(relojResumen);
   retirarClonImpresionSeguro();
+
+  // Los anchos se reparten antes de copiar, para que la copia salga ya correcta.
+  ajustarAnchosImpresion(zona);
 
   // Se imprime una copia independiente, fuera de #raiz. Esto evita que Safari/iOS
   // capture el contenedor interno mientras sigue oculto por la interfaz de la PWA.
@@ -7485,8 +7532,10 @@ function prepararImpresion(nMarcas) {
    Un indicador largo ocupa tres o cuatro líneas, así que contar filas engaña:
    con 15 indicadores extensos entran unos 12 en la primera hoja, no 22. Aquí
    se estima cuántas líneas ocupa cada fila y se corta por presupuesto. */
-function trozosPorAltura(filas, texto, presupuestoPrimera, presupuestoResto) {
-  const lineasDe = (f) => Math.max(1, Math.ceil(String(texto(f) || "").length / 38));
+function trozosPorAltura(filas, texto, presupuestoPrimera, presupuestoResto, porLinea) {
+  // Cuántos caracteres entran por línea depende del ancho de esa columna.
+  const ancho = porLinea || 38;
+  const lineasDe = (f) => Math.max(1, Math.ceil(String(texto(f) || "").length / ancho));
   const trozos = [];
   let actual = [], usado = 0, presupuesto = presupuestoPrimera;
   for (const f of filas) {
@@ -8098,12 +8147,18 @@ function imprimirIndicadores(i) {
       <tr><th>Lista</th><td colspan="3">${esc(ev.nombre || "—")}</td>
           <th>Logro</th><td>${est ? (est === 1 ? "Ausente" : "Justificado") : `${r.total ? Math.round((r.puntaje / r.total) * 100) : 0}% · ${nivelAprendizajePct(r.total ? Math.round((r.puntaje / r.total) * 100) : 0).label}`}</td></tr>
     </tbody></table>
-    ${trozosPorAltura(filas, (f) => f.texto, 30, 44).map((trozo, t, todos) => `
+    ${trozosPorAltura(filas, (f) => f.texto, 30, 44, 70).map((trozo, t, todos) => `
     <table class="tabla-detalle${t ? " tabla-continua" : ""}">
+      <!-- Los anchos van en el colgroup porque la primera fila es el rótulo
+           con colspan: con table-layout:fixed esa fila mandaba y las cuatro
+           columnas salían iguales, desperdiciando ancho en N° y Pts. -->
+      <colgroup>
+        <col class="col-num"><col class="col-ind"><col class="col-res"><col class="col-pts">
+      </colgroup>
       <thead>
         <tr class="fila-rotulo"><th colspan="4" class="izq">Logro por indicador · ${esc(nom)} · ${esc(ev.nombre || "Lista")}${t ? " · continuación" : ""}</th></tr>
         <tr><th class="c-n">N°</th><th class="izq">Indicador</th>
-            <th style="width:32mm">Resultado</th><th class="c-pts">Pts</th></tr>
+            <th>Resultado</th><th class="c-pts">Pts</th></tr>
       </thead>
       <tbody>
         ${trozo.map((f) => `<tr>
