@@ -839,6 +839,11 @@ th.col-fija{background:var(--surface-2); z-index:3}
      aquí: ponerlo además en el párrafo del rótulo daba dos saltos forzados
      seguidos y Safari devolvía la hoja en blanco. */
   .hoja-impresion .tabla-continua{break-before:page; page-break-before:always}
+  /* Con @page sin margen, el relleno del documento sólo separa la primera
+     hoja. A lo que abre hoja nueva se le pone el margen por dentro: un borde
+     transparente, que el navegador sí respeta después de un salto forzado. */
+  .hoja-impresion table.tabla-continua{border-top:9mm solid transparent}
+  .hoja-impresion p.tabla-continua{padding-top:9mm; margin-top:0}
   /* Rótulo que viaja con el encabezado: en la segunda hoja la lista se
      identifica sola y deja de parecer un trozo suelto. */
   /* Fila de cierre con la nota: va al final de la tabla, junto al puntaje,
@@ -859,6 +864,16 @@ th.col-fija{background:var(--surface-2); z-index:3}
      cada hoja y la segunda página aparece sin encabezado, como cortada.
      Basta con que la fila del encabezado no se parta por dentro. */
   .hoja-impresion thead tr{break-inside:avoid}
+  /* ---- Filas parejas ----
+     Todas las celdas del cuerpo comparten alto mínimo, interlineado y relleno,
+     y su contenido va centrado en vertical. Así una fila de una línea y otra
+     de cuatro se ven de la misma familia, con los números y los resultados
+     alineados al medio en vez de pegados arriba. El texto largo sigue
+     mandando el alto de su fila: igualar todas a la más alta gastaría hojas
+     de más sin ganar legibilidad. */
+  .hoja-impresion tbody td{vertical-align:middle; line-height:1.35; min-height:7mm}
+  .hoja-impresion tbody tr{min-height:7mm}
+  .hoja-impresion tbody td.izq{vertical-align:middle}
   /* Ninguna fila se parte entre hojas: sin esto, un indicador de tres líneas
      quedaba con la mitad en cada página. */
   .hoja-impresion tbody tr,.hoja-impresion tbody td{break-inside:avoid; page-break-inside:avoid}
@@ -4364,7 +4379,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v212";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v214";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -4531,6 +4546,10 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) sali
    En vez de corregir tabla por tabla, aquí se recorren todas antes de imprimir
    y se les arma un <colgroup> a partir de las clases de su fila de encabezado.
    Cualquier tabla nueva queda cubierta sin tocar nada más. */
+/* Ancho útil de la tabla en la hoja actual. Lo fijan prepararImpresion y
+   hojaInforme según el tamaño de papel y la orientación elegidos. */
+let anchoTablaMm = 186;
+
 const ANCHO_COLUMNA = {
   "c-n": 12, "c-nom": 34, "c-asis": 9, "c-pts": 13, "c-pct": 12,
   "c-nota": 12, "c-obs": 32, "c-marca": 0, "col-barra": 15,
@@ -4546,6 +4565,7 @@ function ajustarAnchosImpresion(zona) {
     if (!cab) return;
 
     const cg = document.createElement("colgroup");
+    const anchos = [];
     [...cab.children].forEach((th) => {
       const col = document.createElement("col");
       const clase = [...th.classList].find((c) => c in ANCHO_COLUMNA);
@@ -4554,9 +4574,41 @@ function ajustarAnchosImpresion(zona) {
       // lo que corresponde a la columna de texto y a las de marca.
       if (mm) col.style.width = `${mm}mm`;
       cg.appendChild(col);
+      anchos.push(mm);
     });
     tabla.insertBefore(cg, tabla.firstChild);
+    emparejarFilas(tabla, anchos);
   });
+}
+
+/* ---- Filas del mismo alto ----
+   Si un indicador ocupa cuatro líneas y el siguiente una, la tabla queda
+   despareja. Aquí se estima cuántas líneas necesita la fila más alta y se le
+   da ese alto mínimo a todas, para que el documento se vea ordenado.
+   El corte por hojas usa esta misma estimación, así que las cuentas calzan. */
+function emparejarFilas(tabla, anchos) {
+  const fijas = anchos.reduce((a, b) => a + b, 0);
+  const libres = anchos.filter((a) => !a).length;
+  // Ancho aproximado de una columna libre, en milímetros.
+  const anchoLibre = libres ? Math.max(20, (anchoTablaMm - fijas) / libres) : 0;
+  const caracteresPorLinea = (mm) => Math.max(6, Math.round(mm / 1.75));
+
+  const filas = [...tabla.querySelectorAll("tbody tr")];
+  if (filas.length < 2) return;
+
+  let maxLineas = 1;
+  filas.forEach((fila) => {
+    [...fila.children].forEach((celda, k) => {
+      const mm = anchos[k] || anchoLibre;
+      if (!mm) return;
+      const l = Math.ceil((celda.textContent || "").trim().length / caracteresPorLinea(mm));
+      // Tope de tres líneas: sin él, un indicador excepcionalmente largo
+      // estiraría todas las filas de la tabla y gastaría hojas de más.
+      maxLineas = Math.max(maxLineas, Math.min(3, l));
+    });
+  });
+  if (maxLineas < 2) return;                    // ya son todas de una línea
+  filas.forEach((fila) => { fila.style.height = `${(maxLineas * 1.35).toFixed(2)}em`; });
 }
 
 function imprimirVentanaSegura() {
@@ -7435,7 +7487,12 @@ function hojaInforme(nFilas) {
   const alto = n <= 12 ? 4 : n <= 20 ? 3 : n <= 28 ? 2 : 1.5;
   const m = medidasHoja("portrait", 10);
   const css = `
-    @page{size:${m.anchoMm}mm ${m.altoMm}mm; margin:10mm}
+    /* Margen cero a propósito: mientras la hoja tenga margen, el navegador lo
+       usa para imprimir su encabezado y su pie (la dirección, la fecha, el
+       número de página). Sin margen no tiene dónde ponerlos. La separación se
+       traslada al relleno del documento, más abajo. */
+    @page{size:${m.anchoMm}mm ${m.altoMm}mm; margin:0}
+    .hoja-impresion{padding:10mm}
     /* La tabla se deja algo más angosta que la caja de la página: cuando el
        navegador imprime con sus propios márgenes (Safari agrega encabezado y
        pie), esa holgura evita que la última columna quede cortada. */
@@ -7481,7 +7538,8 @@ function prepararImpresion(nMarcas) {
   const anchoObsBase = n <= 12 ? 32 : n <= 20 ? 24 : n <= 30 ? 18 : 0;
   const anchoObs = anchoObsBase ? Math.max(14, Math.round(anchoObsBase + holgura * 0.25)) : 0;
   const css = `
-    @page{size:${m.anchoMm}mm ${m.altoMm}mm; margin:9mm}
+    @page{size:${m.anchoMm}mm ${m.altoMm}mm; margin:0}
+    .hoja-impresion{padding:9mm}
     .hoja-impresion table{font-size:${fuente}px}
     .hoja-impresion .tabla-planilla .c-nom,
     .hoja-impresion .tabla-planilla col.c-nom{width:${anchoNom}mm}
@@ -7536,10 +7594,14 @@ function trozosPorAltura(filas, texto, presupuestoPrimera, presupuestoResto, por
   // Cuántos caracteres entran por línea depende del ancho de esa columna.
   const ancho = porLinea || 38;
   const lineasDe = (f) => Math.max(1, Math.ceil(String(texto(f) || "").length / ancho));
+  /* Todas las filas se imprimen con el alto de la más larga, para que la tabla
+     quede pareja. El corte usa ese mismo alto: si midiera cada fila por su
+     propio texto, la hoja se desbordaría al imprimirse. */
+  const altoFila = filas.reduce((m, f) => Math.max(m, lineasDe(f)), 1);
   const trozos = [];
   let actual = [], usado = 0, presupuesto = presupuestoPrimera;
   for (const f of filas) {
-    const l = lineasDe(f);
+    const l = altoFila;
     if (actual.length && usado + l > presupuesto) {
       trozos.push(actual);
       actual = []; usado = 0; presupuesto = presupuestoResto;
