@@ -4354,7 +4354,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v207";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v208";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -7473,6 +7473,23 @@ function prepararImpresion(nMarcas) {
    Los informes van en vertical con letra que ya se achica según el curso;
    estas cifras salen de una impresión real: la primera hoja carga además el
    membrete, la ficha y la tabla de indicadores. */
+/* ---- Corte por hojas, genérico ----
+   Safari en iOS no repite el <thead> al partir una tabla, así que ninguna
+   tabla larga puede partirse sola: se corta en tablas independientes, cada una
+   con su encabezado. "primera" es cuántas filas caben en la hoja que además
+   lleva el membrete y la ficha; "resto", cuántas en las siguientes. */
+function trozosTabla(filas, primera, resto) {
+  const p = Math.max(4, Math.round(primera));
+  const r = Math.max(6, Math.round(resto));
+  if (filas.length <= p) return [filas];
+  const sobrantes = filas.length - p;
+  const hojas = Math.ceil(sobrantes / r);
+  const porHoja = Math.ceil(sobrantes / hojas);   // hojas parejas, sin colas de 1 fila
+  const trozos = [filas.slice(0, p)];
+  for (let i = p; i < filas.length; i += porHoja) trozos.push(filas.slice(i, i + porHoja));
+  return trozos;
+}
+
 function trozosInforme(filas, nIndicadores) {
   const ind = Math.max(0, nIndicadores || 0);
   const m = medidasHoja("portrait", 10);
@@ -7655,18 +7672,19 @@ function imprimirConsolidado() {
           <th>Promedio del curso</th><td>${num1(promCurso)}</td>
           <th>Aprobación</th><td>${aprob} de ${proms.length}${proms.length ? ` · ${Math.round((aprob / proms.length) * 100)}%` : ""}</td></tr>
     </tbody></table>
-    <table class="tabla-consolidado">
+    ${trozosTabla(filas.map((f, i) => ({ ...f, n: i + 1 })), 26, 34).map((trozo, t) => `
+    <table class="tabla-consolidado${t ? " tabla-continua" : ""}">
       <colgroup>
         <col class="c-n"><col class="c-nom">
         ${evs.map(() => `<col class="c-nota">`).join("")}<col class="c-nota">
       </colgroup>
       <thead>
-      <tr class="fila-rotulo"><th colspan="${evs.length + 3}" class="izq">Consolidado · ${esc(curso.nombre)} · ${evs.length} lista${evs.length === 1 ? "" : "s"}</th></tr>
+      <tr class="fila-rotulo"><th colspan="${evs.length + 3}" class="izq">Consolidado · ${esc(curso.nombre)} · ${evs.length} lista${evs.length === 1 ? "" : "s"}${t ? " · continuación" : ""}</th></tr>
       <tr><th class="c-n">N°</th><th class="c-nom izq">Estudiante</th>
       ${evs.map((ev, k) => `<th class="c-nota">${k + 1}</th>`).join("")}<th class="c-nota">Prom.</th></tr></thead>
-    <tbody>${filas.map((f, i) => `<tr><td class="c-n">${i + 1}</td><td class="c-nom izq">${esc(f.nom || "—")}</td>
+    <tbody>${trozo.map((f) => `<tr><td class="c-n">${f.n}</td><td class="c-nom izq">${esc(f.nom || "—")}</td>
       ${f.notas.map((n) => `<td class="c-nota">${n === null ? "—" : num1(n)}</td>`).join("")}
-      <td class="c-nota">${num1(f.prom)}</td></tr>`).join("")}</tbody></table>
+      <td class="c-nota">${num1(f.prom)}</td></tr>`).join("")}</tbody></table>`).join("")}
     <ol class="leyenda-oa" style="margin-top:6px">${evs.map((ev, k) => `<li><b>${k + 1}</b> ${esc(ev.nombre)} · ${fechaLarga(ev.fecha)}${pesoDe(ev) !== 1 ? ` · peso ${pesoDe(ev)}` : ""}</li>`).join("")}</ol>`;
   imprimirVentanaSegura();
 }
@@ -8030,28 +8048,28 @@ function imprimirIndicadores(i) {
       <tr><th>Lista</th><td colspan="3">${esc(ev.nombre || "—")}</td>
           <th>Logro</th><td>${est ? (est === 1 ? "Ausente" : "Justificado") : `${r.total ? Math.round((r.puntaje / r.total) * 100) : 0}% · ${nivelAprendizajePct(r.total ? Math.round((r.puntaje / r.total) * 100) : 0).label}`}</td></tr>
     </tbody></table>
-    <table class="tabla-detalle">
+    ${trozosTabla(filas, 22, 34).map((trozo, t, todos) => `
+    <table class="tabla-detalle${t ? " tabla-continua" : ""}">
       <thead>
-        <tr class="fila-rotulo"><th colspan="4" class="izq">Logro por indicador · ${esc(nom)} · ${esc(ev.nombre || "Lista")}</th></tr>
+        <tr class="fila-rotulo"><th colspan="4" class="izq">Logro por indicador · ${esc(nom)} · ${esc(ev.nombre || "Lista")}${t ? " · continuación" : ""}</th></tr>
         <tr><th class="c-n">N°</th><th class="izq">Indicador</th>
             <th style="width:32mm">Resultado</th><th class="c-pts">Pts</th></tr>
       </thead>
       <tbody>
-        ${filas.map((f) => `<tr>
+        ${trozo.map((f) => `<tr>
           <td class="c-n mono">${f.rot}</td>
           <td class="izq">${esc(f.texto)}</td>
           <td class="${f.clave === "ok" ? "res-ok" : f.clave === "no" ? "res-no" : ""}">${esc(f.logro)}</td>
           <td class="c-pts">${f.pts}</td></tr>`).join("")}
-        <!-- La nota cierra la tabla, junto al puntaje, no en el resumen de
-             arriba: es el dato que más se busca al leer la hoja. -->
+        ${t === todos.length - 1 ? `<!-- La nota cierra la última hoja, junto al puntaje. -->
         <tr class="fila-nota">
           <td></td>
           <td class="izq"><b>Nota final</b></td>
           <td>${est ? (est === 1 ? "Ausente" : "Justificado") : `${r.puntaje} de ${r.total} pts`}</td>
           <td class="c-pts"><b>${est ? "—" : num1(r.nota)}</b></td>
-        </tr>
+        </tr>` : ""}
       </tbody>
-    </table>
+    </table>`).join("")}
     ${ade.length ? `<p class="nota-dua"><b>* Adecuaciones curriculares · Decreto 83/2015.</b>
       ${ade.map((t) => esc(t)).join("; ")}</p>` : ""}
     ${med.length ? `<p class="nota-med"><b>Medidas remediales aplicadas.</b>
