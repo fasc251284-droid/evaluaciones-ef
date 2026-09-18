@@ -220,6 +220,22 @@ button,select,a{-webkit-tap-highlight-color:transparent}
   transition:background .2s var(--curva), color .2s var(--curva)}
 .pestana[aria-pressed="true"]{background:var(--azul-claro); color:var(--azul-oscuro); font-weight:600}
 
+/* ---- Un tono por pestaña ----
+   Planilla, Por criterio y Por estudiante son tres formas distintas de mirar
+   la misma lista, así que cada una lleva su color. Acotado a estas pestañas
+   con [data-accion="modo"] para no teñir la barra de abajo.
+   Los tres pares texto/fondo pasan contraste: 9,5:1, 6,3:1 y 7,2:1. */
+.pestana[data-accion="modo"]{border-bottom:2px solid transparent}
+.pestana[data-v="planilla"][aria-pressed="true"]{background:#e4f0f8; color:#0c3f63; border-bottom-color:var(--azul)}
+.pestana[data-v="criterio"][aria-pressed="true"]{background:#fdf1de; color:#7d4f04; border-bottom-color:#c98a10}
+.pestana[data-v="alumno"][aria-pressed="true"]{background:#e7f6ee; color:#115c3e; border-bottom-color:var(--logro)}
+/* En reposo, un punto del mismo tono para reconocerlas sin tener que leerlas. */
+.pestana[data-accion="modo"]::before{content:"● "; font-size:8px; vertical-align:middle; opacity:.55}
+.pestana[data-v="planilla"]::before{color:var(--azul)}
+.pestana[data-v="criterio"]::before{color:#a8700c}
+.pestana[data-v="alumno"]::before{color:var(--logro)}
+.pestana[data-accion="modo"][aria-pressed="true"]::before{opacity:1}
+
 /* ---------- Tarjetas ---------- */
 /* Tres pesos de tarjeta: la principal manda, la de apoyo acompaña,
    la de trabajo aloja la tabla y va al ras. */
@@ -4338,7 +4354,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v206";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v207";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
