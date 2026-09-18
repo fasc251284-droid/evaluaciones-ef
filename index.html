@@ -852,6 +852,9 @@ th.col-fija{background:var(--surface-2); z-index:3}
      cada hoja y la segunda página aparece sin encabezado, como cortada.
      Basta con que la fila del encabezado no se parta por dentro. */
   .hoja-impresion thead tr{break-inside:avoid}
+  /* Ninguna fila se parte entre hojas: sin esto, un indicador de tres líneas
+     quedaba con la mitad en cada página. */
+  .hoja-impresion tbody tr,.hoja-impresion tbody td{break-inside:avoid; page-break-inside:avoid}
   /* El cuadro de arriba viaja pegado a su tabla. */
   .hoja-impresion .ficha-hoja{break-inside:avoid; break-after:avoid; page-break-after:avoid}
   .hoja-impresion tfoot{display:table-footer-group}
@@ -4354,7 +4357,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v208";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v209";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -7478,6 +7481,26 @@ function prepararImpresion(nMarcas) {
    tabla larga puede partirse sola: se corta en tablas independientes, cada una
    con su encabezado. "primera" es cuántas filas caben en la hoja que además
    lleva el membrete y la ficha; "resto", cuántas en las siguientes. */
+/* ---- Corte por altura, no por número de filas ----
+   Un indicador largo ocupa tres o cuatro líneas, así que contar filas engaña:
+   con 15 indicadores extensos entran unos 12 en la primera hoja, no 22. Aquí
+   se estima cuántas líneas ocupa cada fila y se corta por presupuesto. */
+function trozosPorAltura(filas, texto, presupuestoPrimera, presupuestoResto) {
+  const lineasDe = (f) => Math.max(1, Math.ceil(String(texto(f) || "").length / 38));
+  const trozos = [];
+  let actual = [], usado = 0, presupuesto = presupuestoPrimera;
+  for (const f of filas) {
+    const l = lineasDe(f);
+    if (actual.length && usado + l > presupuesto) {
+      trozos.push(actual);
+      actual = []; usado = 0; presupuesto = presupuestoResto;
+    }
+    actual.push(f); usado += l;
+  }
+  if (actual.length) trozos.push(actual);
+  return trozos.length ? trozos : [filas];
+}
+
 function trozosTabla(filas, primera, resto) {
   const p = Math.max(4, Math.round(primera));
   const r = Math.max(6, Math.round(resto));
@@ -8048,7 +8071,7 @@ function imprimirIndicadores(i) {
       <tr><th>Lista</th><td colspan="3">${esc(ev.nombre || "—")}</td>
           <th>Logro</th><td>${est ? (est === 1 ? "Ausente" : "Justificado") : `${r.total ? Math.round((r.puntaje / r.total) * 100) : 0}% · ${nivelAprendizajePct(r.total ? Math.round((r.puntaje / r.total) * 100) : 0).label}`}</td></tr>
     </tbody></table>
-    ${trozosTabla(filas, 22, 34).map((trozo, t, todos) => `
+    ${trozosPorAltura(filas, (f) => f.texto, 30, 44).map((trozo, t, todos) => `
     <table class="tabla-detalle${t ? " tabla-continua" : ""}">
       <thead>
         <tr class="fila-rotulo"><th colspan="4" class="izq">Logro por indicador · ${esc(nom)} · ${esc(ev.nombre || "Lista")}${t ? " · continuación" : ""}</th></tr>
