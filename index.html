@@ -4379,7 +4379,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v215";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v216";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -4556,6 +4556,82 @@ const ANCHO_COLUMNA = {
   "col-res": 28, "col-num": 12, "col-pts": 13,
 };
 
+/* ---- Corte por hojas, para todas las tablas de una vez ----
+   Safari en iOS no repite el <thead> al partir una tabla, así que ninguna
+   tabla puede partirse sola: la segunda hoja sale sin encabezado y parece
+   cortada. En vez de resolverlo informe por informe, aquí se recorre la hoja
+   entera antes de imprimir y se parte cualquier tabla que no quepa, clonando
+   su encabezado en cada trozo. Cualquier informe, actual o nuevo, queda
+   cubierto sin tocar su código. */
+const LINEAS_PRIMERA = 26;     // la primera hoja lleva membrete y ficha
+const LINEAS_HOJA = 44;
+
+function lineasDeFila(fila, anchos) {
+  let max = 1;
+  [...fila.children].forEach((celda, k) => {
+    const mm = anchos[k] || 0;
+    if (mm && mm < 36) return;                       // columnas de número
+    const porLinea = Math.max(18, Math.round((mm || 120) / 1.75));
+    max = Math.max(max, Math.ceil((celda.textContent || "").trim().length / porLinea));
+  });
+  return max;
+}
+
+function partirTablasLargas(zona) {
+  let restante = LINEAS_PRIMERA;
+
+  [...zona.children].forEach((nodo) => {
+    if (nodo.tagName !== "TABLE") {
+      // Títulos, rótulos y notas al pie también ocupan alto.
+      restante -= Math.max(1, Math.ceil((nodo.textContent || "").trim().length / 90)) + 1;
+      return;
+    }
+    if (nodo.classList.contains("ficha-hoja") || nodo.classList.contains("tabla-leyenda")
+        || nodo.classList.contains("tabla-firmas")) {
+      restante -= (nodo.querySelectorAll("tr").length || 1) + 1;
+      return;
+    }
+
+    const anchos = [...nodo.querySelectorAll("col")].map((c) => parseFloat(c.style.width) || 0);
+    const cuerpo = nodo.querySelector("tbody");
+    if (!cuerpo) return;
+    const cabecera = nodo.querySelector("thead");
+    /* Si en lo que queda de hoja no caben al menos cuatro filas, la tabla
+       entera arranca en la siguiente: un encabezado con dos filas sueltas al
+       pie se ve peor que un poco de blanco. */
+    if (restante < 8 && cuerpo.children.length > 4) {
+      nodo.classList.add("tabla-continua");
+      const rot = nodo.previousElementSibling;
+      if (rot && rot.tagName === "P") {
+        nodo.classList.remove("tabla-continua");
+        rot.classList.add("tabla-continua");        // el salto va en el rótulo
+      }
+      restante = LINEAS_HOJA;
+    }
+    restante -= 2;                                   // el propio encabezado
+
+    let tablaActual = nodo, cuerpoActual = cuerpo;
+    [...cuerpo.children].forEach((fila) => {
+      const l = lineasDeFila(fila, anchos);
+      if (cuerpoActual.children.length && l > restante) {
+        // Se abre una tabla nueva, con el mismo encabezado y sus anchos.
+        const nueva = tablaActual.cloneNode(false);
+        nueva.classList.add("tabla-continua");
+        const cg = tablaActual.querySelector("colgroup");
+        if (cg) nueva.appendChild(cg.cloneNode(true));
+        if (cabecera) nueva.appendChild(cabecera.cloneNode(true));
+        const tb = document.createElement("tbody");
+        nueva.appendChild(tb);
+        tablaActual.parentNode.insertBefore(nueva, tablaActual.nextSibling);
+        tablaActual = nueva; cuerpoActual = tb;
+        restante = LINEAS_HOJA - 2;
+      }
+      if (cuerpoActual !== fila.parentNode) cuerpoActual.appendChild(fila);
+      restante -= l;
+    });
+  });
+}
+
 function ajustarAnchosImpresion(zona) {
   zona.querySelectorAll("table").forEach((tabla) => {
     if (tabla.querySelector("colgroup")) return;          // ya trae los suyos
@@ -4624,6 +4700,8 @@ function imprimirVentanaSegura() {
 
   // Los anchos se reparten antes de copiar, para que la copia salga ya correcta.
   ajustarAnchosImpresion(zona);
+  // El corte va después de los anchos: necesita saber cuánto mide cada columna.
+  partirTablasLargas(zona);
 
   // Se imprime una copia independiente, fuera de #raiz. Esto evita que Safari/iOS
   // capture el contenedor interno mientras sigue oculto por la interfaz de la PWA.
