@@ -863,6 +863,9 @@ th.col-fija{background:var(--surface-2); z-index:3}
   /* No poner break-after:avoid sobre el thead: Safari deja de repetirlo en
      cada hoja y la segunda página aparece sin encabezado, como cortada.
      Basta con que la fila del encabezado no se parta por dentro. */
+  /* Marca de versión en el membrete: diminuta y gris, sirve para saber de
+     qué versión salió un PDF sin tener que abrir Ajustes. */
+  .sello-version{font-size:6px; color:#9fb3bd; letter-spacing:.02em}
   .hoja-impresion thead tr{break-inside:avoid}
   /* ---- Filas parejas ----
      Todas las celdas del cuerpo comparten alto mínimo, interlineado y relleno,
@@ -4329,9 +4332,16 @@ function recordarPestana() {
   scrollPorPestana[S.pestana] = window.scrollY;
 }
 
-function volverAPestana(nombre) {
+function volverAPestana(nombre, mantenerSiNoHay) {
   const y = scrollPorPestana[nombre] || 0;
-  if (!y) { window.scrollTo(0, 0); return; }
+  if (!y) {
+    /* Sin posición guardada, las sub-pestañas (Planilla, Por criterio, Por
+       estudiante) se quedan donde están: mandarlas arriba hacía saltar la
+       pantalla cada vez que se cambiaba de vista. Las pestañas de abajo sí
+       arrancan arriba, porque son secciones distintas. */
+    if (!mantenerSiNoHay) window.scrollTo(0, 0);
+    return;
+  }
   // Se espera al siguiente cuadro: antes de dibujar, la página aún no tiene
   // el alto definitivo y el navegador recortaría la posición.
   requestAnimationFrame(() => {
@@ -4379,7 +4389,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v216";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v218";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -4563,8 +4573,11 @@ const ANCHO_COLUMNA = {
    entera antes de imprimir y se parte cualquier tabla que no quepa, clonando
    su encabezado en cada trozo. Cualquier informe, actual o nuevo, queda
    cubierto sin tocar su código. */
-const LINEAS_PRIMERA = 26;     // la primera hoja lleva membrete y ficha
-const LINEAS_HOJA = 44;
+/* Capacidad de una hoja, en líneas. No se descuenta aquí el membrete ni la
+   ficha: el recorrido de abajo ya los resta al pasar por ellos, y restarlos
+   dos veces hacía que la tabla se fuera a la hoja siguiente sin necesidad.
+   El valor lo fija prepararImpresion según orientación y tamaño de letra. */
+let LINEAS_HOJA = 44;
 
 function lineasDeFila(fila, anchos) {
   let max = 1;
@@ -4578,12 +4591,28 @@ function lineasDeFila(fila, anchos) {
 }
 
 function partirTablasLargas(zona) {
-  let restante = LINEAS_PRIMERA;
+  let restante = LINEAS_HOJA;
 
   [...zona.children].forEach((nodo) => {
     if (nodo.tagName !== "TABLE") {
-      // Títulos, rótulos y notas al pie también ocupan alto.
-      restante -= Math.max(1, Math.ceil((nodo.textContent || "").trim().length / 90)) + 1;
+      /* Títulos, rótulos y notas al pie también ocupan alto. La leyenda de
+         indicadores va en rejilla de varias columnas, así que su texto rinde
+         mucho más por línea: contarla como texto corrido la hacía parecer
+         tres veces más alta y mandaba la planilla a la hoja siguiente,
+         dejando media hoja en blanco. */
+      const cajas = nodo.querySelectorAll(".caja-ind").length;
+      if (cajas) {
+        /* Se cuenta por filas de recuadros, que es exacto: las columnas las
+           fija planImpresion y cada recuadro ocupa unas tres líneas. */
+        const rejilla = nodo.querySelector(".rejilla-ind");
+        const cols = rejilla
+          ? ((getComputedStyle(rejilla).gridTemplateColumns || "").trim().split(/\s+/).filter(Boolean).length || 4)
+          : 4;
+        restante -= Math.ceil(cajas / Math.max(1, cols)) * 3 + 2;
+        return;
+      }
+      const largo = (nodo.textContent || "").trim().length;
+      restante -= Math.max(1, Math.ceil(largo / 90)) + 1;
       return;
     }
     if (nodo.classList.contains("ficha-hoja") || nodo.classList.contains("tabla-leyenda")
@@ -4599,7 +4628,7 @@ function partirTablasLargas(zona) {
     /* Si en lo que queda de hoja no caben al menos cuatro filas, la tabla
        entera arranca en la siguiente: un encabezado con dos filas sueltas al
        pie se ve peor que un poco de blanco. */
-    if (restante < 8 && cuerpo.children.length > 4) {
+    if (restante < 6 && cuerpo.children.length > 4) {
       nodo.classList.add("tabla-continua");
       const rot = nodo.previousElementSibling;
       if (rot && rot.tagName === "P") {
@@ -6314,7 +6343,7 @@ document.addEventListener("click", async (evt) => {
     scrollPorPestana["modo:" + S.modo] = window.scrollY;
     S.modo = btn.dataset.v;
     pintar();
-    volverAPestana("modo:" + S.modo);
+    volverAPestana("modo:" + S.modo, true);   // sin salto si es la primera vez
     return;
   }
   if (a === "criterio") { S.criterioActivo = +btn.dataset.j; pintar(); return; }
@@ -7539,7 +7568,7 @@ function membreteHTML() {
   precargarLogo();
   return `<div class="membrete"><img src="${logoColegio()}" alt="">
     <span class="txt"><b>${esc(colegio())}</b>
-    <span>Educación Física y Salud · ${esc(curso.nombre)}</span></span></div>`;
+    <span>Educación Física y Salud · ${esc(curso.nombre)}<span class="sello-version"> · ${VERSION_APP}</span></span></span></div>`;
 }
 
 /* El escudo se crea de nuevo cada vez que se arma una hoja. Se descodifica
@@ -7564,6 +7593,10 @@ function hojaInforme(nFilas) {
   const fuente = n <= 12 ? 11 : n <= 20 ? 10 : n <= 28 ? 9 : n <= 36 ? 8 : 7.5;
   const alto = n <= 12 ? 4 : n <= 20 ? 3 : n <= 28 ? 2 : 1.5;
   const m = medidasHoja("portrait", 10);
+  /* Cuántas líneas caben en la hoja: alto útil dividido por el alto de una
+     línea (la fuente por su interlineado, más el relleno de la fila). De aquí
+     sale el corte por hojas de todas las tablas, en vez de un número fijo. */
+  LINEAS_HOJA = Math.max(12, Math.floor(m.altoUtil / ((fuente * 1.35 + 3) * 0.2646)));
   const css = `
     /* Margen cero a propósito: mientras la hoja tenga margen, el navegador lo
        usa para imprimir su encabezado y su pie (la dirección, la fecha, el
@@ -7609,6 +7642,10 @@ function prepararImpresion(nMarcas) {
   quitarHojaInforme();
   const { orientacion, fuente, cajas, fuenteLey } = planImpresion(nMarcas);
   const m = medidasHoja(orientacion, 9);
+  /* Cuántas líneas caben en la hoja: alto útil dividido por el alto de una
+     línea (la fuente por su interlineado, más el relleno de la fila). De aquí
+     sale el corte por hojas de todas las tablas, en vez de un número fijo. */
+  LINEAS_HOJA = Math.max(12, Math.floor(m.altoUtil / ((fuente * 1.35 + 3) * 0.2646)));
   // Con muchos indicadores hay que cederle ancho a las columnas de marca,
   // o el rótulo 1.10 no alcanza a caber y se corta. El sobrante depende del
   // tamaño de hoja: el oficio apaisado da 59 mm más que la A4, la carta 18 menos.
