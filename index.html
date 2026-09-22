@@ -1566,7 +1566,12 @@ body.impresion-en-curso > #impresion-segura *{visibility:visible!important}
   body.impresion-en-curso > #impresion-segura{
     display:block!important;visibility:visible!important;opacity:1!important;
     position:static!important;left:auto!important;top:auto!important;width:100%!important;
-    min-height:1px!important;padding:0!important;margin:0!important;overflow:visible!important;
+    /* El relleno hace de margen: @page va en cero para que el navegador no
+       imprima su encabezado ni su pie, y esta regla antes lo anulaba con
+       padding:0, dejando la tabla pegada al borde físico y cortada a la
+       derecha. box-sizing lo descuenta del ancho en vez de sumarlo. */
+    min-height:1px!important;padding:10mm!important;box-sizing:border-box!important;
+    margin:0!important;overflow:visible!important;
     background:#fff!important;color:#102b38!important;z-index:auto!important;
   }
   body.impresion-en-curso > #impresion-segura *{visibility:visible!important}
@@ -4389,7 +4394,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v220";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v221";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -4577,7 +4582,6 @@ const ANCHO_COLUMNA = {
    ficha: el recorrido de abajo ya los resta al pasar por ellos, y restarlos
    dos veces hacía que la tabla se fuera a la hoja siguiente sin necesidad.
    El valor lo fija prepararImpresion según orientación y tamaño de letra. */
-let LINEAS_HOJA = 44;
 
 function lineasDeFila(fila, anchos) {
   let max = 1;
@@ -4590,34 +4594,56 @@ function lineasDeFila(fila, anchos) {
   return max;
 }
 
+/* ---- Medidas reales de impresión, en milímetros ----
+   Antes se contaban "líneas", pero las filas tienen alto mínimo, relleno y
+   además se igualan todas al alto de la más alta. Contarlas como una línea
+   hacía creer que cabía más de lo que cabía, y la tabla se partía sola al pie
+   sin encabezado. Estas cifras salen de impresiones reales. */
+let ALTO_HOJA_MM = 277;          // lo ajustan prepararImpresion y hojaInforme
+/* Holgura calibrada contra una impresión real: un informe de dos listas cortó
+   la segunda después de la fila 8, y el cálculo sin holgura decía que cabían
+   12. Con 1,18 el cálculo coincide exacto; se usa 1,22 para dejar una fila de
+   resguardo. El error no es simétrico: sobrestimar deja algo de blanco al pie,
+   subestimar corta la tabla sin encabezado. Por eso se peca de cauto. */
+const HOLGURA_IMPRESION = 1.22;
+/* Letra y relleno de celda del informe que se está imprimiendo. La planilla
+   usa letra chica y filas bajas; los informes, letra mayor y más relleno.
+   Con un único alto fijo para todos, la planilla se partía sin necesidad o
+   los informes se cortaban al pie. Aquí cada informe aporta los suyos. */
+let FUENTE_PX = 9;
+let RELLENO_PX = 2;
+const PX_POR_MM = 3.78;
+// Alto de una fila con "lineas" renglones, en milímetros.
+const altoFilaMm = (lineas) => (lineas * 1.35 * FUENTE_PX + 2 * RELLENO_PX + 2) / PX_POR_MM;
+// Alto de un bloque de texto corrido, en milímetros.
+const altoTextoMm = (lineas) => (lineas * 1.35 * FUENTE_PX) / PX_POR_MM + 2;
+
 function partirTablasLargas(zona) {
-  let restante = LINEAS_HOJA;
+  let restante = ALTO_HOJA_MM;
 
   [...zona.children].forEach((nodo) => {
     if (nodo.tagName !== "TABLE") {
-      /* Títulos, rótulos y notas al pie también ocupan alto. La leyenda de
-         indicadores va en rejilla de varias columnas, así que su texto rinde
-         mucho más por línea: contarla como texto corrido la hacía parecer
-         tres veces más alta y mandaba la planilla a la hoja siguiente,
-         dejando media hoja en blanco. */
+      // La leyenda de indicadores es una rejilla: se mide por filas de recuadros.
       const cajas = nodo.querySelectorAll(".caja-ind").length;
       if (cajas) {
-        /* Se cuenta por filas de recuadros, que es exacto: las columnas las
-           fija planImpresion y cada recuadro ocupa unas tres líneas. */
         const rejilla = nodo.querySelector(".rejilla-ind");
         const cols = rejilla
           ? ((getComputedStyle(rejilla).gridTemplateColumns || "").trim().split(/\s+/).filter(Boolean).length || 4)
           : 4;
-        restante -= Math.ceil(cajas / Math.max(1, cols)) * 3 + 2;
+        const textoFuera = (nodo.textContent || "").length
+          - [...nodo.querySelectorAll(".caja-ind")].reduce((a, c) => a + (c.textContent || "").length, 0);
+        restante -= Math.ceil(cajas / Math.max(1, cols)) * (altoTextoMm(3) + 1.5)
+          + altoTextoMm(Math.ceil(Math.max(0, textoFuera) / 110)) + 2;
         return;
       }
+      if (nodo.classList.contains("membrete")) { restante -= 16; return; }
       const largo = (nodo.textContent || "").trim().length;
-      restante -= Math.max(1, Math.ceil(largo / 90)) + 1;
+      restante -= altoTextoMm(Math.max(1, Math.ceil(largo / 95))) + 1;
       return;
     }
     if (nodo.classList.contains("ficha-hoja") || nodo.classList.contains("tabla-leyenda")
         || nodo.classList.contains("tabla-firmas")) {
-      restante -= (nodo.querySelectorAll("tr").length || 1) + 1;
+      restante -= (nodo.querySelectorAll("tr").length || 1) * (altoFilaMm(1) + 1.5) + 3;
       return;
     }
 
@@ -4625,30 +4651,31 @@ function partirTablasLargas(zona) {
     const cuerpo = nodo.querySelector("tbody");
     if (!cuerpo) return;
     const cabecera = nodo.querySelector("thead");
-    /* Cuánto ocupa la tabla completa. Se mide antes de decidir nada: si cabe
-       en lo que queda de hoja, no hay motivo para moverla, y ese era el error
-       que dejaba media página en blanco con la tabla sola en la siguiente. */
-    const altoTabla = 2 + [...cuerpo.children]
-      .reduce((a, f) => a + lineasDeFila(f, anchos), 0);
+    const filas = [...cuerpo.children];
+    if (!filas.length) return;
 
-    /* Sólo se manda entera a la hoja siguiente cuando no cabe Y además en lo
-       que queda no entran ni unas pocas filas: un encabezado con dos filas
-       sueltas al pie se ve peor que un poco de blanco. */
-    if (altoTabla > restante && restante < 6 && cuerpo.children.length > 4) {
-      nodo.classList.add("tabla-continua");
+    /* Todas las filas quedan del alto de la más alta (con tope de tres
+       líneas), así que se mide cada una con ese mismo alto. */
+    const maxLineas = Math.min(3, Math.max(1, ...filas.map((f) => lineasDeFila(f, anchos))));
+    const altoFila = altoFilaMm(maxLineas);
+    const altoCab = altoFilaMm(1) * Math.max(1, cabecera ? cabecera.children.length : 1) + 1;
+    const altoTabla = altoCab + filas.length * altoFila;
+
+    /* Se manda entera a la hoja siguiente sólo si no cabe completa Y en lo
+       que queda no entran ni cuatro filas: un encabezado con dos filas sueltas
+       al pie se ve peor que un poco de blanco. */
+    if (altoTabla > restante && restante < altoCab + 4 * altoFila && filas.length > 4) {
       const rot = nodo.previousElementSibling;
-      if (rot && rot.tagName === "P") {
-        nodo.classList.remove("tabla-continua");
-        rot.classList.add("tabla-continua");        // el salto va en el rótulo
-      }
-      restante = LINEAS_HOJA;
+      if (rot && rot.tagName === "P") rot.classList.add("tabla-continua");   // el salto va en el rótulo
+      else nodo.classList.add("tabla-continua");
+      restante = ALTO_HOJA_MM;
+      if (rot && rot.tagName === "P") restante -= altoTextoMm(Math.ceil((rot.textContent || "").length / 95)) + 1;
     }
-    restante -= 2;                                   // el propio encabezado
+    restante -= altoCab;
 
     let tablaActual = nodo, cuerpoActual = cuerpo;
-    [...cuerpo.children].forEach((fila) => {
-      const l = lineasDeFila(fila, anchos);
-      if (cuerpoActual.children.length && l > restante) {
+    filas.forEach((fila) => {
+      if (cuerpoActual.children.length && altoFila > restante) {
         // Se abre una tabla nueva, con el mismo encabezado y sus anchos.
         const nueva = tablaActual.cloneNode(false);
         nueva.classList.add("tabla-continua");
@@ -4659,10 +4686,10 @@ function partirTablasLargas(zona) {
         nueva.appendChild(tb);
         tablaActual.parentNode.insertBefore(nueva, tablaActual.nextSibling);
         tablaActual = nueva; cuerpoActual = tb;
-        restante = LINEAS_HOJA - 2;
+        restante = ALTO_HOJA_MM - altoCab;
       }
       if (cuerpoActual !== fila.parentNode) cuerpoActual.appendChild(fila);
-      restante -= l;
+      restante -= altoFila;
     });
   });
 }
@@ -7602,7 +7629,8 @@ function hojaInforme(nFilas) {
   /* Cuántas líneas caben en la hoja: alto útil dividido por el alto de una
      línea (la fuente por su interlineado, más el relleno de la fila). De aquí
      sale el corte por hojas de todas las tablas, en vez de un número fijo. */
-  LINEAS_HOJA = Math.max(12, Math.floor(m.altoUtil / ((fuente * 1.35 + 3) * 0.2646)));
+  ALTO_HOJA_MM = Math.max(100, (m.altoUtil - 6) / HOLGURA_IMPRESION);
+  FUENTE_PX = fuente; RELLENO_PX = alto;   // informes: letra y relleno según el curso
   const css = `
     /* Margen cero a propósito: mientras la hoja tenga margen, el navegador lo
        usa para imprimir su encabezado y su pie (la dirección, la fecha, el
@@ -7651,7 +7679,8 @@ function prepararImpresion(nMarcas) {
   /* Cuántas líneas caben en la hoja: alto útil dividido por el alto de una
      línea (la fuente por su interlineado, más el relleno de la fila). De aquí
      sale el corte por hojas de todas las tablas, en vez de un número fijo. */
-  LINEAS_HOJA = Math.max(12, Math.floor(m.altoUtil / ((fuente * 1.35 + 3) * 0.2646)));
+  ALTO_HOJA_MM = Math.max(100, (m.altoUtil - 6) / HOLGURA_IMPRESION);
+  FUENTE_PX = fuente; RELLENO_PX = 2;      // planilla: letra chica, relleno de 2 px
   // Con muchos indicadores hay que cederle ancho a las columnas de marca,
   // o el rótulo 1.10 no alcanza a caber y se corta. El sobrante depende del
   // tamaño de hoja: el oficio apaisado da 59 mm más que la A4, la carta 18 menos.
