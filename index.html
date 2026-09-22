@@ -4389,7 +4389,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v219";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v220";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -8504,16 +8504,7 @@ function imprimirInformeAlumno(i) {
         <td class="izq">${esc(x.texto || "sin redactar")}</td>
         <td class="${x.ok === true ? "res-ok" : x.ok === "proceso" ? "res-proceso" : x.ok === false ? "res-no" : ""}">${esc(x.estado)}</td></tr>`).join("")}</tbody></table>`).join("")}
       ${d.medidas.length ? `<p class="nota-med"><b>Apoyo entregado:</b> ${d.medidas.map((t) => esc(t)).join("; ")}</p>` : ""}
-      ${(d.ev.obs[i] || "").trim() ? `<p class="obs-informe"><b>Observación:</b> ${esc(d.ev.obs[i])}</p>` : ""}`).join("")}
-
-    <p class="rot-informe">Compromisos</p>
-    <table class="tabla-firmas"><tbody>
-      <tr><th>Acuerdo con el estudiante</th><td class="linea"></td></tr>
-      <tr><th>Apoyo desde el hogar</th><td class="linea"></td></tr>
-    </tbody></table>
-    <table class="tabla-firmas" style="margin-top:14px"><tbody>
-      <tr><td class="firma">Profesor de Educación Física</td><td class="firma">Apoderado</td></tr>
-    </tbody></table>`;
+      ${(d.ev.obs[i] || "").trim() ? `<p class="obs-informe"><b>Observación:</b> ${esc(d.ev.obs[i])}</p>` : ""}`).join("")}`;
   imprimirVentanaSegura();
 }
 
