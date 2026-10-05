@@ -381,6 +381,12 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .objetivo-importado b{display:block; font-size:var(--t-xs); text-transform:uppercase;
   letter-spacing:.04em; color:var(--azul-oscuro); margin-bottom:2px}
 .objetivo-importado span{font-size:var(--t-sm); line-height:1.4}
+/* Enlace de texto para acciones secundarias, como recuperar la contraseña:
+   es un <button> de verdad, para que funcione el teclado y el lector. */
+.btn-enlace{display:block; width:100%; margin:8px 0 0; padding:8px 4px;
+  background:none; border:0; color:var(--azul); font-size:var(--t-sm);
+  font-weight:600; text-decoration:underline; cursor:pointer}
+.btn-enlace:active{opacity:.6}
 .acciones-alumno{margin-top:10px; padding-top:10px; border-top:1px solid var(--line);
   display:flex; flex-wrap:wrap; gap:8px}
 .por-indicador{margin:8px 0 4px; padding:9px 11px; background:var(--surface-2);
@@ -4028,13 +4034,35 @@ let sbListo = (async () => {
   try {
     const m = await import("https://esm.sh/@supabase/supabase-js@2");
     sb = m.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, storageKey: "sb-evalef-auth" }
+      /* detectSessionInUrl es lo que hace funcionar el enlace de recuperación:
+         sin él, el correo devuelve a la app y el token del enlace se ignora. */
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true,
+        storageKey: "sb-evalef-auth" }
+    });
+    /* Al volver desde el correo de recuperación, Supabase avisa con este
+       evento. Ahí se pide la contraseña nueva en vez de entrar directo. */
+    sb.auth.onAuthStateChange((evento) => {
+      if (evento === "PASSWORD_RECOVERY") pedirClaveNueva();
     });
   } catch (err) {
     console.warn("Sin conexión con el servidor:", err);
     sb = null;
   }
 })();
+
+/* Formulario para fijar la contraseña nueva, tras abrir el enlace del correo. */
+function pedirClaveNueva() {
+  abrirModal(`<h3>Crea tu contraseña nueva</h3>
+    <p class="sub" style="margin:6px 0 10px">Debe tener al menos 6 caracteres.</p>
+    <label class="campo"><span>Contraseña nueva</span>
+      <input type="password" id="clave-nueva" autocomplete="new-password"></label>
+    <label class="campo"><span>Repítela</span>
+      <input type="password" id="clave-nueva-2" autocomplete="new-password"></label>
+    <p class="sub" id="aviso-clave" style="margin:0 0 10px; color:var(--falta)"></p>
+    <div class="fila">
+      <button class="btn btn-lleno" data-accion="guardar-clave">Guardar contraseña</button>
+    </div>`);
+}
 
 async function usuarioActual() {
   if (!sb) return null;
@@ -4394,7 +4422,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v221";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v223";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -4606,6 +4634,8 @@ let ALTO_HOJA_MM = 277;          // lo ajustan prepararImpresion y hojaInforme
    resguardo. El error no es simétrico: sobrestimar deja algo de blanco al pie,
    subestimar corta la tabla sin encabezado. Por eso se peca de cauto. */
 const HOLGURA_IMPRESION = 1.22;
+// Tamaño del papel del informe en curso; lo fijan prepararImpresion y hojaInforme.
+let PAPEL_MM = { ancho: 210, alto: 297 };
 /* Letra y relleno de celda del informe que se está imprimiendo. La planilla
    usa letra chica y filas bajas; los informes, letra mayor y más relleno.
    Con un único alto fijo para todos, la planilla se partía sin necesidad o
@@ -4618,7 +4648,172 @@ const altoFilaMm = (lineas) => (lineas * 1.35 * FUENTE_PX + 2 * RELLENO_PX + 2) 
 // Alto de un bloque de texto corrido, en milímetros.
 const altoTextoMm = (lineas) => (lineas * 1.35 * FUENTE_PX) / PX_POR_MM + 2;
 
+/* ==== Paginación por medición real ====
+   Todo lo anterior estimaba alturas y siempre fallaba en algún informe: letras
+   distintas, filas igualadas, membrete, márgenes. Aquí no se estima: se arma una
+   copia invisible de la hoja con el ancho del papel y los mismos estilos de
+   impresión, el navegador la dibuja, y se leen las alturas reales. Con eso se
+   decide dónde cortar. Si la medición falla por cualquier motivo, se usa el
+   cálculo estimado como respaldo. */
+const RELLENO_HOJA_MM = 10;          // el relleno que hace de margen de página
+const RESGUARDO_MM = 6;              // colchón contra diferencias de redondeo
+
+/* Copia las reglas de impresión como reglas de pantalla, limitadas a la copia
+   que se mide. Se descartan las que tocan body, html o la copia real de
+   impresión: esas ocultan la app entera y no deben activarse al medir. */
+function estilosDeImpresionPara(selectorRaiz) {
+  const reglas = [];
+  const agregar = (lista) => {
+    for (const r of lista) {
+      if (r.type === 1) {                               // regla de estilo
+        const sel = r.selectorText || "";
+        if (/\b(body|html)\b|impresion-segura|:not\(|impresion-en-curso/.test(sel)) continue;
+        const scoped = sel.split(",").map((x) => {
+          const t = x.trim();
+          if (t.startsWith(".hoja-impresion")) return selectorRaiz + t.slice(".hoja-impresion".length);
+          if (t.startsWith("#impresion")) return selectorRaiz + t.replace(/^#impresion(\.hoja-impresion)?/, "");
+          return `${selectorRaiz} ${t}`;
+        }).join(",");
+        reglas.push(`${scoped}{${r.style.cssText}}`);
+      } else if (r.type === 4 && /print/.test(r.media.mediaText)) {
+        agregar(r.cssRules);                            // @media print dentro de la hoja
+      }
+    }
+  };
+  for (const hoja of document.styleSheets) {
+    let lista;
+    try { lista = hoja.cssRules; } catch { continue; }
+    if (!lista) continue;
+    if (hoja.media && /print/.test(hoja.media.mediaText)) agregar(lista);   // <style media="print">
+    else for (const r of lista) if (r.type === 4 && /print/.test(r.media.mediaText)) agregar(r.cssRules);
+  }
+  return reglas.join("\n");
+}
+
+const mmDePx = (px) => px / 3.7795;
+
+/* Mide y decide los cortes sobre una copia; devuelve, por cada hijo de la
+   zona, qué hacer: empujarlo a hoja nueva y/o en qué filas partirlo. */
+function medirCortes(zona) {
+  const anchoMm = PAPEL_MM.ancho - 2 * RELLENO_HOJA_MM;
+  const altoMm = PAPEL_MM.alto - 2 * RELLENO_HOJA_MM - RESGUARDO_MM;
+
+  const estilo = document.createElement("style");
+  estilo.id = "css-medicion";
+  estilo.textContent = estilosDeImpresionPara("#medicion-hoja");
+  document.head.appendChild(estilo);
+
+  const med = document.createElement("div");
+  med.id = "medicion-hoja";
+  med.className = "hoja-impresion";
+  med.setAttribute("aria-hidden", "true");
+  med.style.cssText = `display:block!important; position:absolute; left:-10000px; top:0;
+    width:${anchoMm}mm; padding:0; margin:0; visibility:hidden; background:#fff;`;
+  med.innerHTML = zona.innerHTML;
+  document.body.appendChild(med);
+
+  try {
+    const altoDe = (el) => {
+      const cs = getComputedStyle(el);
+      return mmDePx(el.getBoundingClientRect().height
+        + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0));
+    };
+    const hijos = [...med.children];
+    // Si todo mide cero, la copia no se dibujó: no se puede confiar en nada.
+    if (!hijos.some((h) => h.getBoundingClientRect().height > 0)) return null;
+
+    const decisiones = [];
+    let restante = altoMm;
+
+    hijos.forEach((nodo, k) => {
+      const dec = { empujar: false, cortes: [] };
+      decisiones[k] = dec;
+      const esTablaDatos = nodo.tagName === "TABLE" && nodo.querySelector("tbody")
+        && !nodo.classList.contains("ficha-hoja") && !nodo.classList.contains("tabla-leyenda");
+
+      if (!esTablaDatos) {
+        const h = altoDe(nodo);
+        if (h > restante && h <= altoMm) { dec.empujar = true; restante = altoMm; }
+        restante -= h;
+        return;
+      }
+
+      const thead = nodo.querySelector("thead");
+      const altoCab = thead ? mmDePx(thead.getBoundingClientRect().height) : 0;
+      const filas = [...nodo.querySelector("tbody").children];
+      const altos = filas.map((f) => mmDePx(f.getBoundingClientRect().height));
+      const altoTabla = altoDe(nodo);
+
+      if (altoTabla <= restante) { restante -= altoTabla; return; }
+
+      /* No cabe completa. Si en lo que queda no entran el encabezado y cuatro
+         filas, la tabla entera abre hoja nueva. */
+      const cuatro = altoCab + altos.slice(0, 4).reduce((a, b) => a + b, 0);
+      if (restante < cuatro && filas.length > 4) { dec.empujar = true; restante = altoMm; }
+
+      restante -= altoCab;
+      altos.forEach((h, i) => {
+        if (i > 0 && h > restante) {
+          dec.cortes.push(i);                  // la fila i empieza una hoja nueva
+          restante = altoMm - altoCab;
+        }
+        restante -= h;
+      });
+    });
+    return decisiones;
+  } finally {
+    med.remove();
+    estilo.remove();
+  }
+}
+
+/* Aplica las decisiones a la hoja real. Se recorre del final al principio
+   para que partir una tabla no corra los índices de las anteriores. */
+function aplicarCortes(zona, decisiones) {
+  const hijos = [...zona.children];
+  for (let k = hijos.length - 1; k >= 0; k--) {
+    const dec = decisiones[k];
+    const nodo = hijos[k];
+    if (!dec || !nodo) continue;
+
+    if (dec.cortes.length) {
+      const cuerpo = nodo.querySelector("tbody");
+      const filas = [...cuerpo.children];
+      const cabecera = nodo.querySelector("thead");
+      const cg = nodo.querySelector("colgroup");
+      const bordes = [...dec.cortes, filas.length];
+      let anterior = nodo;
+      for (let c = 0; c < dec.cortes.length; c++) {
+        const nueva = nodo.cloneNode(false);
+        nueva.classList.add("tabla-continua");
+        if (cg) nueva.appendChild(cg.cloneNode(true));
+        if (cabecera) nueva.appendChild(cabecera.cloneNode(true));
+        const tb = document.createElement("tbody");
+        filas.slice(bordes[c], bordes[c + 1]).forEach((f) => tb.appendChild(f));
+        nueva.appendChild(tb);
+        anterior.parentNode.insertBefore(nueva, anterior.nextSibling);
+        anterior = nueva;
+      }
+    }
+    if (dec.empujar) {
+      // El salto va en el rótulo de la tabla si lo tiene, para que no quede
+      // huérfano al pie de la hoja anterior.
+      const rot = nodo.previousElementSibling;
+      const destino = nodo.tagName === "TABLE" && rot && rot.tagName === "P" && !decisiones[k - 1]?.empujar
+        ? rot : nodo;
+      destino.classList.add("tabla-continua");
+    }
+  }
+}
+
 function partirTablasLargas(zona) {
+  let decisiones = null;
+  try { decisiones = medirCortes(zona); } catch (e) { console.warn("No se pudo medir la hoja:", e); }
+  if (decisiones) { aplicarCortes(zona, decisiones); return; }
+  partirTablasEstimado(zona);                 // respaldo: el cálculo por estimación
+}
+
+function partirTablasEstimado(zona) {
   let restante = ALTO_HOJA_MM;
 
   [...zona.children].forEach((nodo) => {
@@ -4873,6 +5068,7 @@ function vistaIngreso() {
       <label class="campo"><span>Correo</span><input type="email" id="correo" autocomplete="username" inputmode="email"></label>
       <label class="campo"><span>Contraseña</span><input type="password" id="clave" autocomplete="current-password"></label>
       <button class="btn btn-lleno btn-ancho" data-accion="entrar">Entrar</button>
+      <button class="btn-enlace" data-accion="olvide-clave">Olvidé mi contraseña</button>
       <p class="sub" style="margin:12px 0 0">Tus evaluaciones se sincronizan entre teléfono, tablet y computador.</p>
     </div>
     <button class="btn btn-ancho" data-accion="sin-cuenta">Trabajar solo en este equipo</button>
@@ -6342,6 +6538,50 @@ document.addEventListener("click", async (evt) => {
     if (error) { S.errorIngreso = "Correo o contraseña incorrectos."; pintar(); return; }
     S.sesion = data.user; S.errorIngreso = ""; await cargarCurso(S.cursoId); return;
   }
+  /* Recuperar la contraseña sin salir de la app: Supabase envía un correo con
+     un enlace para ponerla de nuevo. Antes había que entrar a su panel desde
+     un computador, que es justo lo que no se tiene a mano en la cancha. */
+  if (a === "olvide-clave") {
+    const correo = ($("#correo").value || "").trim();
+    if (!sb) { S.errorIngreso = "Necesitas conexión para recuperar la contraseña."; pintar(); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) {
+      S.errorIngreso = "Escribe tu correo arriba y vuelve a tocar “Olvidé mi contraseña”.";
+      pintar(); return;
+    }
+    btn.disabled = true; btn.textContent = "Enviando…";
+    // El enlace devuelve a la propia app, donde se pide la contraseña nueva.
+    const { error } = await sb.auth.resetPasswordForEmail(correo, { redirectTo: location.href.split("#")[0] });
+    if (error) {
+      console.warn(error);
+      S.errorIngreso = "No se pudo enviar el correo. Revisa la dirección e inténtalo de nuevo.";
+      pintar(); return;
+    }
+    S.errorIngreso = "";
+    abrirModal(`<h3>Revisa tu correo</h3>
+      <p class="sub" style="margin:6px 0 0">Te enviamos un enlace a <b>${esc(correo)}</b> para crear una contraseña nueva.
+      Ábrelo en este mismo equipo. Si no aparece en unos minutos, mira en correo no deseado.</p>
+      <div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="cerrar-modal">Entendido</button></div>`);
+    return;
+  }
+  if (a === "guardar-clave") {
+    const c1 = $("#clave-nueva").value, c2 = $("#clave-nueva-2").value;
+    const aviso = $("#aviso-clave");
+    if (c1.length < 6) { aviso.textContent = "Muy corta: usa al menos 6 caracteres."; return; }
+    if (c1 !== c2) { aviso.textContent = "Las dos contraseñas no coinciden."; return; }
+    btn.disabled = true; btn.textContent = "Guardando…";
+    const { error } = await sb.auth.updateUser({ password: c1 });
+    if (error) {
+      console.warn(error);
+      aviso.textContent = "No se pudo guardar. El enlace puede haber vencido: pide uno nuevo.";
+      btn.disabled = false; btn.textContent = "Guardar contraseña"; return;
+    }
+    cerrarModal();
+    // Ya queda con sesión iniciada: se carga el curso y a trabajar.
+    const u = await usuarioActual();
+    if (u) { S.sesion = u; S.errorIngreso = ""; await cargarCurso(S.cursoId); }
+    else pintar();
+    return;
+  }
   if (a === "sin-cuenta") { S.sinCuenta = true; await cargarCurso(S.cursoId); return; }
   if (a === "salir") {
     confirmar("Vas a cerrar la sesión en este equipo.", async () => {
@@ -7630,6 +7870,7 @@ function hojaInforme(nFilas) {
      línea (la fuente por su interlineado, más el relleno de la fila). De aquí
      sale el corte por hojas de todas las tablas, en vez de un número fijo. */
   ALTO_HOJA_MM = Math.max(100, (m.altoUtil - 6) / HOLGURA_IMPRESION);
+  PAPEL_MM = { ancho: m.anchoMm, alto: m.altoMm };   // para medir la hoja de verdad
   FUENTE_PX = fuente; RELLENO_PX = alto;   // informes: letra y relleno según el curso
   const css = `
     /* Margen cero a propósito: mientras la hoja tenga margen, el navegador lo
@@ -7680,6 +7921,7 @@ function prepararImpresion(nMarcas) {
      línea (la fuente por su interlineado, más el relleno de la fila). De aquí
      sale el corte por hojas de todas las tablas, en vez de un número fijo. */
   ALTO_HOJA_MM = Math.max(100, (m.altoUtil - 6) / HOLGURA_IMPRESION);
+  PAPEL_MM = { ancho: m.anchoMm, alto: m.altoMm };   // para medir la hoja de verdad
   FUENTE_PX = fuente; RELLENO_PX = 2;      // planilla: letra chica, relleno de 2 px
   // Con muchos indicadores hay que cederle ancho a las columnas de marca,
   // o el rótulo 1.10 no alcanza a caber y se corta. El sobrante depende del
