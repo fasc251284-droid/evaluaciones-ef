@@ -4132,6 +4132,7 @@ const almacen = {
 
 /* ===== Estado ===== */
 const S = {
+  correo: "",              // lo escrito en el campo de correo, para no perderlo
   sesion: null, verificando: true, sinCuenta: false, errorIngreso: "",
   cursoId: localStorage.getItem(PREFIJO + "ultimoCurso") || "c6",
   datos: null, cargando: true, errorCarga: "",
@@ -4428,7 +4429,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v224";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v225";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -5071,9 +5072,12 @@ function vistaIngreso() {
     ${S.errorIngreso ? `<div class="aviso">${esc(S.errorIngreso)}</div>` : ""}
     ${!sb ? `<div class="aviso">No hay conexión con el servidor. Puedes trabajar solo en este equipo.</div>` : ""}
     <div class="tarjeta">
-      <label class="campo"><span>Correo</span><input type="email" id="correo" autocomplete="username" inputmode="email"></label>
+      <!-- El correo se conserva al redibujar: cada error llamaba a pintar() y
+           borraba lo escrito, obligando a teclearlo otra vez. -->
+      <label class="campo"><span>Correo</span><input type="email" id="correo" autocomplete="username" inputmode="email" value="${esc(S.correo || "")}"></label>
       <label class="campo"><span>Contraseña</span><input type="password" id="clave" autocomplete="current-password"></label>
       <button class="btn btn-lleno btn-ancho" data-accion="entrar">Entrar</button>
+      <button class="btn btn-ancho" style="margin-top:8px" data-accion="crear-cuenta">Crear cuenta</button>
       <button class="btn-enlace" data-accion="olvide-clave">Olvidé mi contraseña</button>
       <p class="sub" style="margin:12px 0 0">Tus evaluaciones se sincronizan entre teléfono, tablet y computador.</p>
     </div>
@@ -6588,6 +6592,37 @@ document.addEventListener("click", async (evt) => {
     else pintar();
     return;
   }
+  /* Crear la cuenta desde la propia app. Faltaba por completo: si nunca se
+     había registrado el correo, no había forma de hacerlo salvo entrando al
+     panel de Supabase desde un computador. */
+  if (a === "crear-cuenta") {
+    const correo = ($("#correo").value || "").trim(), clave = $("#clave").value;
+    if (!sb) { S.errorIngreso = "Necesitas conexión para crear la cuenta."; pintar(); return; }
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) {
+      S.errorIngreso = "Escribe un correo válido arriba."; pintar(); return;
+    }
+    if (clave.length < 6) {
+      S.errorIngreso = "La contraseña debe tener al menos 6 caracteres."; pintar(); return;
+    }
+    btn.disabled = true; btn.textContent = "Creando…";
+    const { data, error } = await sb.auth.signUp({ email: correo, password: clave });
+    if (error) {
+      // Si ya existe, el problema es la contraseña, no la cuenta: conviene decirlo.
+      S.errorIngreso = /registered|already/i.test(error.message || "")
+        ? "Ese correo ya tiene cuenta. Usa “Olvidé mi contraseña” para recuperarla."
+        : `No se pudo crear la cuenta: ${error.message}`;
+      pintar(); return;
+    }
+    if (data.session) {                       // sin confirmación por correo: entra directo
+      S.sesion = data.user; S.errorIngreso = ""; await cargarCurso(S.cursoId); return;
+    }
+    S.errorIngreso = "";
+    abrirModal(`<h3>Revisa tu correo</h3>
+      <p class="sub" style="margin:6px 0 0">Enviamos un enlace a <b>${esc(correo)}</b> para confirmar la cuenta.
+      Ábrelo y después inicia sesión con la contraseña que acabas de elegir.</p>
+      <div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="cerrar-modal">Entendido</button></div>`);
+    return;
+  }
   if (a === "sin-cuenta") { S.sinCuenta = true; await cargarCurso(S.cursoId); return; }
   if (a === "salir") {
     confirmar("Vas a cerrar la sesión en este equipo.", async () => {
@@ -7726,6 +7761,12 @@ document.addEventListener("input", (evt) => {
   else return;
   marcarCambio();
 });
+
+/* Se recuerda el correo mientras se escribe, para que no se pierda al
+   redibujar tras un error. */
+document.addEventListener("input", (evt) => {
+  if (evt.target && evt.target.id === "correo") S.correo = evt.target.value;
+}, true);
 
 document.addEventListener("change", (evt) => {
   /* Peso y exigencia se repintan aquí, al salir del campo, y no en cada

@@ -1,5 +1,5 @@
 /* Cache del cascarón: la app abre sin conexión y los datos quedan en localStorage */
-const CACHE = "evalef-v224";
+const CACHE = "evalef-v225";
 const BASICOS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 /* La librería de Supabase se descarga de esm.sh. Iba siempre a la red, así que
