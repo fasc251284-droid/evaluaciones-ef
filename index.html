@@ -4429,7 +4429,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v225";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v226";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -6515,6 +6515,33 @@ function saltarAPestana(destino) {
   S.pestana = destino;
 }
 
+/* Las acciones de sesión hablan con un servidor. Si la red se corta a medias,
+   la librería de Supabase lanza una excepción en vez de devolver {error}: el
+   botón se quedaba en "Creando…" para siempre y en el teléfono no hay consola
+   donde ver qué pasó. Esto garantiza que siempre aparezca algo en pantalla y
+   que el botón vuelva a quedar usable. */
+const ESPERA_RED = 20000;
+async function pedirAlServidor(btn, textoOcupado, tarea) {
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = textoOcupado;
+  const soltar = () => { btn.disabled = false; btn.textContent = original; };
+  try {
+    const r = await Promise.race([
+      tarea(),
+      new Promise((_, rechazar) => setTimeout(
+        () => rechazar(new Error("El servidor no respondió en 20 segundos. Revisa tu conexión.")), ESPERA_RED)),
+    ]);
+    soltar();
+    return r || {};
+  } catch (err) {
+    soltar();
+    console.warn(err);
+    const detalle = (err && (err.message || err.name)) || "fallo de red";
+    return { error: { message: detalle, esDeRed: true } };
+  }
+}
+
 let pendienteConfirmar = null;
 function confirmar(mensaje, alAceptar) {
   pendienteConfirmar = alAceptar;
@@ -6543,9 +6570,17 @@ document.addEventListener("click", async (evt) => {
   if (a === "entrar") {
     const correo = $("#correo").value.trim(), clave = $("#clave").value;
     if (!sb) { S.errorIngreso = "No hay conexión con el servidor."; pintar(); return; }
-    btn.disabled = true; btn.textContent = "Entrando…";
-    const { data, error } = await sb.auth.signInWithPassword({ email: correo, password: clave });
-    if (error) { S.errorIngreso = "Correo o contraseña incorrectos."; pintar(); return; }
+    const { data, error } = await pedirAlServidor(btn, "Entrando…",
+      () => sb.auth.signInWithPassword({ email: correo, password: clave }));
+    if (error) {
+      // Antes todo error decía "contraseña incorrecta", incluso si era la red.
+      S.errorIngreso = error.esDeRed
+        ? `No se pudo conectar: ${error.message}`
+        : (/invalid login|credentials/i.test(error.message || "")
+            ? "Correo o contraseña incorrectos."
+            : `No se pudo entrar: ${error.message}`);
+      pintar(); return;
+    }
     S.sesion = data.user; S.errorIngreso = ""; await cargarCurso(S.cursoId); return;
   }
   /* Recuperar la contraseña sin salir de la app: Supabase envía un correo con
@@ -6558,12 +6593,11 @@ document.addEventListener("click", async (evt) => {
       S.errorIngreso = "Escribe tu correo arriba y vuelve a tocar “Olvidé mi contraseña”.";
       pintar(); return;
     }
-    btn.disabled = true; btn.textContent = "Enviando…";
     // El enlace devuelve a la propia app, donde se pide la contraseña nueva.
-    const { error } = await sb.auth.resetPasswordForEmail(correo, { redirectTo: location.href.split("#")[0] });
+    const { error } = await pedirAlServidor(btn, "Enviando…",
+      () => sb.auth.resetPasswordForEmail(correo, { redirectTo: location.href.split("#")[0] }));
     if (error) {
-      console.warn(error);
-      S.errorIngreso = "No se pudo enviar el correo. Revisa la dirección e inténtalo de nuevo.";
+      S.errorIngreso = `No se pudo enviar el correo: ${error.message}`;
       pintar(); return;
     }
     S.errorIngreso = "";
@@ -6578,12 +6612,13 @@ document.addEventListener("click", async (evt) => {
     const aviso = $("#aviso-clave");
     if (c1.length < 6) { aviso.textContent = "Muy corta: usa al menos 6 caracteres."; return; }
     if (c1 !== c2) { aviso.textContent = "Las dos contraseñas no coinciden."; return; }
-    btn.disabled = true; btn.textContent = "Guardando…";
-    const { error } = await sb.auth.updateUser({ password: c1 });
+    const { error } = await pedirAlServidor(btn, "Guardando…",
+      () => sb.auth.updateUser({ password: c1 }));
     if (error) {
-      console.warn(error);
-      aviso.textContent = "No se pudo guardar. El enlace puede haber vencido: pide uno nuevo.";
-      btn.disabled = false; btn.textContent = "Guardar contraseña"; return;
+      aviso.textContent = error.esDeRed
+        ? `No se pudo guardar: ${error.message}`
+        : "No se pudo guardar. El enlace puede haber vencido: pide uno nuevo.";
+      return;
     }
     cerrarModal();
     // Ya queda con sesión iniciada: se carga el curso y a trabajar.
@@ -6604,8 +6639,8 @@ document.addEventListener("click", async (evt) => {
     if (clave.length < 6) {
       S.errorIngreso = "La contraseña debe tener al menos 6 caracteres."; pintar(); return;
     }
-    btn.disabled = true; btn.textContent = "Creando…";
-    const { data, error } = await sb.auth.signUp({ email: correo, password: clave });
+    const { data, error } = await pedirAlServidor(btn, "Creando…",
+      () => sb.auth.signUp({ email: correo, password: clave }));
     if (error) {
       // Si ya existe, el problema es la contraseña, no la cuenta: conviene decirlo.
       S.errorIngreso = /registered|already/i.test(error.message || "")
@@ -6613,8 +6648,12 @@ document.addEventListener("click", async (evt) => {
         : `No se pudo crear la cuenta: ${error.message}`;
       pintar(); return;
     }
-    if (data.session) {                       // sin confirmación por correo: entra directo
+    if (data && data.session) {               // sin confirmación por correo: entra directo
       S.sesion = data.user; S.errorIngreso = ""; await cargarCurso(S.cursoId); return;
+    }
+    if (!data || !data.user) {                // respuesta vacía: no inventes que se creó
+      S.errorIngreso = "El servidor respondió sin crear la cuenta. Inténtalo de nuevo en un momento.";
+      pintar(); return;
     }
     S.errorIngreso = "";
     abrirModal(`<h3>Revisa tu correo</h3>
