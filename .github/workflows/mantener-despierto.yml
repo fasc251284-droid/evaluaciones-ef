@@ -1,0 +1,45 @@
+# Mantiene despierto el proyecto de Supabase.
+#
+# El plan gratuito duerme los proyectos que pasan ~7 días sin recibir ninguna
+# consulta. Esto le hace una consulta mínima cada dos días, así nunca llega a
+# ese límite aunque no uses la app en vacaciones.
+#
+# Dónde va este archivo en el repositorio:
+#     .github/workflows/mantener-despierto.yml
+#
+# La clave que aparece abajo es la misma que ya está pública dentro de
+# index.html: es la clave "publishable", pensada para vivir en el navegador.
+# No da acceso a nada que no dé la app.
+
+name: Mantener Supabase despierto
+
+on:
+  schedule:
+    # 12:17 UTC (09:17 en Chile) cada dos días. El minuto 17 es a propósito:
+    # a las horas en punto GitHub tiene cola y los trabajos se atrasan.
+    - cron: "17 12 */2 * *"
+  workflow_dispatch:        # para dispararlo a mano desde la pestaña Actions
+
+jobs:
+  despertar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar la base
+        run: |
+          URL="https://oktinlfoxjdohjukhwqw.supabase.co"
+          CLAVE="sb_publishable_xcSV6janC_6H0PqWcMvrAg_lyCU6cj1"
+
+          codigo=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 \
+            -H "apikey: $CLAVE" \
+            -H "Authorization: Bearer $CLAVE" \
+            "$URL/rest/v1/evaluaciones_ef?select=curso_id&limit=1")
+
+          echo "Respuesta del servidor: HTTP $codigo"
+
+          # 200 y 206 son respuestas buenas. 401 también sirve: significa que
+          # el servidor está vivo y contestó, que es lo único que importa aquí.
+          case "$codigo" in
+            200|206|401) echo "La base está despierta." ;;
+            000) echo "::error::No hubo respuesta: el proyecto puede estar pausado."; exit 1 ;;
+            *)   echo "::error::Respuesta inesperada (HTTP $codigo)."; exit 1 ;;
+          esac
