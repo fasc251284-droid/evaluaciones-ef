@@ -1568,35 +1568,35 @@ body.impresion-en-curso > #impresion-segura{
 }
 body.impresion-en-curso > #impresion-segura *{visibility:visible!important}
 
-/* ---- Tapa mientras se prepara el PDF ----
+/* ---- Fondo y barra mientras se prepara el PDF ----
    La copia que se imprime tiene que quedar dibujada de verdad: si se oculta,
-   iOS entrega el PDF en blanco. Pero sus medidas de columna viven dentro de
-   @media print, así que EN PANTALLA se ve angosta, con la mitad derecha
-   vacía y la app asomando por debajo: parecía un informe roto cuando el PDF
-   salía perfecto. Se intentó mostrarla como vista previa dándole esas mismas
-   medidas en pantalla; en Safari de iOS no se dibujaba y quedaba una pantalla
-   en blanco, así que se volvió a taparla con un aviso sobrio. La copia sigue
-   intacta debajo: en el papel no cambia nada. */
+   iOS entrega el PDF en blanco. Sus medidas de columna viven dentro de
+   @media print, así que en pantalla se ve angosta: eso no se puede arreglar
+   sin tocarla, y los dos intentos de hacerlo (encogerla con zoom y con
+   transform) la dejaron invisible en Safari. Así que se la deja tal cual y
+   sólo se arregla lo que sí se puede: un fondo que impide que la app asome
+   por debajo, y una barra con la salida. El documento se ve; el ancho real
+   lo tiene el PDF. */
 #fondo-impresion{
   position:fixed; inset:0; z-index:99990;
   background:var(--bg,#f1f5f8);
 }
-#fondo-impresion .recado{
-  position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
-  padding:24px; text-align:center;
-  font-family:var(--display,system-ui); font-size:var(--t-sm,14px);
-  font-weight:700; letter-spacing:.03em; color:var(--soft,#5a7485);
-}
-/* Barra con la salida. Si el teléfono no llega a abrir su menú de impresión,
-   sin esto la app queda trabada. Aparece recién al segundo y medio para no
-   tentar a cerrarla antes de que iOS componga la página. */
+/* Barra con el aviso y la salida. Si el teléfono no llega a abrir su menú de
+   impresión, sin esto la app queda trabada. El botón aparece recién al
+   segundo y medio para no tentar a cerrarla antes de que iOS componga la
+   página; el aviso se ve desde el principio. */
 #barra-impresion{
   position:fixed; left:0; right:0; bottom:0; z-index:100000;
-  display:flex; justify-content:center; gap:10px;
-  padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));
-  opacity:0; pointer-events:none; transition:opacity .25s;
+  display:flex; flex-direction:column; align-items:center; gap:9px;
+  padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(to top, var(--bg,#f1f5f8) 70%, transparent);
 }
-#barra-impresion.lista{opacity:1; pointer-events:auto}
+#barra-impresion .recado{
+  font-family:var(--display,system-ui); font-size:var(--t-xs,12px);
+  font-weight:700; letter-spacing:.03em; color:var(--soft,#5a7485); text-align:center;
+}
+#barra-impresion .salida{opacity:0; pointer-events:none; transition:opacity .25s}
+#barra-impresion.lista .salida{opacity:1; pointer-events:auto}
 #barra-impresion .salida{
   background:var(--surface,#fff); border:1px solid var(--line,#d7e1e8);
   border-radius:var(--r-s,10px); padding:11px 22px; cursor:pointer;
@@ -4472,7 +4472,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v232";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v233";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -4580,17 +4580,17 @@ function retirarClonImpresionSeguro() {
 function ponerTapaImpresion() {
   quitarTapaImpresion();
 
+  /* El fondo va ANTES del clon en el documento: así lo tapa la app que quedó
+     detrás, pero el clon, que tiene z-index mayor, se sigue viendo encima. */
   const fondo = document.createElement("div");
   fondo.id = "fondo-impresion";
   fondo.setAttribute("aria-hidden", "true");
-  fondo.innerHTML = '<div class="recado">Preparando el PDF…<br>'
-    + '<span style="font-weight:400">Elige “Guardar en Archivos” o la impresora en el menú de tu teléfono.</span></div>';
-  // Va antes del clon: lo tapa en pantalla sin quedar por encima de nada más.
   document.body.insertBefore(fondo, clonImpresionSeguro || null);
 
   const barra = document.createElement("div");
   barra.id = "barra-impresion";
-  barra.innerHTML = '<button type="button" class="salida" data-accion="cerrar-impresion">Volver a la app</button>';
+  barra.innerHTML = '<div class="recado">En pantalla se ve angosto; el PDF sale a página completa.</div>'
+    + '<button type="button" class="salida" data-accion="cerrar-impresion">Volver a la app</button>';
   document.body.appendChild(barra);
 
   relojTapaImpresion = setTimeout(() => {
