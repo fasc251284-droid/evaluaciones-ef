@@ -1568,36 +1568,32 @@ body.impresion-en-curso > #impresion-segura{
 }
 body.impresion-en-curso > #impresion-segura *{visibility:visible!important}
 
-/* ---- Vista previa mientras se prepara el PDF ----
+/* ---- Tapa mientras se prepara el PDF ----
    La copia que se imprime tiene que quedar dibujada de verdad: si se oculta,
    iOS entrega el PDF en blanco. Pero sus medidas de columna viven dentro de
-   @media print, así que EN PANTALLA se veía angosta, con la mitad derecha
+   @media print, así que EN PANTALLA se ve angosta, con la mitad derecha
    vacía y la app asomando por debajo: parecía un informe roto cuando el PDF
-   salía perfecto. En vez de taparla, aquí se le dan en pantalla las mismas
-   medidas que tendrá en el papel y se la muestra como una hoja, encogida
-   para que quepa. Lo que se ve es lo que se imprime. */
+   salía perfecto. Se intentó mostrarla como vista previa dándole esas mismas
+   medidas en pantalla; en Safari de iOS no se dibujaba y quedaba una pantalla
+   en blanco, así que se volvió a taparla con un aviso sobrio. La copia sigue
+   intacta debajo: en el papel no cambia nada. */
 #fondo-impresion{
   position:fixed; inset:0; z-index:99990;
   background:var(--bg,#f1f5f8);
 }
-/* Se encoge con transform y no con zoom: zoom dejaba la hoja invisible en
-   Safari de iOS. transform se comporta igual en todos lados, a cambio de
-   tener que calcular el centrado a mano, que es lo que hace --izq-hoja. */
-body.impresion-en-curso.con-vista > #impresion-segura{
-  left:var(--izq-hoja,0px)!important; right:auto!important; margin:0!important;
-  width:var(--ancho-hoja,210mm)!important;
-  padding:var(--relleno-hoja,10mm)!important;
-  transform:scale(var(--escala-hoja,1)); transform-origin:top left;
-  box-shadow:0 1px 3px rgba(16,43,56,.14), 0 10px 30px rgba(16,43,56,.10);
+#fondo-impresion .recado{
+  position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
+  padding:24px; text-align:center;
+  font-family:var(--display,system-ui); font-size:var(--t-sm,14px);
+  font-weight:700; letter-spacing:.03em; color:var(--soft,#5a7485);
 }
 /* Barra con la salida. Si el teléfono no llega a abrir su menú de impresión,
-   sin esto la app queda trabada mostrando la hoja. Aparece recién al segundo
-   y medio para no tentar a cerrarla antes de que iOS componga la página. */
+   sin esto la app queda trabada. Aparece recién al segundo y medio para no
+   tentar a cerrarla antes de que iOS componga la página. */
 #barra-impresion{
   position:fixed; left:0; right:0; bottom:0; z-index:100000;
   display:flex; justify-content:center; gap:10px;
   padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));
-  background:linear-gradient(to top, var(--bg,#f1f5f8) 62%, transparent);
   opacity:0; pointer-events:none; transition:opacity .25s;
 }
 #barra-impresion.lista{opacity:1; pointer-events:auto}
@@ -1608,25 +1604,11 @@ body.impresion-en-curso.con-vista > #impresion-segura{
   font-weight:700; color:var(--ink,#102b38);
   box-shadow:0 1px 2px rgba(16,43,56,.10);
 }
+/* Nada de esto puede alcanzar al papel. Van con display:none y no con
+   visibility, que sobre el clon llegó a dejar el PDF en blanco. */
 @media print{
-  #fondo-impresion,#barra-impresion,#estilos-vista-impresion{display:none!important}
-  body.impresion-en-curso.con-vista > #impresion-segura{
-    transform:none!important; box-shadow:none!important;
-    width:100%!important; margin:0!important; left:auto!important;
-  }
+  #fondo-impresion,#barra-impresion{display:none!important}
 }
-
-/* Red de seguridad: si la hoja no llega a dibujarse —otra rareza del
-   navegador de turno— se abandona la vista previa y se vuelve al aviso
-   simple. Vale más un mensaje sobrio que una pantalla en blanco. */
-body.impresion-en-curso.sin-vista > #impresion-segura{visibility:hidden!important}
-#fondo-impresion .recado{
-  position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
-  padding:24px; text-align:center; display:none;
-  font-family:var(--display,system-ui); font-size:var(--t-sm,14px);
-  font-weight:700; letter-spacing:.03em; color:var(--soft,#5a7485);
-}
-body.sin-vista #fondo-impresion .recado{display:block}
 
 @media print{
   body.impresion-en-curso > *:not(#impresion-segura){display:none!important}
@@ -4490,7 +4472,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v231";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v232";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -4593,42 +4575,17 @@ function retirarClonImpresionSeguro() {
   quitarTapaImpresion();
 }
 
-/* La vista previa se pone y se quita junto con la copia que se imprime: si
-   quedara puesta, la app se vería trabada tras cancelar el diálogo. */
+/* La tapa se pone y se quita junto con la copia que se imprime: si quedara
+   puesta, la app se vería trabada tras cancelar el diálogo del teléfono. */
 function ponerTapaImpresion() {
   quitarTapaImpresion();
-
-  /* Las medidas de columna de la hoja viven todas en @media print, que en
-     pantalla no rige. Aquí se reescriben apuntando al clon y se aplican sólo
-     a la pantalla, para que la vista previa calce con el papel sin tocar en
-     nada lo que el navegador enviará a imprimir. */
-  let css = "";
-  try { css = estilosDeImpresionPara("#impresion-segura"); }
-  catch (e) { console.warn("No se pudo armar la vista previa:", e); }
-  if (css) {
-    const hoja = document.createElement("style");
-    hoja.id = "estilos-vista-impresion";
-    hoja.media = "screen";
-    hoja.textContent = css;
-    document.head.appendChild(hoja);
-  }
-
-  /* La hoja se encoge lo justo para caber a lo ancho de la pantalla. Como
-     transform no mueve la caja real, el centrado se calcula aquí. */
-  const anchoHojaPx = PAPEL_MM.ancho * 3.7795;
-  const escala = Math.min(1, (window.innerWidth - 16) / anchoHojaPx);
-  const izq = Math.max(0, (window.innerWidth - anchoHojaPx * escala) / 2);
-  document.body.style.setProperty("--ancho-hoja", `${PAPEL_MM.ancho}mm`);
-  document.body.style.setProperty("--relleno-hoja", `${RELLENO_HOJA_MM}mm`);
-  document.body.style.setProperty("--escala-hoja", escala.toFixed(4));
-  document.body.style.setProperty("--izq-hoja", `${Math.round(izq)}px`);
-  document.body.classList.add("con-vista");
 
   const fondo = document.createElement("div");
   fondo.id = "fondo-impresion";
   fondo.setAttribute("aria-hidden", "true");
   fondo.innerHTML = '<div class="recado">Preparando el PDF…<br>'
     + '<span style="font-weight:400">Elige “Guardar en Archivos” o la impresora en el menú de tu teléfono.</span></div>';
+  // Va antes del clon: lo tapa en pantalla sin quedar por encima de nada más.
   document.body.insertBefore(fondo, clonImpresionSeguro || null);
 
   const barra = document.createElement("div");
@@ -4636,34 +4593,18 @@ function ponerTapaImpresion() {
   barra.innerHTML = '<button type="button" class="salida" data-accion="cerrar-impresion">Volver a la app</button>';
   document.body.appendChild(barra);
 
-  comprobarVistaImpresion();
-
   relojTapaImpresion = setTimeout(() => {
     const b = document.getElementById("barra-impresion");
     if (b) b.classList.add("lista");
-    comprobarVistaImpresion();            // segunda mirada, ya con todo asentado
   }, 1500);
-}
-
-/* Si la hoja quedó sin ancho o sin alto, la vista previa falló: se la oculta
-   y el fondo pasa a mostrar el aviso. Nunca una pantalla en blanco. */
-function comprobarVistaImpresion() {
-  const z = document.getElementById("impresion-segura");
-  if (!z) return;
-  const r = z.getBoundingClientRect();
-  const sirve = r.width > 40 && r.height > 40;
-  document.body.classList.toggle("sin-vista", !sirve);
 }
 
 function quitarTapaImpresion() {
   if (relojTapaImpresion) { clearTimeout(relojTapaImpresion); relojTapaImpresion = null; }
-  ["fondo-impresion", "barra-impresion", "estilos-vista-impresion"].forEach((id) => {
+  ["fondo-impresion", "barra-impresion"].forEach((id) => {
     const n = document.getElementById(id);
     if (n) n.remove();
   });
-  document.body.classList.remove("con-vista", "sin-vista");
-  ["--ancho-hoja", "--relleno-hoja", "--escala-hoja", "--izq-hoja"]
-    .forEach((v) => document.body.style.removeProperty(v));
 }
 
 function finalizarImpresionSegura() {
