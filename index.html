@@ -1567,6 +1567,23 @@ body.impresion-en-curso > #impresion-segura{
   overflow:visible!important;background:#fff!important;color:#102b38!important;z-index:99999!important;
 }
 body.impresion-en-curso > #impresion-segura *{visibility:visible!important}
+
+/* ---- Tapa mientras se prepara el PDF ----
+   La copia que se imprime tiene que quedar dibujada de verdad: si se oculta,
+   iOS entrega el PDF en blanco. Pero sus medidas de columna viven dentro de
+   @media print, así que EN PANTALLA se ve angosta, con la mitad derecha
+   vacía y la app asomando por debajo. Parecía un informe roto cuando el PDF
+   salía perfecto. Esta tapa cubre todo eso mientras dura la preparación y
+   desaparece en el papel. */
+#tapa-impresion{
+  position:fixed; inset:0; z-index:100000;
+  display:grid; place-items:center; gap:10px;
+  background:var(--bg,#f1f5f8); color:var(--soft,#5a7485);
+  font-family:var(--display,system-ui); font-size:var(--t-sm,14px); font-weight:700;
+  letter-spacing:.03em; text-align:center; padding:24px;
+}
+@media print{ #tapa-impresion{display:none!important} }
+
 @media print{
   body.impresion-en-curso > *:not(#impresion-segura){display:none!important}
   body.impresion-en-curso > #impresion-segura{
@@ -4429,7 +4446,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v226";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v228";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -4528,6 +4545,22 @@ function retirarClonImpresionSeguro() {
   clonImpresionSeguro = null;
   const viejo = document.getElementById("impresion-segura");
   if (viejo) viejo.remove();
+  quitarTapaImpresion();
+}
+
+/* La tapa se pone y se quita junto con la copia que se imprime: si quedara
+   puesta, la app se vería trabada tras cancelar el diálogo del teléfono. */
+function ponerTapaImpresion() {
+  quitarTapaImpresion();
+  const tapa = document.createElement("div");
+  tapa.id = "tapa-impresion";
+  tapa.setAttribute("aria-hidden", "true");
+  tapa.innerHTML = "<div>Preparando el PDF…<br><span style='font-weight:400'>Elige “Guardar en Archivos” o la impresora en el menú de tu teléfono.</span></div>";
+  document.body.appendChild(tapa);
+}
+function quitarTapaImpresion() {
+  const t = document.getElementById("tapa-impresion");
+  if (t) t.remove();
 }
 
 function finalizarImpresionSegura() {
@@ -4976,6 +5009,8 @@ function imprimirVentanaSegura() {
 
   impresionEnCurso = true;
   document.body.classList.add("impresion-en-curso");
+  // La tapa va después del clon, para quedar por encima de él en pantalla.
+  ponerTapaImpresion();
 
   // Fuerza layout real antes de abrir la hoja de impresión.
   void clonImpresionSeguro.offsetHeight;
