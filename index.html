@@ -1568,31 +1568,52 @@ body.impresion-en-curso > #impresion-segura{
 }
 body.impresion-en-curso > #impresion-segura *{visibility:visible!important}
 
-/* ---- Tapa mientras se prepara el PDF ----
+/* ---- Vista previa mientras se prepara el PDF ----
    La copia que se imprime tiene que quedar dibujada de verdad: si se oculta,
    iOS entrega el PDF en blanco. Pero sus medidas de columna viven dentro de
-   @media print, así que EN PANTALLA se ve angosta, con la mitad derecha
-   vacía y la app asomando por debajo. Parecía un informe roto cuando el PDF
-   salía perfecto. Esta tapa cubre todo eso mientras dura la preparación y
-   desaparece en el papel. */
-#tapa-impresion{
-  position:fixed; inset:0; z-index:100000;
-  display:grid; place-items:center; align-content:center; gap:14px;
-  background:var(--bg,#f1f5f8); color:var(--soft,#5a7485);
-  font-family:var(--display,system-ui); font-size:var(--t-sm,14px); font-weight:700;
-  letter-spacing:.03em; text-align:center; padding:24px;
+   @media print, así que EN PANTALLA se veía angosta, con la mitad derecha
+   vacía y la app asomando por debajo: parecía un informe roto cuando el PDF
+   salía perfecto. En vez de taparla, aquí se le dan en pantalla las mismas
+   medidas que tendrá en el papel y se la muestra como una hoja, encogida
+   para que quepa. Lo que se ve es lo que se imprime. */
+#fondo-impresion{
+  position:fixed; inset:0; z-index:99990;
+  background:var(--bg,#f1f5f8);
 }
-/* Si el teléfono no llega a abrir su menú de impresión, sin este botón la
-   app queda trabada mostrando sólo la tapa. Aparece recién al segundo y
-   medio para no tentar a cerrarla antes de que iOS componga la hoja. */
-#tapa-impresion .salida{
+/* Se encoge con zoom y no con transform a propósito: zoom sí achica la caja
+   en el flujo, así la hoja queda centrada sola y la página no arrastra el
+   espacio en blanco que dejaría una escala puramente visual. */
+body.impresion-en-curso.con-vista > #impresion-segura{
+  left:0!important; right:0!important; margin:0 auto 90px!important;
+  width:var(--ancho-hoja,210mm)!important;
+  padding:var(--relleno-hoja,10mm)!important;
+  zoom:var(--escala-hoja,1);
+  box-shadow:0 1px 3px rgba(16,43,56,.14), 0 10px 30px rgba(16,43,56,.10);
+}
+/* Barra con la salida. Si el teléfono no llega a abrir su menú de impresión,
+   sin esto la app queda trabada mostrando la hoja. Aparece recién al segundo
+   y medio para no tentar a cerrarla antes de que iOS componga la página. */
+#barra-impresion{
+  position:fixed; left:0; right:0; bottom:0; z-index:100000;
+  display:flex; justify-content:center; gap:10px;
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(to top, var(--bg,#f1f5f8) 62%, transparent);
   opacity:0; pointer-events:none; transition:opacity .25s;
-  background:var(--surface,#fff); border:1px solid var(--line,#d7e1e8);
-  border-radius:var(--r-s,10px); padding:11px 20px; cursor:pointer;
-  font-family:inherit; font-size:var(--t-sm,14px); font-weight:700; color:var(--ink,#102b38);
 }
-#tapa-impresion.lista .salida{opacity:1; pointer-events:auto}
-@media print{ #tapa-impresion{display:none!important} }
+#barra-impresion.lista{opacity:1; pointer-events:auto}
+#barra-impresion .salida{
+  background:var(--surface,#fff); border:1px solid var(--line,#d7e1e8);
+  border-radius:var(--r-s,10px); padding:11px 22px; cursor:pointer;
+  font-family:var(--display,system-ui); font-size:var(--t-sm,14px);
+  font-weight:700; color:var(--ink,#102b38);
+  box-shadow:0 1px 2px rgba(16,43,56,.10);
+}
+@media print{
+  #fondo-impresion,#barra-impresion,#estilos-vista-impresion{display:none!important}
+  body.impresion-en-curso.con-vista > #impresion-segura{
+    zoom:1!important; box-shadow:none!important; width:100%!important; margin:0!important;
+  }
+}
 
 @media print{
   body.impresion-en-curso > *:not(#impresion-segura){display:none!important}
@@ -4456,7 +4477,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v229";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v230";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -4559,26 +4580,58 @@ function retirarClonImpresionSeguro() {
   quitarTapaImpresion();
 }
 
-/* La tapa se pone y se quita junto con la copia que se imprime: si quedara
-   puesta, la app se vería trabada tras cancelar el diálogo del teléfono. */
+/* La vista previa se pone y se quita junto con la copia que se imprime: si
+   quedara puesta, la app se vería trabada tras cancelar el diálogo. */
 function ponerTapaImpresion() {
   quitarTapaImpresion();
-  const tapa = document.createElement("div");
-  tapa.id = "tapa-impresion";
-  tapa.setAttribute("aria-hidden", "true");
-  tapa.innerHTML = "<div>Preparando el PDF…<br><span style='font-weight:400'>Elige “Guardar en Archivos” o la impresora en el menú de tu teléfono.</span></div>"
-    + '<button type="button" class="salida" data-accion="cerrar-impresion">Volver a la app</button>';
-  document.body.appendChild(tapa);
-  // El botón de salida se habilita pasado el margen que iOS necesita.
+
+  /* Las medidas de columna de la hoja viven todas en @media print, que en
+     pantalla no rige. Aquí se reescriben apuntando al clon y se aplican sólo
+     a la pantalla, para que la vista previa calce con el papel sin tocar en
+     nada lo que el navegador enviará a imprimir. */
+  let css = "";
+  try { css = estilosDeImpresionPara("#impresion-segura"); }
+  catch (e) { console.warn("No se pudo armar la vista previa:", e); }
+  if (css) {
+    const hoja = document.createElement("style");
+    hoja.id = "estilos-vista-impresion";
+    hoja.media = "screen";
+    hoja.textContent = css;
+    document.head.appendChild(hoja);
+  }
+
+  // La hoja se encoge lo justo para caber a lo ancho de la pantalla.
+  const anchoHojaPx = PAPEL_MM.ancho * 3.7795;
+  const escala = Math.min(1, (window.innerWidth - 16) / anchoHojaPx);
+  document.body.style.setProperty("--ancho-hoja", `${PAPEL_MM.ancho}mm`);
+  document.body.style.setProperty("--relleno-hoja", `${RELLENO_HOJA_MM}mm`);
+  document.body.style.setProperty("--escala-hoja", escala.toFixed(4));
+  document.body.classList.add("con-vista");
+
+  const fondo = document.createElement("div");
+  fondo.id = "fondo-impresion";
+  fondo.setAttribute("aria-hidden", "true");
+  document.body.insertBefore(fondo, clonImpresionSeguro || null);
+
+  const barra = document.createElement("div");
+  barra.id = "barra-impresion";
+  barra.innerHTML = '<button type="button" class="salida" data-accion="cerrar-impresion">Volver a la app</button>';
+  document.body.appendChild(barra);
+
   relojTapaImpresion = setTimeout(() => {
-    const t = document.getElementById("tapa-impresion");
-    if (t) t.classList.add("lista");
+    const b = document.getElementById("barra-impresion");
+    if (b) b.classList.add("lista");
   }, 1500);
 }
+
 function quitarTapaImpresion() {
   if (relojTapaImpresion) { clearTimeout(relojTapaImpresion); relojTapaImpresion = null; }
-  const t = document.getElementById("tapa-impresion");
-  if (t) t.remove();
+  ["fondo-impresion", "barra-impresion", "estilos-vista-impresion"].forEach((id) => {
+    const n = document.getElementById(id);
+    if (n) n.remove();
+  });
+  document.body.classList.remove("con-vista");
+  ["--ancho-hoja", "--relleno-hoja", "--escala-hoja"].forEach((v) => document.body.style.removeProperty(v));
 }
 
 function finalizarImpresionSegura() {
