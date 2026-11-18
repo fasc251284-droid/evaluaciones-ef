@@ -1577,11 +1577,21 @@ body.impresion-en-curso > #impresion-segura *{visibility:visible!important}
    desaparece en el papel. */
 #tapa-impresion{
   position:fixed; inset:0; z-index:100000;
-  display:grid; place-items:center; gap:10px;
+  display:grid; place-items:center; align-content:center; gap:14px;
   background:var(--bg,#f1f5f8); color:var(--soft,#5a7485);
   font-family:var(--display,system-ui); font-size:var(--t-sm,14px); font-weight:700;
   letter-spacing:.03em; text-align:center; padding:24px;
 }
+/* Si el teléfono no llega a abrir su menú de impresión, sin este botón la
+   app queda trabada mostrando sólo la tapa. Aparece recién al segundo y
+   medio para no tentar a cerrarla antes de que iOS componga la hoja. */
+#tapa-impresion .salida{
+  opacity:0; pointer-events:none; transition:opacity .25s;
+  background:var(--surface,#fff); border:1px solid var(--line,#d7e1e8);
+  border-radius:var(--r-s,10px); padding:11px 20px; cursor:pointer;
+  font-family:inherit; font-size:var(--t-sm,14px); font-weight:700; color:var(--ink,#102b38);
+}
+#tapa-impresion.lista .salida{opacity:1; pointer-events:auto}
 @media print{ #tapa-impresion{display:none!important} }
 
 @media print{
@@ -4446,7 +4456,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v228";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v229";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -4539,6 +4549,7 @@ let impresionLanzada = false;
 let repintarTrasImpresion = false;
 let temporizadorLiberarImpresion = null;
 let clonImpresionSeguro = null;
+let relojTapaImpresion = null;   // habilita el botón de salida de la tapa
 
 function retirarClonImpresionSeguro() {
   if (clonImpresionSeguro && clonImpresionSeguro.parentNode) clonImpresionSeguro.remove();
@@ -4555,10 +4566,17 @@ function ponerTapaImpresion() {
   const tapa = document.createElement("div");
   tapa.id = "tapa-impresion";
   tapa.setAttribute("aria-hidden", "true");
-  tapa.innerHTML = "<div>Preparando el PDF…<br><span style='font-weight:400'>Elige “Guardar en Archivos” o la impresora en el menú de tu teléfono.</span></div>";
+  tapa.innerHTML = "<div>Preparando el PDF…<br><span style='font-weight:400'>Elige “Guardar en Archivos” o la impresora en el menú de tu teléfono.</span></div>"
+    + '<button type="button" class="salida" data-accion="cerrar-impresion">Volver a la app</button>';
   document.body.appendChild(tapa);
+  // El botón de salida se habilita pasado el margen que iOS necesita.
+  relojTapaImpresion = setTimeout(() => {
+    const t = document.getElementById("tapa-impresion");
+    if (t) t.classList.add("lista");
+  }, 1500);
 }
 function quitarTapaImpresion() {
+  if (relojTapaImpresion) { clearTimeout(relojTapaImpresion); relojTapaImpresion = null; }
   const t = document.getElementById("tapa-impresion");
   if (t) t.remove();
 }
@@ -6697,6 +6715,10 @@ document.addEventListener("click", async (evt) => {
       <div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="cerrar-modal">Entendido</button></div>`);
     return;
   }
+  /* Salida manual de la tapa: si el teléfono no abrió su menú de impresión,
+     es la única forma de volver sin recargar. Va directo a finalizar, sin
+     pasar por el margen de gracia, porque aquí la decisión es del usuario. */
+  if (a === "cerrar-impresion") { finalizarImpresionSegura(); return; }
   if (a === "sin-cuenta") { S.sinCuenta = true; await cargarCurso(S.cursoId); return; }
   if (a === "salir") {
     confirmar("Vas a cerrar la sesión en este equipo.", async () => {
