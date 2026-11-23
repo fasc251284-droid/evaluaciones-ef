@@ -15,7 +15,9 @@ name: Mantener Supabase despierto
 
 on:
   schedule:
-    # 12:17 UTC (09:17 en Chile) cada dos días. El minuto 17 es a propósito:
+    # 11:17 y 23:17 UTC = 08:17 y 20:17 en Chile. Supabase pide actividad cada
+    # día, no cada tantos días: con una consulta cada dos no bastó y el
+    # proyecto se durmió igual. El minuto 17 es a propósito:
     # a las horas en punto GitHub tiene cola y los trabajos se atrasan.
     - cron: "17 12 */2 * *"
   workflow_dispatch:        # para dispararlo a mano desde la pestaña Actions
