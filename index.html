@@ -4472,7 +4472,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v234";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v236";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -5028,35 +5028,307 @@ function emparejarFilas(tabla, anchos) {
   filas.forEach((fila) => { fila.style.height = `${(maxLineas * 1.35).toFixed(2)}em`; });
 }
 
-/* Safari de iOS ignora window.print() cuando la app corre desde el icono de
-   la pantalla de inicio: no abre el menú, no avisa, no pasa nada. En el
-   navegador sí funciona. Como no hay forma de detectar el fracaso después
-   —print() no devuelve nada ni lanza error— hay que atajarlo antes. */
-function esAppInstaladaEnIOS() {
-  const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || "")
-    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  const sueltaDelNavegador = navigator.standalone === true
-    || (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
-  return esIOS && sueltaDelNavegador;
+
+
+/* ---- El PDF se arma aquí dentro ----
+   Durante meses esto dependía de window.print(), que en el iPhone deja de
+   funcionar apenas la app se abre desde el icono de la pantalla de inicio:
+   iOS no abre el menú, no avisa y no devuelve error. Ya no se le pide nada
+   al navegador. Se dibuja la hoja con las medidas del papel, se reparte en
+   páginas por los mismos cortes que usaba la impresión, y se entrega el
+   archivo armado. Funciona igual desde el icono, desde Safari y desde el
+   computador. */
+/* Se cargan como <script> y no con import(): son librerías antiguas y los
+   servicios que las convierten a módulo fallan a veces. El trabajador de
+   servicio las guarda en caché, así que sólo la primera vez hace falta
+   internet. */
+const CDN_PDF = "https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js";
+const CDN_LIENZO = "https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js";
+let cargandoHerramientasPdf = null;
+
+function cargarGuion(url) {
+  return new Promise((listo, falla) => {
+    const g = document.createElement("script");
+    g.src = url;
+    g.onload = () => listo();
+    g.onerror = () => falla(new Error("no se pudo descargar una pieza necesaria"));
+    document.head.appendChild(g);
+  });
 }
 
-function avisarImpresionSoloEnSafari() {
-  abrirModal(
-    '<h3>Para guardar el PDF, abre la app en Safari</h3>'
-    + '<p class="sub" style="margin:8px 0 0">Cuando la app se abre desde el icono de la pantalla de inicio, '
-    + 'iOS no deja imprimir: el menú para guardar el PDF no aparece. Es una limitación de Safari, no de la app.</p>'
-    + '<p class="sub" style="margin:8px 0 0">En el navegador funciona igual y con los mismos cursos. '
-    + 'Inicia sesión con tu correo y todo estará ahí.</p>'
-    + '<div class="fila" style="margin-top:14px">'
-    + '<button class="btn btn-lleno" data-accion="abrir-en-safari">Abrir en Safari</button>'
-    + '<button class="btn" data-accion="cerrar-modal">Ahora no</button>'
-    + '</div>'
-    + '<button class="btn-enlace" style="margin-top:10px" data-accion="imprimir-igual">Intentar imprimir aquí de todos modos</button>'
-  );
+async function herramientasPdf() {
+  const tomar = () => {
+    const jsPDF = window.jspdf && window.jspdf.jsPDF;
+    const html2canvas = window.html2canvas;
+    return (typeof jsPDF === "function" && typeof html2canvas === "function")
+      ? { jsPDF, html2canvas } : null;
+  };
+  const yaEsta = tomar();
+  if (yaEsta) return yaEsta;
+
+  if (!cargandoHerramientasPdf) {
+    cargandoHerramientasPdf = (async () => {
+      await Promise.all([cargarGuion(CDN_PDF), cargarGuion(CDN_LIENZO)]);
+      const t = tomar();
+      if (!t) throw new Error("las herramientas para el PDF llegaron incompletas");
+      return t;
+    })().catch((e) => { cargandoHerramientasPdf = null; throw e; });
+  }
+  return cargandoHerramientasPdf;
+}
+
+function altoConMargenes(el) {
+  const cs = getComputedStyle(el);
+  return el.getBoundingClientRect().height
+    + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
+}
+
+/* Una tabla de datos se puede partir entre hojas repitiendo su cabecera; la
+   ficha de arriba y la leyenda de indicadores, no: son bloques de una pieza. */
+function esTablaPartible(nodo) {
+  return nodo.tagName === "TABLE"
+    && nodo.querySelector("tbody tr")
+    && !nodo.classList.contains("ficha-hoja")
+    && !nodo.classList.contains("tabla-leyenda");
+}
+
+/* Los informes ya llegan partidos en varias tablas por un cálculo a ojo
+   ("caben unas 34 filas en la primera hoja"). Para el PDF estorba: encima de
+   esa partición se sumaba la propia y salían hojas con seis filas. Aquí se
+   vuelven a unir en una sola tabla y después se reparte midiendo de verdad. */
+function fusionarTablasContinuadas(hoja) {
+  /* La firma compara sólo lo que tiene que coincidir para poder unir: el
+     número de columnas. Las clases no sirven, porque a los trozos de
+     continuación se les añaden algunas y nunca llegaban a parecerse. */
+  const firma = (t) => {
+    const fila = t.querySelector("thead tr:last-child") || t.querySelector("tbody tr");
+    return fila ? fila.children.length : -1;
+  };
+  let nodo = hoja.firstElementChild;
+  while (nodo) {
+    let siguiente = nodo.nextElementSibling;
+    if (esTablaPartible(nodo)) {
+      const cuerpo = nodo.querySelector("tbody");
+      while (siguiente && esTablaPartible(siguiente) && firma(siguiente) === firma(nodo)) {
+        const otroCuerpo = siguiente.querySelector("tbody");
+        while (otroCuerpo.firstElementChild) cuerpo.appendChild(otroCuerpo.firstElementChild);
+        const aBorrar = siguiente;
+        siguiente = siguiente.nextElementSibling;
+        aBorrar.remove();                 // su cabecera repetida ya no hace falta
+      }
+    }
+    nodo = siguiente;
+  }
+}
+
+/* Marca el rótulo de un trozo que no es el primero, para que quien lea la
+   hoja sepa que viene de la anterior. */
+function marcarContinuacion(tabla) {
+  const rot = tabla.querySelector("thead tr.fila-rotulo th");
+  if (rot && !/continuación/i.test(rot.textContent)) rot.textContent += " · continuación";
+}
+
+/* Reparte el contenido en páginas midiendo de verdad, fila por fila, sobre
+   la hoja ya dibujada al ancho del papel. Antes esto se apoyaba en los
+   cortes que preparaba la impresión del navegador, que venían pensados para
+   otra cosa: cada trozo arrastraba un salto de página obligatorio y dejaba
+   hojas con seis filas y el resto en blanco. */
+function repartirEnPaginas(hoja, altoPaginaPx) {
+  const paginas = [];
+  let actual = [];
+  let libre = altoPaginaPx;
+
+  const cerrarPagina = () => {
+    if (actual.length) paginas.push(actual);
+    actual = []; libre = altoPaginaPx;
+  };
+
+  [...hoja.children].forEach((nodo) => {
+    const alto = altoConMargenes(nodo);
+
+    if (alto <= libre) { actual.push(nodo.cloneNode(true)); libre -= alto; return; }
+
+    if (!esTablaPartible(nodo)) {          // no se puede cortar: a la hoja siguiente
+      if (actual.length) cerrarPagina();
+      actual.push(nodo.cloneNode(true));
+      libre -= alto;
+      return;
+    }
+
+    // Se reparte la tabla por filas, repitiendo la cabecera en cada trozo.
+    const cuerpo = nodo.querySelector("tbody");
+    const filas = [...cuerpo.children];
+    const altoFila = filas.map(altoConMargenes);
+    const sinCuerpo = alto - altoConMargenes(cuerpo);   // cabecera, bordes y rótulos
+
+    let i = 0;
+    let primerTrozo = true;
+    while (i < filas.length) {
+      if (libre < sinCuerpo + (altoFila[i] || 0)) cerrarPagina();
+      let cabenEstas = 0;
+      let ocupado = sinCuerpo;
+      while (i + cabenEstas < filas.length && ocupado + altoFila[i + cabenEstas] <= libre) {
+        ocupado += altoFila[i + cabenEstas];
+        cabenEstas++;
+      }
+      // Si no cupo ni una fila en una hoja entera, se fuerza una para no
+      // quedarse dando vueltas: mejor una fila apretada que un cuelgue.
+      if (cabenEstas === 0) { cabenEstas = 1; ocupado = sinCuerpo + altoFila[i]; }
+
+      const trozo = nodo.cloneNode(false);
+      const cg = nodo.querySelector("colgroup");
+      const cab = nodo.querySelector("thead");
+      if (cg) trozo.appendChild(cg.cloneNode(true));
+      if (cab) trozo.appendChild(cab.cloneNode(true));
+      const tb = document.createElement("tbody");
+      filas.slice(i, i + cabenEstas).forEach((f) => tb.appendChild(f.cloneNode(true)));
+      trozo.appendChild(tb);
+      if (!primerTrozo) marcarContinuacion(trozo);
+      actual.push(trozo);
+      libre -= ocupado;
+      i += cabenEstas;
+      primerTrozo = false;
+      if (i < filas.length) cerrarPagina();
+    }
+  });
+
+  cerrarPagina();
+  return paginas;
+}
+
+async function armarPdfDelInforme(zona) {
+  const { jsPDF, html2canvas } = await herramientasPdf();
+
+  const anchoUtilMm = PAPEL_MM.ancho - 2 * RELLENO_HOJA_MM;
+  const altoUtilMm = PAPEL_MM.alto - 2 * RELLENO_HOJA_MM - RESGUARDO_MM;
+
+  // Mismo truco que la medición: estilos de impresión reescritos para este nodo.
+  const estilo = document.createElement("style");
+  estilo.id = "css-pdf";
+  estilo.textContent = estilosDeImpresionPara("#hoja-pdf");
+  document.head.appendChild(estilo);
+
+  const hoja = document.createElement("div");
+  hoja.id = "hoja-pdf";
+  hoja.className = "hoja-impresion";
+  hoja.setAttribute("aria-hidden", "true");
+  /* Fuera de la vista pero dibujada de verdad y con opacidad entera:
+     html2canvas respeta la transparencia y visibility:hidden, así que con
+     cualquiera de las dos el lienzo salía vacío. Se la aparta a la izquierda,
+     que es lo único que no afecta al dibujo.
+     El ancho y el relleno van con !important porque los estilos de impresión
+     traen un width:auto!important que, sin esto, le gana al estilo de línea
+     y deja la hoja del ancho de la pantalla. */
+  hoja.style.cssText = `display:block!important; position:absolute!important;
+    left:-10000px; top:0; width:${anchoUtilMm}mm!important; padding:0!important;
+    margin:0!important; background:#fff; pointer-events:none;`;
+  hoja.innerHTML = zona.innerHTML;
+  document.body.appendChild(hoja);
+
+  try {
+    const anchoReal = hoja.getBoundingClientRect().width;
+    const pxPorMm = anchoReal / anchoUtilMm;
+    if (!(anchoReal > 100)) throw new Error("la hoja no tomó el ancho del papel");
+    fusionarTablasContinuadas(hoja);
+    const grupos = repartirEnPaginas(hoja, altoUtilMm * pxPorMm);
+    if (!grupos.length) throw new Error("la hoja quedó sin contenido");
+
+    const pdf = new jsPDF({
+      unit: "mm", format: [PAPEL_MM.ancho, PAPEL_MM.alto],
+      orientation: PAPEL_MM.ancho > PAPEL_MM.alto ? "landscape" : "portrait",
+      compress: true,
+    });
+
+    for (let i = 0; i < grupos.length; i++) {
+      /* Cada página se dibuja sola, así ninguna fila queda cortada al medio.
+         Los bloques van directo dentro de la hoja, sin envoltorio: cualquier
+         capa intermedia rompe las reglas de hijo directo de la impresión. */
+      hoja.replaceChildren(...grupos[i].map((n) => n.cloneNode(true)));
+
+      const anchoPx = Math.round(hoja.getBoundingClientRect().width);
+      const lienzo = await html2canvas(hoja, {
+        scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false,
+        width: anchoPx, windowWidth: anchoPx,
+        scrollX: 0, scrollY: 0,
+      });
+      // Un lienzo sin medidas significa que no se dibujó nada: mejor avisar
+      // que entregar un PDF con páginas en blanco.
+      if (!(lienzo.width > 0 && lienzo.height > 0)) {
+        throw new Error(`la página ${i + 1} salió vacía al dibujarse`);
+      }
+      const altoMm = Math.min(altoUtilMm, (lienzo.height / lienzo.width) * anchoUtilMm);
+      if (i > 0) pdf.addPage();
+      pdf.addImage(lienzo.toDataURL("image/jpeg", 0.92), "JPEG",
+        RELLENO_HOJA_MM, RELLENO_HOJA_MM, anchoUtilMm, altoMm, undefined, "FAST");
+    }
+    return pdf.output("blob");
+  } finally {
+    hoja.remove();
+    estilo.remove();
+  }
+}
+
+/* Entrega el archivo. En el iPhone se abre el menú de iOS, que trae tanto
+   "Guardar en Archivos" como "Imprimir"; en el computador, una descarga. */
+async function entregarArchivo(blob, nombre, tipo) {
+  const archivo = new File([blob], nombre, { type: tipo });
+  if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+    try { await navigator.share({ files: [archivo] }); return "compartido"; }
+    catch (e) {
+      if (e && e.name === "AbortError") return "cancelado";   // el usuario cerró el menú
+      console.warn("No se pudo compartir, se descarga:", e);
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 20000);
+  return "descargado";
+}
+
+function nombreDelInforme() {
+  const curso = (CURSOS.find((c) => c.id === S.cursoId) || {}).nombre || "curso";
+  const limpio = (t) => String(t).normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 48);
+  const titulo = ($("#impresion .titulo-hoja") || {}).textContent || "informe";
+  const t = limpio(titulo), c = limpio(curso);
+  // Varios títulos ya nombran el curso ("Consolidado · 6° Básico"): no se repite.
+  return (t.toLowerCase().includes(c.toLowerCase()) ? t : `${t}-${c}`) + ".pdf";
+}
+
+async function generarPdf() {
+  const zona = $("#impresion");
+  if (!zona || !zona.innerHTML.trim()) {
+    abrirModal('<h3>No se pudo preparar el PDF</h3><p class="sub" style="margin:6px 0 0">El informe quedó sin contenido. Ciérralo e inténtalo nuevamente.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>');
+    return;
+  }
+  /* Sólo se reparten los anchos. Los cortes NO: esta función pagina por su
+     cuenta midiendo la hoja de verdad, y los cortes del navegador traen
+     saltos de página obligatorios que dejaban hojas a medio llenar. */
+  ajustarAnchosImpresion(zona);
+  abrirModal('<h3>Armando el PDF…</h3><p class="sub" style="margin:6px 0 0">Un momento. En informes largos puede tardar unos segundos.</p>');
+  try {
+    const blob = await armarPdfDelInforme(zona);
+    const resultado = await entregarArchivo(blob, nombreDelInforme(), "application/pdf");
+    cerrarModal();
+    if (resultado === "descargado") {
+      abrirModal('<h3>PDF listo</h3><p class="sub" style="margin:6px 0 0">Quedó en tus descargas.</p><div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="cerrar-modal">Listo</button></div>');
+    }
+  } catch (err) {
+    console.warn(err);
+    cerrarModal();
+    abrirModal('<h3>No se pudo armar el PDF</h3><p class="sub" style="margin:6px 0 0">'
+      + esc((err && err.message) || "Error desconocido") + '.</p>'
+      + '<p class="sub" style="margin:8px 0 0">Si no tienes conexión, la primera vez hace falta internet para preparar esta función.</p>'
+      + '<div class="fila" style="margin-top:12px">'
+      + '<button class="btn btn-lleno" data-accion="cerrar-modal">Cerrar</button>'
+      + '<button class="btn" data-accion="imprimir-igual">Usar la impresión del navegador</button></div>');
+  }
 }
 
 function imprimirVentanaSegura(forzar) {
-  if (!forzar && esAppInstaladaEnIOS()) { avisarImpresionSoloEnSafari(); return; }
+  if (!forzar) { generarPdf(); return; }
 
   const zona = $("#impresion");
   if (!zona || !zona.innerHTML.trim()) {
@@ -6775,15 +7047,6 @@ document.addEventListener("click", async (evt) => {
      pasar por el margen de gracia, porque aquí la decisión es del usuario. */
   if (a === "cerrar-impresion") { finalizarImpresionSegura(); return; }
 
-  /* Desde una app instalada, abrir un enlace en blanco la saca al navegador.
-     Va dentro del toque del usuario: si no, iOS lo descarta como ventana
-     emergente. */
-  if (a === "abrir-en-safari") {
-    cerrarModal();
-    window.open(location.href.split("#")[0], "_blank");
-    return;
-  }
-  // Por si alguna versión de iOS lo arregla: la puerta queda abierta.
   if (a === "imprimir-igual") { cerrarModal(); imprimirVentanaSegura(true); return; }
   if (a === "sin-cuenta") { S.sinCuenta = true; await cargarCurso(S.cursoId); return; }
   if (a === "salir") {
