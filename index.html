@@ -4472,7 +4472,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v233";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v234";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
@@ -5028,7 +5028,36 @@ function emparejarFilas(tabla, anchos) {
   filas.forEach((fila) => { fila.style.height = `${(maxLineas * 1.35).toFixed(2)}em`; });
 }
 
-function imprimirVentanaSegura() {
+/* Safari de iOS ignora window.print() cuando la app corre desde el icono de
+   la pantalla de inicio: no abre el menú, no avisa, no pasa nada. En el
+   navegador sí funciona. Como no hay forma de detectar el fracaso después
+   —print() no devuelve nada ni lanza error— hay que atajarlo antes. */
+function esAppInstaladaEnIOS() {
+  const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || "")
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const sueltaDelNavegador = navigator.standalone === true
+    || (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches);
+  return esIOS && sueltaDelNavegador;
+}
+
+function avisarImpresionSoloEnSafari() {
+  abrirModal(
+    '<h3>Para guardar el PDF, abre la app en Safari</h3>'
+    + '<p class="sub" style="margin:8px 0 0">Cuando la app se abre desde el icono de la pantalla de inicio, '
+    + 'iOS no deja imprimir: el menú para guardar el PDF no aparece. Es una limitación de Safari, no de la app.</p>'
+    + '<p class="sub" style="margin:8px 0 0">En el navegador funciona igual y con los mismos cursos. '
+    + 'Inicia sesión con tu correo y todo estará ahí.</p>'
+    + '<div class="fila" style="margin-top:14px">'
+    + '<button class="btn btn-lleno" data-accion="abrir-en-safari">Abrir en Safari</button>'
+    + '<button class="btn" data-accion="cerrar-modal">Ahora no</button>'
+    + '</div>'
+    + '<button class="btn-enlace" style="margin-top:10px" data-accion="imprimir-igual">Intentar imprimir aquí de todos modos</button>'
+  );
+}
+
+function imprimirVentanaSegura(forzar) {
+  if (!forzar && esAppInstaladaEnIOS()) { avisarImpresionSoloEnSafari(); return; }
+
   const zona = $("#impresion");
   if (!zona || !zona.innerHTML.trim()) {
     finalizarImpresionSegura();
@@ -6745,6 +6774,17 @@ document.addEventListener("click", async (evt) => {
      es la única forma de volver sin recargar. Va directo a finalizar, sin
      pasar por el margen de gracia, porque aquí la decisión es del usuario. */
   if (a === "cerrar-impresion") { finalizarImpresionSegura(); return; }
+
+  /* Desde una app instalada, abrir un enlace en blanco la saca al navegador.
+     Va dentro del toque del usuario: si no, iOS lo descarta como ventana
+     emergente. */
+  if (a === "abrir-en-safari") {
+    cerrarModal();
+    window.open(location.href.split("#")[0], "_blank");
+    return;
+  }
+  // Por si alguna versión de iOS lo arregla: la puerta queda abierta.
+  if (a === "imprimir-igual") { cerrarModal(); imprimirVentanaSegura(true); return; }
   if (a === "sin-cuenta") { S.sinCuenta = true; await cargarCurso(S.cursoId); return; }
   if (a === "salir") {
     confirmar("Vas a cerrar la sesión en este equipo.", async () => {
