@@ -4472,9 +4472,20 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v236";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v237";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
+
+/* Orientación de los informes. "auto" decide según cuántos indicadores
+   tenga la lista, que es lo que hacía siempre; pero ese corte queda justo
+   en 8 y una lista de 8 salía vertical cuando se quería apaisada. Aquí se
+   puede fijar a mano y la elección vale para el PDF y para el Word. */
+const CLAVE_GIRO = PREFIJO + "giro";
+const GIROS = { auto: "Automática", portrait: "Vertical", landscape: "Horizontal" };
+const giroGuardado = () => (GIROS[localStorage.getItem(CLAVE_GIRO)] ? localStorage.getItem(CLAVE_GIRO) : "auto");
+/* Para los informes que no dependen de la cantidad de indicadores: siguen
+   siendo verticales salvo que se pida lo contrario. */
+const giroInforme = () => (giroGuardado() === "auto" ? "portrait" : giroGuardado());
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
 function medidasHoja(orientacion, margen) {
   const h = HOJAS[hojaGuardada()];
@@ -6818,6 +6829,12 @@ function vistaCurso() {
       </select>
     </label>
     <p class="sub" style="margin:-4px 0 12px">Se aplica a los PDF y al documento de Word. Ajusta el ancho de las columnas y cuántos estudiantes entran por hoja.</p>
+    <label class="campo" style="max-width:280px"><span>Orientación de la hoja</span>
+      <select data-campo="giro">
+        ${Object.entries(GIROS).map(([k, n]) => `<option value="${k}"${giroGuardado() === k ? " selected" : ""}>${n}</option>`).join("")}
+      </select>
+    </label>
+    <p class="sub" style="margin:-4px 0 12px">Con <b>Automática</b>, las listas de más de ocho indicadores salen horizontales y el resto verticales. Elige <b>Horizontal</b> si las quieres siempre apaisadas.</p>
     <p class="sub" style="margin:-4px 0 12px">Versión instalada: <b class="mono">${VERSION_APP}</b>. Sirve para confirmar que el equipo tomó la última actualización.</p>
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Word">
@@ -8226,6 +8243,9 @@ document.addEventListener("change", (evt) => {
     else if (a === "hoja") {
       guardarLocal(CLAVE_HOJA, el.value); pintar(); return;
     }
+    else if (a === "giro") {
+      guardarLocal(CLAVE_GIRO, el.value); pintar(); return;
+    }
     else if (a === "ade-lista") {
       const ev = evalActual();
       ev.adeModo = el.value;
@@ -8269,7 +8289,8 @@ document.addEventListener("keydown", (evt) => {
    Las columnas de marca no llevan ancho: el reparto lo hace la tabla. */
 function planImpresion(nMarcas) {
   const n = Math.max(0, nMarcas);
-  const orientacion = n <= 8 ? "portrait" : "landscape";
+  const elegida = giroGuardado();
+  const orientacion = elegida === "auto" ? (n <= 8 ? "portrait" : "landscape") : elegida;
   // Mientras más indicadores, más recuadros por fila y letra más chica:
   // así la leyenda no se come la hoja y cada recuadro crece hacia abajo.
   const cajas = n <= 6 ? 2 : n <= 12 ? 3 : n <= 20 ? 4 : 5;
@@ -8337,7 +8358,7 @@ function hojaInforme(nFilas) {
   const n = nFilas || S.datos.roster.length || 0;
   const fuente = n <= 12 ? 11 : n <= 20 ? 10 : n <= 28 ? 9 : n <= 36 ? 8 : 7.5;
   const alto = n <= 12 ? 4 : n <= 20 ? 3 : n <= 28 ? 2 : 1.5;
-  const m = medidasHoja("portrait", 10);
+  const m = medidasHoja(giroInforme(), 10);
   /* Cuántas líneas caben en la hoja: alto útil dividido por el alto de una
      línea (la fuente por su interlineado, más el relleno de la fila). De aquí
      sale el corte por hojas de todas las tablas, en vez de un número fijo. */
@@ -8502,7 +8523,7 @@ function trozosTabla(filas, primera, resto) {
    caracteres entraron 4 estudiantes en la hoja 1. De ahí sale un presupuesto
    de unas 46 líneas por hoja con esta letra. */
 function trozosInforme(filas, indicadores) {
-  const m = medidasHoja("portrait", 10);
+  const m = medidasHoja(giroInforme(), 10);
   const lineasPagina = Math.round(46 * (m.altoUtil / 277));
 
   // Lo que ocupa la tabla de indicadores: su texto se parte cerca de 60 caracteres.
@@ -9121,7 +9142,7 @@ function exportarWordIndicadores(i) {
   const est = ev.estado[i] || 0;
   const r = resultado(ev, i);
   const filas = detalleIndicadores(ev, i);
-  const m = medidasHoja("portrait", 12);
+  const m = medidasHoja(giroInforme(), 12);
   const anchoTotal = (m.anchoMm - 24) * MM_TW;
   const anchos = [0.09, 0.53, 0.26, 0.12].map((p) => p * anchoTotal);
 
@@ -9456,7 +9477,8 @@ function exportarWordConsolidado() {
   const sinNota = filas.filter((f) => f.prom === null).length;
 
   // Con muchas listas conviene apaisado, igual que en el PDF.
-  const orientacion = evs.length > 6 ? "landscape" : "portrait";
+  const orientacion = giroGuardado() === "auto"
+    ? (evs.length > 6 ? "landscape" : "portrait") : giroGuardado();
   const m = medidasHoja(orientacion, 12);
   const anchoTotal = (m.anchoMm - 24) * MM_TW;
   const propNom = evs.length > 8 ? 0.24 : 0.34;
