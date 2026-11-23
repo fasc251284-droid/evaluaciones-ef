@@ -19,7 +19,7 @@ on:
     # día, no cada tantos días: con una consulta cada dos no bastó y el
     # proyecto se durmió igual. El minuto 17 es a propósito:
     # a las horas en punto GitHub tiene cola y los trabajos se atrasan.
-    - cron: "17 12 */2 * *"
+    - cron: "17 11,23 * * *"
   workflow_dispatch:        # para dispararlo a mano desde la pestaña Actions
 
 jobs:
