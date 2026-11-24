@@ -4472,7 +4472,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v237";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v239";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 
@@ -5279,23 +5279,64 @@ async function armarPdfDelInforme(zona) {
   }
 }
 
-/* Entrega el archivo. En el iPhone se abre el menú de iOS, que trae tanto
-   "Guardar en Archivos" como "Imprimir"; en el computador, una descarga. */
-async function entregarArchivo(blob, nombre, tipo) {
-  const archivo = new File([blob], nombre, { type: tipo });
-  if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
-    try { await navigator.share({ files: [archivo] }); return "compartido"; }
-    catch (e) {
-      if (e && e.name === "AbortError") return "cancelado";   // el usuario cerró el menú
-      console.warn("No se pudo compartir, se descarga:", e);
-    }
-  }
+/* El archivo recién armado queda aquí a la espera de que el usuario toque un
+   botón. No es capricho: iOS sólo abre el menú de compartir si la orden sale
+   DENTRO de un toque, y armar el PDF toma varios segundos. Al llamarlo desde
+   la misma pulsación que inició todo, el permiso ya había vencido y el menú
+   no aparecía: la app parecía no hacer nada. */
+let pdfEnEspera = null;
+
+function puedeCompartirArchivos(archivo) {
+  try { return !!(navigator.canShare && navigator.canShare({ files: [archivo] })); }
+  catch (e) { return false; }
+}
+
+function guardarParaEntregar(blob, nombre, tipo) {
+  if (pdfEnEspera && pdfEnEspera.url) URL.revokeObjectURL(pdfEnEspera.url);
+  pdfEnEspera = { archivo: new File([blob], nombre, { type: tipo }), blob, nombre, url: null };
+  return pdfEnEspera;
+}
+
+function descargarSinMas(blob, nombre) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = nombre;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 20000);
-  return "descargado";
+}
+
+/* Se llama desde el toque del botón, así que navigator.share va primero,
+   antes de cualquier espera: cualquier await antes de él le quita el permiso. */
+async function entregarPdfEnEspera() {
+  if (!pdfEnEspera) return;
+  const { archivo, blob, nombre } = pdfEnEspera;
+  if (puedeCompartirArchivos(archivo)) {
+    const promesa = navigator.share({ files: [archivo] });
+    cerrarModal();
+    try { await promesa; }
+    catch (e) {
+      if (!e || e.name !== "AbortError") {    // cancelar es normal, no se avisa
+        console.warn(e);
+        abrirModal('<h3>El teléfono no quiso abrir el menú</h3>'
+          + '<p class="sub" style="margin:6px 0 0">' + esc(e && e.message ? e.message : "") + '</p>'
+          + '<div class="fila" style="margin-top:12px">'
+          + '<button class="btn btn-lleno" data-accion="abrir-pdf">Abrir el PDF en una pestaña</button>'
+          + '<button class="btn" data-accion="cerrar-modal">Cerrar</button></div>');
+      }
+    }
+    return;
+  }
+  cerrarModal();
+  descargarSinMas(blob, nombre);
+}
+
+/* Última salida: el PDF se abre como página aparte. En la app instalada eso
+   lo muestra en Safari, donde el botón de compartir siempre funciona. */
+function abrirPdfEnPestana() {
+  if (!pdfEnEspera) return;
+  if (!pdfEnEspera.url) pdfEnEspera.url = URL.createObjectURL(pdfEnEspera.blob);
+  cerrarModal();
+  window.open(pdfEnEspera.url, "_blank");
 }
 
 function nombreDelInforme() {
@@ -5321,11 +5362,41 @@ async function generarPdf() {
   abrirModal('<h3>Armando el PDF…</h3><p class="sub" style="margin:6px 0 0">Un momento. En informes largos puede tardar unos segundos.</p>');
   try {
     const blob = await armarPdfDelInforme(zona);
-    const resultado = await entregarArchivo(blob, nombreDelInforme(), "application/pdf");
+    const listo = guardarParaEntregar(blob, nombreDelInforme(), "application/pdf");
+    const kb = Math.max(1, Math.round(blob.size / 1024));
     cerrarModal();
-    if (resultado === "descargado") {
-      abrirModal('<h3>PDF listo</h3><p class="sub" style="margin:6px 0 0">Quedó en tus descargas.</p><div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="cerrar-modal">Listo</button></div>');
+
+    if (!puedeCompartirArchivos(listo.archivo)) {
+      /* Sin menú de compartir. En el computador basta con descargar; en una
+         app instalada en iOS la descarga no hace nada visible, así que ahí
+         se abre el PDF como página, que siempre funciona. */
+      const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || "")
+        || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      if (esIOS) {
+        abrirModal('<h3>PDF listo</h3><p class="sub" style="margin:6px 0 0">'
+          + esc(listo.nombre) + ' · ' + kb + ' KB.</p>'
+          + '<p class="sub" style="margin:8px 0 0">Se abrirá como página. Desde ahí, con el botón de compartir del navegador, puedes guardarlo o imprimirlo.</p>'
+          + '<div class="fila" style="margin-top:14px">'
+          + '<button class="btn btn-lleno" data-accion="abrir-pdf">Abrir el PDF</button>'
+          + '<button class="btn" data-accion="cerrar-modal">Ahora no</button></div>');
+        return;
+      }
+      descargarSinMas(blob, listo.nombre);
+      abrirModal('<h3>PDF listo</h3><p class="sub" style="margin:6px 0 0">'
+        + esc(listo.nombre) + ' · ' + kb + ' KB. Quedó en tus descargas.</p>'
+        + '<div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="cerrar-modal">Listo</button></div>');
+      return;
     }
+
+    /* En el teléfono el menú de iOS tiene que salir de un toque tuyo, no de
+       este momento: por eso se ofrece el botón en vez de abrirlo solo. */
+    abrirModal('<h3>PDF listo</h3>'
+      + '<p class="sub" style="margin:6px 0 0">' + esc(listo.nombre) + ' · ' + kb + ' KB.</p>'
+      + '<p class="sub" style="margin:8px 0 0">Toca el botón y elige “Guardar en Archivos” o “Imprimir”.</p>'
+      + '<div class="fila" style="margin-top:14px">'
+      + '<button class="btn btn-lleno" data-accion="entregar-pdf">Guardar o imprimir</button>'
+      + '<button class="btn" data-accion="cerrar-modal">Ahora no</button></div>'
+      + '<button class="btn-enlace" style="margin-top:10px" data-accion="abrir-pdf">Prefiero verlo en una pestaña</button>');
   } catch (err) {
     console.warn(err);
     cerrarModal();
@@ -7065,6 +7136,9 @@ document.addEventListener("click", async (evt) => {
   if (a === "cerrar-impresion") { finalizarImpresionSegura(); return; }
 
   if (a === "imprimir-igual") { cerrarModal(); imprimirVentanaSegura(true); return; }
+  // Sin await antes: el permiso para abrir el menú de iOS dura sólo el toque.
+  if (a === "entregar-pdf") { entregarPdfEnEspera(); return; }
+  if (a === "abrir-pdf") { abrirPdfEnPestana(); return; }
   if (a === "sin-cuenta") { S.sinCuenta = true; await cargarCurso(S.cursoId); return; }
   if (a === "salir") {
     confirmar("Vas a cerrar la sesión en este equipo.", async () => {
