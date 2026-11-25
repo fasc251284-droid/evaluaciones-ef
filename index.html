@@ -1720,6 +1720,178 @@ input.student-name-v152,select.student-name-v152{font-family:var(--body)!importa
   .seccion-curso-v147 .panel-portada-v147{padding-top:32px}
 }
 
+
+/* ===== v251 · Identidad: la planilla del profesor al borde de la cancha =====
+   Tres decisiones y nada más:
+   1. Un solo acento fuerte, el verde cinta de marcar, y se gasta en una sola
+      cosa: lo que está listo o activo. Antes había cuatro pasteles compitiendo
+      y ninguno significaba nada.
+   2. Las cifras van en una banda sola, con el promedio grande y el resto
+      apoyándolo. Cuatro tarjetas iguales no dicen cuál importa.
+   3. Los números con cifras de ancho fijo. En una planilla de notas las
+      columnas tienen que quedar a plomo.
+   La impresión no cambia: todo esto vive dentro de @media screen. */
+@media screen {
+  :root{
+    --cinta:#C6F24E;          /* cinta de marcar cancha: el único acento vivo */
+    --cinta-borde:#A8D92B;
+    --pista:#0B2F4E;          /* azul cancha, para lo que pesa */
+    --lamina:#E9EEF2;         /* el gris cal del fondo */
+  }
+  body{background:var(--lamina)}
+
+  /* Cifras de ancho fijo en todo lo que sea número: notas, puntajes,
+     porcentajes y la nómina quedan alineados en columna. */
+  .cifra b,.metric-v130 strong,.nota,.n-orden,.student-number-v152,
+  .metrica b,.progreso-kpi strong,table td,table th{font-variant-numeric:tabular-nums}
+
+  /* --- La banda de cifras: una sola pieza, con jerarquía --- */
+  .dashboard-v130 .metrics-v130,.dashboard-v146 .metrics-v130{
+    display:grid; grid-template-columns:1.25fr 1fr 1fr 1fr; gap:0;
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:var(--r); overflow:hidden;
+    box-shadow:0 1px 2px rgba(11,47,78,.05);
+  }
+  .dashboard-v130 .metric-v130,.dashboard-v146 .metric-v130{
+    min-height:0!important; border:0; border-radius:0; background:var(--surface);
+    border-left:1px solid var(--line);
+    display:block!important; text-align:left; padding:11px 10px 12px!important;
+    box-shadow:none;
+  }
+  .dashboard-v130 .metric-v130:first-child,
+  .dashboard-v146 .metric-v130:first-child{
+    border-left:0; background:var(--pista);
+  }
+  /* Los emoji-ícono de cada cifra sobraban: cuatro adornos que no se leen. */
+  .dashboard-v130 .metric-v130 em,.dashboard-v146 .metric-v130 em{display:none!important}
+  .dashboard-v130 .metric-v130 span,.dashboard-v146 .metric-v130 span{
+    display:block!important; margin:0 0 3px!important; font-size:var(--t-xs);
+    font-weight:600; color:var(--soft); letter-spacing:0; text-transform:none;
+  }
+  .dashboard-v130 .metric-v130 strong,.dashboard-v146 .metric-v130 strong{
+    display:block!important; font-size:var(--t-xl); line-height:1.05;
+    font-weight:800; letter-spacing:-.025em; color:var(--pista);
+  }
+  .dashboard-v130 .metric-prom,.dashboard-v146 .metric-prom{padding:11px 12px 12px!important}
+  .dashboard-v130 .metric-prom span,.dashboard-v146 .metric-prom span{color:#9DBBD2}
+  .dashboard-v130 .metric-prom strong,.dashboard-v146 .metric-prom strong{
+    color:#fff; font-size:var(--t-2xl);
+  }
+  .dashboard-v130 .metric-logro strong{color:var(--logro)}
+  .dashboard-v130 .metric-aus strong{color:var(--ink)}
+  /* Ausentes sólo se pone rojo cuando hay alguien ausente. */
+  .dashboard-v130 .metric-aus strong:not(:empty){color:var(--ink)}
+  @media(max-width:420px){
+    .dashboard-v130 .metrics-v130,.dashboard-v146 .metrics-v130{
+      grid-template-columns:1.3fr 1fr 1fr 1fr;
+    }
+    .dashboard-v130 .metric-v130,.dashboard-v146 .metric-v130{padding:10px 7px 11px!important}
+    .dashboard-v130 .metric-v130 strong,.dashboard-v146 .metric-v130 strong{font-size:var(--t-lg)}
+    .dashboard-v130 .metric-prom strong,.dashboard-v146 .metric-prom strong{font-size:var(--t-xl)}
+  }
+
+  /* --- Los avisos pasan de tarjeta a franja ---
+     Ocupaban un cuarto de pantalla en las cuatro pestañas. */
+  .aviso-local,.aviso-respaldo{
+    padding:9px 11px!important; border-radius:var(--r-s)!important;
+    font-size:var(--t-sm); line-height:1.35; margin-bottom:10px!important;
+  }
+  .aviso-local b,.aviso-respaldo b{font-size:var(--t-sm)}
+  .aviso-local p,.aviso-respaldo p{margin:3px 0 0; font-size:var(--t-sm); color:var(--soft)}
+  .aviso-local .btn-mini,.aviso-respaldo .btn-mini{padding:5px 11px; font-size:var(--t-xs)}
+
+  /* --- La pastilla del curso: sin versalitas espaciadas --- */
+  .barra-sup .pildora-curso span{
+    text-transform:none; letter-spacing:0; font-size:var(--t-sm); opacity:.82;
+  }
+
+  /* --- El foco pedagógico sólo grita cuando hay algo que arreglar ---
+     Cuando todo va bien era la pieza más llamativa de la pantalla para no
+     decir nada. Queda como una línea. */
+  .dashboard-v130 .foco-v130.foco-ok{
+    background:none; border:0; border-top:1px solid var(--line);
+    border-radius:0; box-shadow:none; padding:10px 2px 2px;
+    grid-template-columns:auto 1fr; gap:9px; align-items:start;
+  }
+  /* Sin medalla: cuando no hay nada que corregir basta la frase. */
+  .dashboard-v130 .foco-v130.foco-ok .foco-ico{display:none}
+  .dashboard-v130 .foco-v130.foco-ok{grid-template-columns:1fr}
+  .dashboard-v130 .foco-v130.foco-ok small{
+    color:var(--soft); font-weight:600; letter-spacing:0;
+  }
+  .dashboard-v130 .foco-v130.foco-ok p{
+    font-size:var(--t-sm); font-weight:600; color:var(--ink);
+  }
+  .dashboard-v130 .foco-v130.foco-ok .foco-pct{
+    color:var(--soft); font-weight:500; font-size:var(--t-xs);
+  }
+
+  /* --- La fila del estudiante: lo que Felipe toca cien veces por clase ---
+     Es el único sitio donde el diseño levanta la voz. La cinta verde al
+     costado dice, sin leer nada, quién ya quedó evaluado. */
+  .planilla tbody tr > td.col-fija{
+    box-shadow:inset 4px 0 0 var(--line);
+    transition:box-shadow .18s var(--curva);
+  }
+  .planilla tbody tr.fila-lista-v251 > td.col-fija{box-shadow:inset 4px 0 0 var(--cinta)}
+  .planilla tbody tr.fila-ausente > td.col-fija{box-shadow:inset 4px 0 0 var(--soft)}
+
+  /* --- La barra de abajo: la pestaña activa se ve activa --- */
+  .barra-inf .ir{position:relative}
+  .barra-inf .ir[aria-pressed="true"]::after{
+    content:""; position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:24px; height:3px; border-radius:0 0 3px 3px; background:var(--cinta);
+  }
+
+  /* --- El botón principal lleva el acento, y ninguno más --- */
+  .dashboard-v146 .accion-fila-v146.primaria{
+    background:var(--pista); border-color:var(--pista); color:#fff;
+    box-shadow:0 3px 10px rgba(11,47,78,.18);
+  }
+  .dashboard-v146 .accion-fila-v146.primaria .accion-ico-v146{
+    background:var(--cinta); color:var(--pista); font-weight:800;
+  }
+  .dashboard-v146 .accion-fila-v146.primaria .accion-chevron-v146{color:#9DBBD2}
+
+  /* El resto de las filas son todas iguales: ámbar para Ajustes y morado
+     para Importar eran colores sin significado, y le quitaban fuerza al
+     único botón que sí la necesita. */
+  .dashboard-v146 .accion-fila-v146.ajustes{
+    border-color:var(--line); color:var(--ink); background:var(--surface);
+  }
+  .dashboard-v146 .accion-fila-v146.ajustes .accion-ico-v146{
+    background:var(--surface-2); color:var(--soft);
+  }
+  .btn-importar-v146{
+    border-color:var(--line)!important; color:var(--ink)!important;
+    background:var(--surface)!important;
+  }
+
+  /* --- Nómina: una fila, no tres cajas apiladas --- */
+  .ficha-alumno-v251{
+    display:grid; grid-template-columns:26px 1fr auto auto; align-items:center;
+    gap:7px; padding:3px 0; border-top:1px solid var(--line);
+  }
+  .ficha-alumno-v251 input{
+    border:0; background:transparent; padding:9px 2px; width:100%;
+    border-bottom:1px solid transparent; border-radius:0;
+  }
+  .ficha-alumno-v251 input:focus{
+    outline:none; border-bottom-color:var(--azul); background:var(--surface-2);
+  }
+
+  :root[data-tema="oscuro"]{--lamina:#0d1b24}
+  :root[data-tema="oscuro"] .dashboard-v130 .metric-v130,
+  :root[data-tema="oscuro"] .dashboard-v146 .metric-v130{background:var(--surface)}
+  :root[data-tema="oscuro"] .dashboard-v130 .metric-v130 strong,
+  :root[data-tema="oscuro"] .dashboard-v146 .metric-v130 strong{color:#cfe6f5}
+  :root[data-tema="sol"] .dashboard-v130 .metric-v130 strong{color:#000}
+  :root[data-tema="sol"] .dashboard-v130 .metric-prom{background:#000}
+}
+@media (prefers-reduced-motion:reduce){
+  .fila-estudiante-v251::before{transition:none}
+}
+
 </style>
 </head>
 <body>
@@ -3151,7 +3323,10 @@ const PTS_DEFECTO = 3;
 const $ = (sel, cx) => (cx || document).querySelector(sel);
 const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const hoy = () => new Date().toISOString().slice(0, 10);
+/* Fecha local, no UTC: en Chile (UTC-3) toISOString() salta al día siguiente
+   a partir de las 21:00, y una lista creada de noche quedaba con fecha de
+   mañana. */
+const hoy = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
 const fechaLarga = (f) => { if (!f) return "sin fecha"; const [a, m, d] = f.split("-"); return `${d}/${m}/${a}`; };
 const num1 = (n) => (n === null || n === undefined ? "—" : n.toFixed(1).replace(".", ","));
 const idNuevo = () => "e" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -4603,7 +4778,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v250";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v251";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 
@@ -5705,14 +5880,13 @@ function vistaApp() {
   <div class="envoltura">
     ${S.cargando ? esqueletoHTML(curso.nombre) : `
     ${S.servidorCaido ? `<div class="aviso aviso-local aviso-sin-red no-imprimir">
-      <b>Sin conexión con el servidor.</b> Estás trabajando con los datos de este equipo:
-      puedes evaluar normalmente y todo se sube solo cuando el servidor vuelva.
-      Mientras tanto usa este mismo aparato, para que nada se pise.
+      <b>Sin conexión.</b> Evalúa igual: todo se sube solo cuando vuelva.
+      Mientras tanto usa este mismo aparato.
       <button class="btn btn-mini" data-accion="probar-servidor">Probar ahora</button>
     </div>` : ""}
     ${tocaRespaldar() && !S.ocultarAvisoRespaldo ? `<div class="aviso aviso-local aviso-respaldo no-imprimir">
       <b>Llevas ${diasSinRespaldar()} días sin respaldar.</b>
-      Un archivo pequeño guarda todas tus evaluaciones por si cambias de equipo.
+      Un archivo guarda todas tus evaluaciones por si cambias de equipo.
       <button class="btn btn-mini btn-lleno" data-accion="respaldo-todo">Respaldar ahora</button>
       <button class="btn btn-mini" data-accion="posponer-respaldo">Después</button>
     </div>` : ""}
@@ -6408,7 +6582,9 @@ function vistaPlanilla(ev) {
           const nom = S.datos.roster[i];
           const r = resultado(ev, i);
           const est = ev.estado[i] || 0;
-          return `<tr class="${est ? "fila-ausente" : ""}" data-fila="${i}">
+          // La cinta del costado dice de un vistazo quién quedó listo, sin leer nada.
+          const listo = !est && r.marcados > 0 && r.sinMarca === 0;
+          return `<tr class="${est ? "fila-ausente" : listo ? "fila-lista-v251" : ""}" data-fila="${i}">
             <td class="izq col-fija"><span class="n-orden student-number-v152">${String(i + 1).padStart(2, "0")}</span> <span class="student-name-v152">${esc(nom || "—")}</span></td>
             <td>${botonAsistencia(ev, i)}</td>
             ${cols.map((col) => {
@@ -6753,9 +6929,13 @@ function vistaResumen() {
         </div>`;
       }).join("")}
     </div>
+    <!-- El botón de arriba saca lo que se está viendo: la lista de notas.
+         El de la planilla completa queda al lado, con su nombre, porque antes
+         los tres botones sacaban la planilla y eso confundía. -->
     <div class="fila no-imprimir" style="margin-top:14px">
-      <button class="btn btn-mini" data-icon="📄" data-accion="imprimir">Imprimir o guardar PDF</button>
-      <button class="btn btn-mini" data-icon="📝" data-accion="word">Descargar Word</button>
+      <button class="btn btn-mini" data-icon="📄" data-accion="notas-curso">Informe de notas (PDF)</button>
+      <button class="btn btn-mini" data-icon="🗂️" data-accion="imprimir">Planilla completa (PDF)</button>
+      <button class="btn btn-mini" data-icon="📝" data-accion="word">Planilla en Word</button>
       <button class="btn btn-mini" data-icon="📊" data-accion="excel">Descargar Excel</button>
     </div>
   </div>
@@ -8725,6 +8905,8 @@ function hojaInforme(nFilas) {
        al texto del indicador, que es lo que de verdad hay que leer. */
     .hoja-impresion .col-barra{width:15mm}
     .hoja-impresion .col-barra-ancha{width:40mm}
+    /* "Estudiantes" no cabe en los 11 mm de .c-pct: se cortaba el encabezado. */
+    .hoja-impresion .col-cuenta{width:24mm; text-align:center}
     .leyenda-oa{font-size:9px}`;
   let tag = $("#css-informe");
   if (!tag) {
@@ -8893,7 +9075,7 @@ function trozosDeFilas(filas, nMarcas, ev) {
   const nInd = (ev.criterios || []).reduce((a, c) => a + (c.indicadores || []).length, 0);
   const filasLeyenda = Math.ceil(nInd / Math.max(1, cajas));
   const notasPie = ((ev.medidas || []).some((m) => m && m.length) ? 1 : 0)
-                 + ((ev.adecuaciones || []).some((m) => m && m.length) ? 1 : 0);
+                 + (S.datos.roster.some((_, i) => adeDeLista(ev, i).length) ? 1 : 0);
 
   const m = medidasHoja(orientacion, 9);
   /* La A4 apaisada da 192 mm de alto y ahí entran las cifras calibradas. Las
@@ -8988,11 +9170,11 @@ function imprimirNotasCurso() {
     </tbody></table>
 
     <p class="rot-informe">Distribución de promedios</p>
-    <table><thead><tr><th class="izq">Rango</th><th class="c-pct">Estudiantes</th>
+    <table><thead><tr><th class="izq">Rango</th><th class="col-cuenta">Estudiantes</th>
       <th class="col-barra-ancha">Proporción</th></tr></thead>
     <tbody>${tramos.map((t) => `<tr>
       <td class="izq">${t.rango}</td>
-      <td class="c-pct">${t.n}</td>
+      <td class="col-cuenta">${t.n}</td>
       <td><span class="barra-pdf"><i style="width:${proms.length ? Math.round((t.n / proms.length) * 100) : 0}%;
         background:${t.rango.startsWith("3") || t.rango.startsWith("2") ? "#b8392e" : t.rango.startsWith("4") ? "#d99a10" : "#1e8a5f"}"></i></span></td>
     </tr>`).join("")}</tbody></table>
@@ -9828,7 +10010,11 @@ function exportarWordConsolidado() {
     f.prom === null ? "—" : num1(f.prom)]);
 
   const partes = [
-    wParrafo(`${colegio()} · Educación Física y Salud · ${curso.nombre}`, { negrita: true, tam: 18, espacio: 20 }),
+    // Mismo membrete con escudo que la planilla: los dos salen del colegio.
+    `<w:p><w:pPr><w:spacing w:after="40"/></w:pPr>`
+      + (bytesDeDataURL(logoColegio()) ? wImagen(13, 13) : "")
+      + `<w:r><w:rPr><w:b/><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve">  ${xesc(colegio())}</w:t></w:r>`
+      + `<w:r><w:rPr><w:sz w:val="16"/></w:rPr><w:t xml:space="preserve">   Educación Física y Salud · ${xesc(curso.nombre)}</w:t></w:r></w:p>`,
     wParrafo(`Consolidado · ${curso.nombre}`, { negrita: true, tam: 30, espacio: 60 }),
     wFicha([
       [["Asignatura", "Educación Física y Salud"],
@@ -9906,7 +10092,9 @@ function exportarWord() {
 
   const anchoTotal = (m.anchoMm - 24) * MM_TW;
   const fijos = [0.04, 0.17, 0.05];
-  const cola = [0.06, 0.05, 0.06, 0.14];
+  // El % necesita su espacio: con 0,05 "100 %" se partía en dos líneas y
+  // duplicaba el alto de cada fila.
+  const cola = [0.055, 0.07, 0.055, 0.13];
   const usado = [...fijos, ...cola].reduce((a, b) => a + b, 0);
   const porMarca = Math.max(0.02, (1 - usado) / Math.max(1, nMarcas));
   const anchos = [...fijos, ...new Array(nMarcas).fill(porMarca), ...cola].map((p) => p * anchoTotal);
@@ -9951,7 +10139,9 @@ function exportarWord() {
   });
 
   const conAde = S.datos.roster.map((n, i) => {
-    const a = ev.adecuaciones && ev.adecuaciones[i] ? ev.adecuaciones[i] : [];
+    // Las adecuaciones son de la lista, no del curso: hay que leerlas igual
+    // que el PDF, o el Word sale sin ellas.
+    const a = adeDeLista(ev, i);
     return a.length ? `${n || "N° " + (i + 1)}: ${a.join("; ")}` : null;
   }).filter(Boolean);
   if (conAde.length) partes.push(wParrafo(`* Adecuaciones curriculares · Decreto 83/2015. ${conAde.join(" — ")}`, { tam: 14, espacio: 30 }));

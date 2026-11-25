@@ -1,5 +1,5 @@
 /* Cache del cascarón: la app abre sin conexión y los datos quedan en localStorage */
-const CACHE = "evalef-v250";
+const CACHE = "evalef-v251";
 const BASICOS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 /* La librería de Supabase se descarga de esm.sh. Iba siempre a la red, así que
@@ -8,7 +8,7 @@ const BASICOS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./i
    se borra al publicar una versión nueva, porque la librería no cambia con la
    app y volver a bajarla no aporta nada. */
 const CACHE_LIB = "evalef-lib-v1";
-const EXTERNOS = ["esm.sh", "cdn.jsdelivr.net"];
+const EXTERNOS = ["esm.sh", "cdn.jsdelivr.net", "cdnjs.cloudflare.com"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(BASICOS)).then(() => self.skipWaiting()));
