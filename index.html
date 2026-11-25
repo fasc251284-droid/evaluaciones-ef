@@ -43,26 +43,16 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
-html{height:100%}
 body{
   background:var(--bg); color:var(--ink); font-family:var(--body);
   font-size:var(--t-md); line-height:1.45; -webkit-text-size-adjust:100%;
-  /* La ventana no se desplaza: lo hace el cuerpo de la app. Así la cabecera
-     y la barra de abajo son parte del armazón y no dependen de a qué alto
-     cree el teléfono que llega la página. */
-  height:100%; margin:0; overflow:hidden; overscroll-behavior:none;
+  /* Se desplaza la página entera, como venía siendo. Meter el contenido en
+     un contenedor propio dejaba quietas la cabecera y la barra, pero en el
+     teléfono el desplazamiento se sentía trabado: perdía el impulso y el
+     rebote que iOS le da a la página. Entre una barra que a ratos se
+     recorta y una app incómoda de desplazar, pesa más lo segundo. */
+  margin:0; padding-bottom:env(safe-area-inset-bottom);
 }
-/* Con el armazón puesto, los tres bloques suman exactamente el alto y esto
-   no hace nada. Importa para las pantallas que se dibujan sin cuerpo
-   desplazable —ingreso, verificación—, que si no quedarían cortadas. */
-/* overflow en los dos ejes a la vez, y a propósito: con uno solo en hidden,
-   CSS convierte el otro en desplazable, y entonces el armazón completo
-   —cabecera y barra incluidas— se movía con el contenido. El único que se
-   desplaza tiene que ser el cuerpo. */
-#raiz{display:flex; flex-direction:column; height:100vh; height:100dvh; overflow:hidden}
-/* Las pantallas que se dibujan sin cuerpo desplazable (ingreso, verificación)
-   necesitan moverse ellas mismas para caber en teléfonos bajos. */
-#raiz.suelto{display:block; overflow-y:auto}
 /* Tres niveles de título: cada uno con su tamaño, peso y espaciado.
    Los titulares se aprietan; los rótulos pequeños se abren. */
 h1,h2,h3{font-family:var(--display); margin:0; color:var(--ink)}
@@ -76,10 +66,10 @@ table,.nota,.pastilla,input[type=number]{font-variant-numeric:tabular-nums}
 button,select,a{-webkit-tap-highlight-color:transparent}
 
 /* ---------- Estructura ---------- */
-.envoltura{flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;
-  width:100%; max-width:900px; margin:0 auto; padding:14px 14px 24px; box-sizing:border-box}
+.envoltura{width:100%; max-width:900px; margin:0 auto; box-sizing:border-box;
+  padding:14px 14px calc(104px + env(safe-area-inset-bottom))}
 .barra-sup{
-  flex:none; z-index:30; color:#fff;
+  position:sticky; top:0; z-index:30; color:#fff;
   background:var(--azul-oscuro);
   border-bottom:3px solid var(--oro);
   padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
@@ -151,10 +141,12 @@ button,select,a{-webkit-tap-highlight-color:transparent}
 .barra-deshacer .btn:active{background:rgba(255,255,255,.15)}
 
 .barra-inf{
-  flex:none; z-index:40;
+  position:fixed; left:0; right:0; bottom:0; z-index:40;
   display:grid; grid-template-columns:repeat(4,1fr);
   background:var(--surface); border-top:1px solid var(--line);
-  padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+  /* Doce píxeles de holgura de más abajo: cuando iOS ancla la barra algo
+     más abajo de lo visible, se come ese margen y no las etiquetas. */
+  padding:6px 4px calc(18px + env(safe-area-inset-bottom));
 }
 .barra-inf .ir{
   border:0; background:transparent; color:var(--soft);
@@ -828,11 +820,9 @@ th.col-fija{background:var(--surface-2); z-index:3}
   /* Al imprimir no hay armazón: la hoja tiene que fluir y crecer todo lo
      que necesite. Sin esto, el cuerpo seguiría recortado al alto de la
      pantalla y el PDF saldría con una sola página. */
-  html,body{height:auto !important; overflow:visible !important}
   body{background:#fff}
-  #raiz{display:block !important; height:auto !important}
   .barra-sup,.cursos,.pestanas,.barra-inf,.no-imprimir,.solo-pantalla{display:none !important}
-  .envoltura{padding:0; max-width:none; overflow:visible !important; height:auto !important; flex:none !important}
+  .envoltura{padding:0; max-width:none}
   .hoja-impresion{display:block}
   .membrete{display:flex; align-items:center; gap:9px; margin-bottom:6px}
   .membrete img{height:14mm; width:auto}
@@ -1274,7 +1264,16 @@ body.modo-cancha-activo .zona-desliz>.fila:last-child .btn{min-height:48px}
 :root[data-tema="oscuro"] .importar-preview-v140{background:#13212a;border-color:#31505f}
 
 /* ===== v137 · Corrección responsive iPhone/tablet ===== */
-html,body{max-width:100%;overflow-x:hidden}
+/* Sin overflow-x:hidden a propósito. Recortaba el eje horizontal, pero con
+   un eje en hidden CSS vuelve desplazable el otro: body pasaba a ser el
+   contenedor de desplazamiento y la cabecera pegajosa dejaba de pegarse.
+   Las tablas anchas ya tienen su propio desplazamiento lateral, así que la
+   página no se va de ancho. */
+html,body{max-width:100%}
+/* El recorte horizontal se queda en html y body. Puesto también en #raiz
+   rompía la cabecera pegajosa: un ancestro con overflow distinto de visible
+   pasa a ser su marco de referencia, y como #raiz no se desplaza, la
+   cabecera se iba con el contenido. */
 #raiz{max-width:100%}
 .envoltura,.dashboard-v130,.dashboard-v130>*{min-width:0;box-sizing:border-box}
 .dashboard-v130 .eval-hero,.dashboard-v130 .metrics-v130,.dashboard-v130 .panorama-v130,.dashboard-v130 .foco-v130,.dashboard-v130 .tools-v130{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
@@ -4525,17 +4524,13 @@ async function cargarCurso(id) {
    ========================================================= */
 /* Zonas que el profesor deja desplazadas y no deben volver al inicio al repintar. */
 /* ---- Qué se desplaza ----
-   La página entera ya no se mueve: lo hace sólo el cuerpo, entre la cabecera
-   y la barra de abajo, que ahora son parte del armazón. Antes ambas iban
-   fijas al borde de la ventana, y en iOS eso se ancla al alto de la página y
-   no al trozo visible: al desplazarse, la barra quedaba cortada o se iba de
-   la pantalla. Siendo parte del armazón no hay nada que recalcular.
-   Todo lo que antes consultaba window.scrollY pasa por aquí. */
-const cuerpo = () => document.querySelector(".envoltura");
-const scrollActual = () => { const c = cuerpo(); return c ? c.scrollTop : 0; };
+   Se desplaza la página entera. Todo pasa por aquí para tener un solo sitio
+   donde cambiarlo: se probó mover sólo el contenido, con la cabecera y la
+   barra como armazón fijo, y en el teléfono el desplazamiento se volvió
+   trabado. Se volvió al comportamiento natural. */
+const scrollActual = () => window.scrollY;
 function irAlScroll(y, suave) {
-  const c = cuerpo();
-  if (c) c.scrollTo({ top: y, behavior: suave ? "smooth" : "auto" });
+  window.scrollTo({ top: y, behavior: suave ? "smooth" : "auto" });
 }
 
 const ZONAS_SCROLL = ".envoltura-tabla,.tiras,.tira-crit";
@@ -4561,7 +4556,7 @@ function volverAPestana(nombre, mantenerSiNoHay) {
     if (!mantenerSiNoHay) irAlScroll(0);
     return;
   }
-  /* Se intenta dos veces. Justo después de dibujar, el cuerpo todavía no
+  /* Se intenta dos veces. Justo después de dibujar, la página todavía no
      tiene su alto final —faltan tablas por medir— y el navegador recorta la
      posición a lo que hay: volvíamos mucho más arriba de donde estábamos.
      El segundo intento, ya con el alto definitivo, la deja donde iba. */
@@ -4608,7 +4603,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v249";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v250";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 
@@ -4650,8 +4645,7 @@ function vigilarCabecera() {
   const barra = document.querySelector(".barra-sup");
   if (!barra) return;
   const ajustar = () => barra.classList.toggle("compacta", scrollActual() > 40);
-  const c = cuerpo();
-  if (c) c.addEventListener("scroll", ajustar, { passive: true });
+  window.addEventListener("scroll", ajustar, { passive: true });
   ajustar();
 }
 
@@ -5649,8 +5643,6 @@ function pintar() {
   if (impresionEnCurso) { repintarTrasImpresion = true; return; }
   document.body.classList.toggle("modo-cancha-activo", !!S.modoCancha);
   const raiz = $("#raiz");
-  // Sin armazón, la pantalla se desplaza entera; con armazón, nunca.
-  raiz.classList.toggle("suelto", S.verificando || (!S.sesion && !S.sinCuenta));
   if (S.verificando) { raiz.innerHTML = `<div class="vacio" style="padding-top:60px">Verificando sesión…</div>`; return; }
   if (!S.sesion && !S.sinCuenta) { raiz.innerHTML = vistaIngreso(); return; }
   const memoria = guardarScroll();
