@@ -43,11 +43,19 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
+html{height:100%}
 body{
   background:var(--bg); color:var(--ink); font-family:var(--body);
   font-size:var(--t-md); line-height:1.45; -webkit-text-size-adjust:100%;
-  padding-bottom:env(safe-area-inset-bottom);
+  /* La ventana no se desplaza: lo hace el cuerpo de la app. Así la cabecera
+     y la barra de abajo son parte del armazón y no dependen de a qué alto
+     cree el teléfono que llega la página. */
+  height:100%; margin:0; overflow:hidden; overscroll-behavior:none;
 }
+/* Con el armazón puesto, los tres bloques suman exactamente el alto y esto
+   no hace nada. Importa para las pantallas que se dibujan sin cuerpo
+   desplazable —ingreso, verificación—, que si no quedarían cortadas. */
+#raiz{display:flex; flex-direction:column; height:100vh; height:100dvh; overflow-y:auto}
 /* Tres niveles de título: cada uno con su tamaño, peso y espaciado.
    Los titulares se aprietan; los rótulos pequeños se abren. */
 h1,h2,h3{font-family:var(--display); margin:0; color:var(--ink)}
@@ -61,9 +69,10 @@ table,.nota,.pastilla,input[type=number]{font-variant-numeric:tabular-nums}
 button,select,a{-webkit-tap-highlight-color:transparent}
 
 /* ---------- Estructura ---------- */
-.envoltura{max-width:900px; margin:0 auto; padding:14px 14px calc(96px + env(safe-area-inset-bottom))}
+.envoltura{flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch;
+  width:100%; max-width:900px; margin:0 auto; padding:14px 14px 24px; box-sizing:border-box}
 .barra-sup{
-  position:sticky; top:0; z-index:30; color:#fff;
+  flex:none; z-index:30; color:#fff;
   background:var(--azul-oscuro);
   border-bottom:3px solid var(--oro);
   padding:calc(env(safe-area-inset-top) + 10px) 14px 10px;
@@ -135,10 +144,7 @@ button,select,a{-webkit-tap-highlight-color:transparent}
 .barra-deshacer .btn:active{background:rgba(255,255,255,.15)}
 
 .barra-inf{
-  position:fixed; left:0; right:0; bottom:0; z-index:40;
-  /* Capa propia: sin esto iOS no la redibuja mientras dura el desplazamiento
-     y la barra parpadea o se va. */
-  will-change:transform; transform:translateZ(0); backface-visibility:hidden;
+  flex:none; z-index:40;
   display:grid; grid-template-columns:repeat(4,1fr);
   background:var(--surface); border-top:1px solid var(--line);
   padding:6px 4px calc(6px + env(safe-area-inset-bottom));
@@ -812,9 +818,14 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .hoja-impresion{display:none}
 @media print{
   :root{--bg:#fff; --surface:#fff; --surface-2:#edf4f8; --ink:#102b38; --soft:#5b7383; --line:#d5e2ea}
+  /* Al imprimir no hay armazón: la hoja tiene que fluir y crecer todo lo
+     que necesite. Sin esto, el cuerpo seguiría recortado al alto de la
+     pantalla y el PDF saldría con una sola página. */
+  html,body{height:auto !important; overflow:visible !important}
   body{background:#fff}
+  #raiz{display:block !important; height:auto !important}
   .barra-sup,.cursos,.pestanas,.barra-inf,.no-imprimir,.solo-pantalla{display:none !important}
-  .envoltura{padding:0; max-width:none}
+  .envoltura{padding:0; max-width:none; overflow:visible !important; height:auto !important; flex:none !important}
   .hoja-impresion{display:block}
   .membrete{display:flex; align-items:center; gap:9px; margin-bottom:6px}
   .membrete img{height:14mm; width:auto}
@@ -4505,6 +4516,20 @@ async function cargarCurso(id) {
    Vistas
    ========================================================= */
 /* Zonas que el profesor deja desplazadas y no deben volver al inicio al repintar. */
+/* ---- Qué se desplaza ----
+   La página entera ya no se mueve: lo hace sólo el cuerpo, entre la cabecera
+   y la barra de abajo, que ahora son parte del armazón. Antes ambas iban
+   fijas al borde de la ventana, y en iOS eso se ancla al alto de la página y
+   no al trozo visible: al desplazarse, la barra quedaba cortada o se iba de
+   la pantalla. Siendo parte del armazón no hay nada que recalcular.
+   Todo lo que antes consultaba window.scrollY pasa por aquí. */
+const cuerpo = () => document.querySelector(".envoltura");
+const scrollActual = () => { const c = cuerpo(); return c ? c.scrollTop : 0; };
+function irAlScroll(y, suave) {
+  const c = cuerpo();
+  if (c) c.scrollTo({ top: y, behavior: suave ? "smooth" : "auto" });
+}
+
 const ZONAS_SCROLL = ".envoltura-tabla,.tiras,.tira-crit";
 
 /* ---- Memoria de posición por pestaña ----
@@ -4515,7 +4540,7 @@ const ZONAS_SCROLL = ".envoltura-tabla,.tiras,.tira-crit";
 const scrollPorPestana = {};
 
 function recordarPestana() {
-  scrollPorPestana[S.pestana] = window.scrollY;
+  scrollPorPestana[S.pestana] = scrollActual();
 }
 
 function volverAPestana(nombre, mantenerSiNoHay) {
@@ -4525,20 +4550,20 @@ function volverAPestana(nombre, mantenerSiNoHay) {
        estudiante) se quedan donde están: mandarlas arriba hacía saltar la
        pantalla cada vez que se cambiaba de vista. Las pestañas de abajo sí
        arrancan arriba, porque son secciones distintas. */
-    if (!mantenerSiNoHay) window.scrollTo(0, 0);
+    if (!mantenerSiNoHay) irAlScroll(0);
     return;
   }
-  // Se espera al siguiente cuadro: antes de dibujar, la página aún no tiene
-  // el alto definitivo y el navegador recortaría la posición.
-  requestAnimationFrame(() => {
-    const tope = Math.max(0, document.body.scrollHeight - window.innerHeight);
-    window.scrollTo(0, Math.min(y, tope));
-  });
+  /* Se intenta dos veces. Justo después de dibujar, el cuerpo todavía no
+     tiene su alto final —faltan tablas por medir— y el navegador recorta la
+     posición a lo que hay: volvíamos mucho más arriba de donde estábamos.
+     El segundo intento, ya con el alto definitivo, la deja donde iba. */
+  const poner = () => irAlScroll(y);
+  requestAnimationFrame(() => { poner(); requestAnimationFrame(poner); });
 }
 
 function guardarScroll() {
   return {
-    y: window.scrollY,
+    y: scrollActual(),
     zonas: [...document.querySelectorAll(ZONAS_SCROLL)].map((e) => [e.scrollLeft, e.scrollTop])
   };
 }
@@ -4550,7 +4575,7 @@ function devolverScroll(memoria) {
     zonas[i].scrollLeft = izq;
     zonas[i].scrollTop = arriba;
   });
-  if (Math.abs(window.scrollY - memoria.y) > 1) window.scrollTo(0, memoria.y);
+  if (Math.abs(scrollActual() - memoria.y) > 1) irAlScroll(memoria.y);
 }
 
 /* ---- Aspecto ---- */
@@ -4575,7 +4600,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v247";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v248";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 
@@ -4616,36 +4641,13 @@ function aplicarTema() {
 function vigilarCabecera() {
   const barra = document.querySelector(".barra-sup");
   if (!barra) return;
-  const ajustar = () => barra.classList.toggle("compacta", window.scrollY > 40);
-  window.addEventListener("scroll", ajustar, { passive: true });
+  const ajustar = () => barra.classList.toggle("compacta", scrollActual() > 40);
+  const c = cuerpo();
+  if (c) c.addEventListener("scroll", ajustar, { passive: true });
   ajustar();
 }
 
 /* ---- Deslizar entre estudiantes ---- */
-/* ---- La barra de abajo, pegada a lo que de verdad se ve ----
-   En iOS los elementos fijos se anclan al alto de la página, no al trozo
-   visible. Al desplazarse, ese trozo se achica y la barra queda por debajo
-   del borde: las etiquetas se cortan y parece que desaparece. Aquí se mide
-   la diferencia y se la sube lo justo. En los navegadores donde el alto no
-   cambia, la diferencia es cero y esto no hace nada. */
-function anclarBarraInferior() {
-  const vv = window.visualViewport;
-  if (!vv) return;
-  let pedido = null;
-  const ajustar = () => {
-    pedido = null;
-    const barra = document.querySelector(".barra-inf");
-    if (!barra) return;
-    const oculto = window.innerHeight - (vv.height + vv.offsetTop);
-    barra.style.transform = oculto > 1 ? `translate3d(0,${-Math.round(oculto)}px,0)` : "";
-  };
-  const pedirAjuste = () => { if (!pedido) pedido = requestAnimationFrame(ajustar); };
-  vv.addEventListener("resize", pedirAjuste);
-  vv.addEventListener("scroll", pedirAjuste);
-  window.addEventListener("orientationchange", () => setTimeout(ajustar, 250));
-  pedirAjuste();
-}
-
 function vigilarDeslizamiento() {
   let x0 = 0, y0 = 0, activo = false;
   document.addEventListener("touchstart", (evt) => {
@@ -7382,7 +7384,7 @@ document.addEventListener("click", async (evt) => {
   }
   if (a === "modo") {
     // Planilla, Por criterio y Por estudiante también recuerdan su posición.
-    scrollPorPestana["modo:" + S.modo] = window.scrollY;
+    scrollPorPestana["modo:" + S.modo] = scrollActual();
     S.modo = btn.dataset.v;
     pintar();
     volverAPestana("modo:" + S.modo, true);   // sin salto si es la primera vez
@@ -7488,9 +7490,9 @@ document.addEventListener("click", async (evt) => {
   if (a === "modo-cancha") {
     cerrarModal();
     if (!S.datos.roster.length) { abrirModal(`<h3>Modo cancha</h3><p class="sub">Primero debes cargar la nómina del curso.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return; }
-    S.modoCancha = true; S.pestana = "evaluar"; S.modo = "alumno"; S.alumnoActivo = Math.min(S.alumnoActivo, S.datos.roster.length - 1); pintar(); window.scrollTo({top:0,behavior:'smooth'}); return;
+    S.modoCancha = true; S.pestana = "evaluar"; S.modo = "alumno"; S.alumnoActivo = Math.min(S.alumnoActivo, S.datos.roster.length - 1); pintar(); irAlScroll(0, true); return;
   }
-  if (a === "modo-cancha-salir") { S.modoCancha = false; pintar(); window.scrollTo({top:0,behavior:'smooth'}); return; }
+  if (a === "modo-cancha-salir") { S.modoCancha = false; pintar(); irAlScroll(0, true); return; }
   if (a === "progreso-estudiante") {
     if (!S.datos.roster.length) { abrirModal(`<h3>Progreso por estudiante</h3><p class="sub">Primero debes agregar estudiantes a la nómina.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return; }
     const filas = S.datos.roster.map((nom,i)=>{ const f=fichaDe(i), g=progresoGeneral(i); const ini=(nom||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase(); return `<button class="progreso-persona" data-accion="ver-progreso" data-i="${i}" data-buscable="${esc(paraBuscar(nom))}"><span class="avatar">${esc(ini||String(i+1))}</span><span><b class="student-name-v152">${esc(nom||`Estudiante ${i+1}`)}</b><small>${g.puntos.length} evaluación${g.puntos.length===1?'':'es'} con datos · promedio ${num1(f.prom)}</small></span><span class="flecha">›</span></button>`; }).join('');
@@ -10160,7 +10162,6 @@ function pedirRestaurar() {
       .addEventListener("change", () => { if (temaGuardado() === "auto") { aplicarTema(); pintar(); } });
   }
   vigilarDeslizamiento();
-  anclarBarraInferior();
   window.addEventListener("online", () => { if (Object.keys(leerPendientes()).length) guardar(); });
   pintar();
   await sbListo;
