@@ -55,7 +55,14 @@ body{
 /* Con el armazón puesto, los tres bloques suman exactamente el alto y esto
    no hace nada. Importa para las pantallas que se dibujan sin cuerpo
    desplazable —ingreso, verificación—, que si no quedarían cortadas. */
-#raiz{display:flex; flex-direction:column; height:100vh; height:100dvh; overflow-y:auto}
+/* overflow en los dos ejes a la vez, y a propósito: con uno solo en hidden,
+   CSS convierte el otro en desplazable, y entonces el armazón completo
+   —cabecera y barra incluidas— se movía con el contenido. El único que se
+   desplaza tiene que ser el cuerpo. */
+#raiz{display:flex; flex-direction:column; height:100vh; height:100dvh; overflow:hidden}
+/* Las pantallas que se dibujan sin cuerpo desplazable (ingreso, verificación)
+   necesitan moverse ellas mismas para caber en teléfonos bajos. */
+#raiz.suelto{display:block; overflow-y:auto}
 /* Tres niveles de título: cada uno con su tamaño, peso y espaciado.
    Los titulares se aprietan; los rótulos pequeños se abren. */
 h1,h2,h3{font-family:var(--display); margin:0; color:var(--ink)}
@@ -1267,7 +1274,8 @@ body.modo-cancha-activo .zona-desliz>.fila:last-child .btn{min-height:48px}
 :root[data-tema="oscuro"] .importar-preview-v140{background:#13212a;border-color:#31505f}
 
 /* ===== v137 · Corrección responsive iPhone/tablet ===== */
-html,body,#raiz{max-width:100%;overflow-x:hidden}
+html,body{max-width:100%;overflow-x:hidden}
+#raiz{max-width:100%}
 .envoltura,.dashboard-v130,.dashboard-v130>*{min-width:0;box-sizing:border-box}
 .dashboard-v130 .eval-hero,.dashboard-v130 .metrics-v130,.dashboard-v130 .panorama-v130,.dashboard-v130 .foco-v130,.dashboard-v130 .tools-v130{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 .dashboard-v130 .metrics-v130>* ,.dashboard-v130 .pan-stats>* ,.dashboard-v130 .acciones-esenciales-v136>*{min-width:0;max-width:100%;box-sizing:border-box}
@@ -4600,7 +4608,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v248";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v249";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 
@@ -5641,6 +5649,8 @@ function pintar() {
   if (impresionEnCurso) { repintarTrasImpresion = true; return; }
   document.body.classList.toggle("modo-cancha-activo", !!S.modoCancha);
   const raiz = $("#raiz");
+  // Sin armazón, la pantalla se desplaza entera; con armazón, nunca.
+  raiz.classList.toggle("suelto", S.verificando || (!S.sesion && !S.sinCuenta));
   if (S.verificando) { raiz.innerHTML = `<div class="vacio" style="padding-top:60px">Verificando sesión…</div>`; return; }
   if (!S.sesion && !S.sinCuenta) { raiz.innerHTML = vistaIngreso(); return; }
   const memoria = guardarScroll();
@@ -6756,6 +6766,7 @@ function vistaResumen() {
       <button class="btn btn-mini" data-icon="📝" data-accion="word">Descargar Word</button>
       <button class="btn btn-mini" data-icon="📊" data-accion="excel">Descargar Excel</button>
     </div>
+  </div>
   </div>`;
 }
 
@@ -7131,6 +7142,7 @@ function vistaCurso() {
       <button class="btn btn-mini" data-accion="respaldo">Solo este curso</button>
       <button class="btn btn-mini" data-accion="restaurar">Restaurar</button>
     </div>
+  </div>
   </div>`;
 }
 
