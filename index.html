@@ -762,6 +762,11 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .ingreso .logo i{width:9px; border-radius:2px 2px 0 0; display:block}
 .ingreso h1{font-size:var(--t-xl); line-height:1.15; margin-bottom:6px}
 .aviso{background:#FCF2F1; border:1px solid #EBC9C5; color:var(--alerta); border-radius:var(--r-s); padding:9px 11px; font-size:var(--t-sm); margin-bottom:10px}
+/* Trabajar sin servidor no es un error: la app sigue sirviendo. El aviso va
+   en tono neutro para informar sin alarmar en medio de una clase. */
+.aviso-local{background:#F3F7FA; border-color:#CBDAE4; color:var(--ink);
+  display:flex; flex-wrap:wrap; align-items:center; gap:8px; line-height:1.4}
+.aviso-local .btn-mini{margin-left:auto; flex:none}
 
 /* Huesos del esqueleto: bloques grises que laten mientras se espera. */
 .hueso{display:block; height:13px; border-radius:7px; margin-bottom:9px;
@@ -4113,6 +4118,23 @@ function pedirClaveNueva() {
     </div>`);
 }
 
+const LLAVE_SESION = "sb-evalef-auth";
+
+/* ¿Este equipo ya había iniciado sesión alguna vez?
+   Sirve para distinguir dos situaciones que se veían iguales: haber cerrado
+   sesión a propósito, y que el servidor no conteste. En el segundo caso no
+   corresponde mandar a la pantalla de ingreso a alguien que ya estaba dentro:
+   hay que dejarlo trabajar con lo que tiene en el equipo. */
+function haySesionGuardada() {
+  try {
+    const bruto = localStorage.getItem(LLAVE_SESION);
+    if (!bruto) return false;
+    const j = JSON.parse(bruto);
+    const s = j && (j.currentSession || j);
+    return !!(s && (s.access_token || s.refresh_token));
+  } catch { return false; }
+}
+
 async function usuarioActual() {
   if (!sb) return null;
   try {
@@ -4177,6 +4199,7 @@ const almacen = {
 const S = {
   correo: "",              // lo escrito en el campo de correo, para no perderlo
   sesion: null, verificando: true, sinCuenta: false, errorIngreso: "",
+  servidorCaido: false,          // se trabaja local porque el servidor no contesta
   cursoId: localStorage.getItem(PREFIJO + "ultimoCurso") || "c6",
   datos: null, cargando: true, errorCarga: "",
   evalIdx: 0, pestana: "evaluar", modo: "planilla", criterioActivo: 0, alumnoActivo: 0,
@@ -4334,6 +4357,48 @@ function avisarSinEspacio() {
     </div>`);
 }
 
+/* Mientras el servidor no conteste se sigue probando en segundo plano. Al
+   volver, se recupera la sesión y se sube lo que quedó en el equipo, sin que
+   haya que reiniciar la app ni volver a escribir la contraseña. */
+let relojServidor = null;
+
+async function probarServidor() {
+  if (!sb || !S.servidorCaido) return;
+  const u = await usuarioActual();
+  if (!u) return;
+
+  if (relojServidor) { clearInterval(relojServidor); relojServidor = null; }
+  S.servidorCaido = false;
+  S.sesion = u;
+  S.sinCuenta = false;
+
+  const pendientes = Object.keys(leerPendientes()).length;
+  try { await cargarCurso(S.cursoId); } catch (e) { console.warn(e); }
+  if (pendientes) {
+    for (const c of Object.keys(leerPendientes())) {
+      try {
+        const d = c === S.cursoId ? S.datos : await almacen.leerLocal(c);
+        if (d) await almacen.escribir(c, d);
+        marcarSubido(c);
+      } catch (e) { console.warn("No se pudo subir", c, e); }
+    }
+  }
+  pintar();
+  abrirModal('<h3>Volvió la conexión</h3>'
+    + '<p class="sub" style="margin:6px 0 0">'
+    + (pendientes
+        ? 'Lo que evaluaste sin conexión ya está en el servidor.'
+        : 'Tus cursos vuelven a sincronizarse entre tus dispositivos.')
+    + '</p><div class="fila" style="margin-top:12px">'
+    + '<button class="btn btn-lleno" data-accion="cerrar-modal">Listo</button></div>');
+}
+
+function vigilarVueltaDelServidor() {
+  if (relojServidor) return;
+  relojServidor = setInterval(probarServidor, 60000);
+  window.addEventListener("online", probarServidor);
+}
+
 async function reintentarPendientes() {
   const p = leerPendientes();
   const cursos = Object.keys(p);
@@ -4472,7 +4537,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v242";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v243";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 
@@ -5573,6 +5638,12 @@ function vistaApp() {
   </header>
   <div class="envoltura">
     ${S.cargando ? esqueletoHTML(curso.nombre) : `
+    ${S.servidorCaido ? `<div class="aviso aviso-local no-imprimir">
+      <b>Sin conexión con el servidor.</b> Estás trabajando con los datos de este equipo:
+      puedes evaluar normalmente y todo se sube solo cuando el servidor vuelva.
+      Mientras tanto usa este mismo aparato, para que nada se pise.
+      <button class="btn btn-mini" data-accion="probar-servidor">Probar ahora</button>
+    </div>` : ""}
     ${S.errorCarga ? `<div class="aviso">No se pudieron traer los datos guardados. ${esc(S.errorCarga)}</div>` : ""}
     ${S.volverA ? `<button class="btn btn-volver no-imprimir" data-accion="volver">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
@@ -7143,6 +7214,10 @@ document.addEventListener("click", async (evt) => {
   if (a === "salir") {
     confirmar("Vas a cerrar la sesión en este equipo.", async () => {
       if (sb) await sb.auth.signOut();
+      /* Cerrar sesión a propósito apaga la vigilancia: si no, la app volvería
+         a entrar sola en cuanto el servidor contestara. */
+      if (relojServidor) { clearInterval(relojServidor); relojServidor = null; }
+      S.servidorCaido = false;
       S.sesion = null; S.sinCuenta = false; S.datos = null; pintar();
     });
     return;
@@ -8225,6 +8300,13 @@ document.addEventListener("click", async (evt) => {
   }
   if (a === "deshacer") { aplicarDeshacer(); return; }
   if (a === "reintentar") { reintentarPendientes(); return; }
+  if (a === "probar-servidor") {
+    const b = btn; const antes = b.textContent;
+    b.disabled = true; b.textContent = "Probando…";
+    await probarServidor();
+    if (S.servidorCaido && b.isConnected) { b.disabled = false; b.textContent = antes; }
+    return;
+  }
   if (a === "respaldo") { descargarRespaldo(); return; }
   if (a === "respaldo-todo") { descargarRespaldoTotal(); return; }
   if (a === "restaurar") { pedirRestaurar(); return; }
@@ -9879,9 +9961,20 @@ function pedirRestaurar() {
   await sbListo;
   const u = await usuarioActual();
   S.sesion = u; S.verificando = false;
-  if (!u && !sb && localStorage.getItem(PREFIJO + S.cursoId)) S.sinCuenta = true;
+
+  /* Sin usuario hay dos causas muy distintas. Si este equipo nunca inició
+     sesión, corresponde la pantalla de ingreso. Pero si ya la tenía —o si la
+     librería ni siquiera cargó—, lo que falla es el servidor, y mandarlo a
+     escribir una contraseña que no va a servir es dejarlo sin herramienta en
+     plena clase. En ese caso se entra directo con los datos del equipo. */
+  if (!u && (haySesionGuardada() || (!sb && localStorage.getItem(PREFIJO + S.cursoId)))) {
+    S.sinCuenta = true;
+    S.servidorCaido = true;
+  }
+
   if (u || S.sinCuenta) await cargarCurso(S.cursoId);
   else pintar();
+  if (S.servidorCaido) vigilarVueltaDelServidor();
   if ("serviceWorker" in navigator) {
     try { navigator.serviceWorker.register("sw.js"); } catch {}
   }
