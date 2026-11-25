@@ -1892,6 +1892,81 @@ input.student-name-v152,select.student-name-v152{font-family:var(--body)!importa
   .fila-estudiante-v251::before{transition:none}
 }
 
+
+/* ===== v252 · Marcar con el gesto y con la voz ===== */
+@media screen {
+  /* La fila sigue el dedo. El color aparece recién cuando el gesto ya es
+     suficiente, para que se note dónde está el umbral. */
+  .indicador,.ind-escala{
+    transition:transform .16s var(--curva), background .16s var(--curva);
+    border-radius:var(--r-s);
+  }
+  .indicador.deslizando-v252,.ind-escala.deslizando-v252{
+    transition:none; position:relative; z-index:1;
+  }
+
+  .cancha-manos-v252{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px;
+  }
+  .btn-voz-v252{
+    display:inline-flex; align-items:center; gap:8px;
+    min-height:44px; padding:8px 16px 8px 13px;
+    border:1px solid var(--pista); border-radius:999px;
+    background:var(--pista); color:#fff; font:inherit; font-weight:750;
+    font-size:var(--t-sm); cursor:pointer;
+  }
+  .btn-voz-v252:active{transform:scale(.97)}
+  .ico-voz-v252{
+    width:13px; height:19px; border-radius:7px 7px 6px 6px; flex:none;
+    background:var(--cinta); position:relative;
+  }
+  .ico-voz-v252::after{
+    content:""; position:absolute; left:50%; bottom:-5px; width:9px; height:4px;
+    transform:translateX(-50%); border:2px solid var(--cinta);
+    border-top:0; border-radius:0 0 7px 7px;
+  }
+  .btn-voz-v252.oyendo{background:var(--cinta); border-color:var(--cinta-borde); color:var(--pista)}
+  .btn-voz-v252.oyendo .ico-voz-v252{background:var(--pista)}
+  .btn-voz-v252.oyendo .ico-voz-v252::after{border-color:var(--pista)}
+  /* La cabecera de cancha es azul: el gris del texto de apoyo no se leía. */
+  .pista-desliz-v252{font-size:var(--t-xs); color:var(--soft); line-height:1.3}
+  .cancha-cab .pista-desliz-v252{color:rgba(255,255,255,.85)}
+
+  /* La tira se queda sobre la barra de abajo mientras dura el dictado. */
+  .tira-voz-v252{
+    position:fixed; left:10px; right:10px; z-index:60;
+    bottom:calc(74px + env(safe-area-inset-bottom));
+    display:flex; align-items:center; gap:10px;
+    padding:10px 10px 10px 13px; border-radius:13px;
+    background:var(--pista); color:#fff;
+    box-shadow:0 8px 24px rgba(11,47,78,.3);
+    font-size:var(--t-sm); line-height:1.3;
+  }
+  .tira-voz-v252 .texto-voz-v252{flex:1; min-width:0; overflow-wrap:anywhere}
+  .tira-voz-v252 .btn{
+    flex:none; background:transparent; border-color:rgba(255,255,255,.45); color:#fff;
+  }
+  .punto-voz-v252{
+    width:10px; height:10px; border-radius:50%; flex:none; background:var(--cinta);
+    animation:latido-voz-v252 1.1s ease-in-out infinite;
+  }
+  .tira-voz-v252[data-estado="ok"] .punto-voz-v252{animation:none; background:var(--cinta)}
+  .tira-voz-v252[data-estado="duda"]{background:#6B4B14}
+  .tira-voz-v252[data-estado="duda"] .punto-voz-v252{animation:none; background:#F0C04A}
+  @keyframes latido-voz-v252{
+    0%,100%{opacity:1; transform:scale(1)}
+    50%{opacity:.35; transform:scale(.72)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .punto-voz-v252{animation:none}
+    .indicador,.ind-escala{transition:none}
+  }
+  /* Con el dictado abierto, la tira no debe tapar el último indicador. */
+  body.dictando-v252 .envoltura{padding-bottom:calc(160px + env(safe-area-inset-bottom))}
+
+  :root[data-tema="oscuro"] .tira-voz-v252{background:#12303f}
+}
+
 </style>
 </head>
 <body>
@@ -4778,7 +4853,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v251";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v252";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 
@@ -4815,6 +4890,276 @@ function aplicarTema() {
   if (meta) meta.content = resuelto === "oscuro" ? "#123344" : resuelto === "sol" ? "#0b445f" : "#175f85";
 }
 
+
+/* ====== v252 · Deslizar para marcar y dictado por voz ======================
+   Las dos sirven para lo mismo: marcar sin tener que apuntarle a una casilla
+   chica con el teléfono en una mano y el curso corriendo al frente. */
+
+/* ---- Deslizar sobre la fila del indicador ----
+   Derecha = logrado, izquierda = no logrado. En escala, derecha sube un
+   nivel y izquierda baja. El gesto sobre el resto de la tarjeta sigue
+   cambiando de estudiante, como ya venía. */
+const DESLIZ_MINIMO = 56;      // px: menos que esto es un toque, no un gesto
+function vigilarDeslizarIndicador() {
+  let fila = null, x0 = 0, y0 = 0, movio = false, datos = null;
+
+  const soltarFila = () => {
+    if (fila) { fila.style.transform = ""; fila.style.background = ""; fila.classList.remove("deslizando-v252"); }
+    fila = null; datos = null; movio = false;
+  };
+
+  document.addEventListener("touchstart", (evt) => {
+    const f = evt.target.closest && evt.target.closest(".indicador,.ind-escala");
+    if (!f || evt.target.closest("input,textarea,select")) return;
+    const casilla = f.querySelector("[data-i][data-j][data-q]");
+    if (!casilla) return;
+    fila = f; movio = false;
+    datos = { i: +casilla.dataset.i, j: +casilla.dataset.j, q: +casilla.dataset.q };
+    x0 = evt.touches[0].clientX; y0 = evt.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener("touchmove", (evt) => {
+    if (!fila) return;
+    const dx = evt.touches[0].clientX - x0, dy = evt.touches[0].clientY - y0;
+    if (!movio && Math.abs(dy) > Math.abs(dx)) { soltarFila(); return; }   // está desplazando la página
+    if (Math.abs(dx) < 10) return;
+    movio = true;
+    fila.classList.add("deslizando-v252");
+    const corrido = Math.max(-110, Math.min(110, dx));
+    fila.style.transform = `translateX(${corrido}px)`;
+    fila.style.background = Math.abs(dx) < DESLIZ_MINIMO ? ""
+      : dx > 0 ? "rgba(19,120,79,.12)" : "rgba(184,57,46,.12)";
+  }, { passive: true });
+
+  document.addEventListener("touchend", (evt) => {
+    if (!fila || !movio) { soltarFila(); return; }
+    const dx = evt.changedTouches[0].clientX - x0;
+    const d = datos;
+    soltarFila();
+    if (Math.abs(dx) < DESLIZ_MINIMO || !d) return;
+    const ev = evalActual();
+    if (!ev || ev.estado[d.i]) return;                 // ausente: no se marca
+    if (esEscala(ev)) {
+      if (!Array.isArray(ev.datos[d.i][d.j])) ev.datos[d.i][d.j] = filaNiveles(ev.criterios[d.j]);
+      const actual = ev.datos[d.i][d.j][d.q] || 0;
+      const tope = nNiveles(ev);
+      ev.datos[d.i][d.j][d.q] = Math.max(0, Math.min(tope, actual + (dx > 0 ? 1 : -1)));
+    } else {
+      // Deslizar fija el valor; no lo alterna. Repetir el gesto no lo borra.
+      ev.marcas[d.i][d.j][d.q] = dx > 0 ? 1 : 2;
+    }
+    marcarCambio(); refrescarMarca(ev, d.i, d.j, d.q);
+  }, { passive: true });
+
+  document.addEventListener("touchcancel", soltarFila, { passive: true });
+}
+
+/* ---- Dictado por voz ----
+   Usa el reconocimiento del propio teléfono (no manda nada a ningún
+   servidor y no cuesta nada). En iPhone sólo existe con el prefijo webkit. */
+const MotorVoz = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+const hayVoz = () => !!MotorVoz;
+let vozActiva = null, vozParando = false;
+
+const NUM_PALABRA = { cero:0, uno:1, una:1, dos:2, tres:3, cuatro:4, cinco:5, seis:6, siete:7 };
+
+/* Devuelve el índice del estudiante si las palabras que empiezan en k
+   nombran a alguien de la nómina. Prueba primero la frase más larga, para
+   que "Antonella Ruiz" no se confunda con "Antonella Alcapan". */
+function alumnoEnPalabras(palabras, k, activos) {
+  const nombres = activos.map((i) => ({ i, p: paraBuscar(S.datos.roster[i] || "").split(/\s+/).filter(Boolean) }));
+  for (let largo = 3; largo >= 1; largo--) {
+    const trozo = palabras.slice(k, k + largo);
+    if (trozo.length < largo) continue;
+    const calzan = nombres.filter((n) => trozo.every((w, idx) => (n.p[idx] || "").startsWith(w) && w.length >= 3));
+    if (calzan.length === 1) return { i: calzan[0].i, fin: k + largo };
+    // Con dos palabras dichas, también vale nombre + apellido salteando el segundo nombre.
+    if (largo === 2) {
+      const mixto = nombres.filter((n) => n.p.length > 1
+        && (n.p[0] || "").startsWith(trozo[0]) && (n.p[n.p.length - 1] || "").startsWith(trozo[1])
+        && trozo[0].length >= 3);
+      if (mixto.length === 1) return { i: mixto[0].i, fin: k + largo };
+    }
+  }
+  return null;
+}
+
+function interpretarDictado(texto, activos) {
+  const palabras = paraBuscar(texto).split(/[\s,.;:!?]+/).filter(Boolean);
+  const ordenes = [];
+  let k = 0;
+  while (k < palabras.length) {
+    const quien = alumnoEnPalabras(palabras, k, activos);
+    if (quien) { ordenes.push({ tipo: "alumno", i: quien.i }); k = quien.fin; continue; }
+    const p = palabras[k], sig = palabras[k + 1] || "";
+    if (p === "no" && /^(logrado|lograda|logro|logra|logre)/.test(sig)) { ordenes.push({ tipo: "marca", v: 2 }); k += 2; continue; }
+    if (/^(logrado|lograda|logro|logra|logre|bien|si|correcto|lo hizo)$/.test(p)) { ordenes.push({ tipo: "marca", v: 1 }); k++; continue; }
+    if (/^(no|mal|incorrecto|nada)$/.test(p)) { ordenes.push({ tipo: "marca", v: 2 }); k++; continue; }
+    if (/^(ausente|ausento|falto|falta)$/.test(p)) { ordenes.push({ tipo: "asis", v: 1 }); k++; continue; }
+    if (/^(justificado|justificada|justifico)$/.test(p)) { ordenes.push({ tipo: "asis", v: 2 }); k++; continue; }
+    if (/^presente$/.test(p)) { ordenes.push({ tipo: "asis", v: 0 }); k++; continue; }
+    if (/^(siguiente|proximo|proxima)$/.test(p)) { ordenes.push({ tipo: "mover", d: 1 }); k++; continue; }
+    if (/^(anterior|atras|volver)$/.test(p)) { ordenes.push({ tipo: "mover", d: -1 }); k++; continue; }
+    if (/^(borra|borrar|deshacer|corregir|corrige)$/.test(p)) { ordenes.push({ tipo: "deshacer" }); k++; continue; }
+    if (/^\d+$/.test(p)) { ordenes.push({ tipo: "nivel", v: +p }); k++; continue; }
+    if (NUM_PALABRA[p] !== undefined) { ordenes.push({ tipo: "nivel", v: NUM_PALABRA[p] }); k++; continue; }
+    k++;
+  }
+  return ordenes;
+}
+
+/* El siguiente indicador sin marcar del estudiante activo. */
+function proximoSinMarcar(ev, i) {
+  for (const c of columnasPlanilla(ev)) {
+    const v = esEscala(ev) ? nivelDe(ev, i, c.j, c.q) : marcaDe(ev, i, c.j, c.q);
+    if (!v) return { j: c.j, q: c.q };
+  }
+  return null;
+}
+
+let hechoPorVoz = [];     // para "borrar": lo último que dictó
+
+function aplicarOrdenes(ordenes) {
+  const ev = evalActual();
+  if (!ev) return [];
+  const activos = indicesEvaluables(ev);
+  const dichos = [];
+  for (const o of ordenes) {
+    if (o.tipo === "alumno") {
+      S.alumnoActivo = o.i; dichos.push(S.datos.roster[o.i] || "estudiante");
+      continue;
+    }
+    if (o.tipo === "mover") {
+      const pos = activos.indexOf(S.alumnoActivo);
+      const nuevo = activos[Math.max(0, Math.min(activos.length - 1, pos + o.d))];
+      if (nuevo !== undefined) { S.alumnoActivo = nuevo; dichos.push(S.datos.roster[nuevo] || "estudiante"); }
+      continue;
+    }
+    if (o.tipo === "asis") {
+      ev.estado[S.alumnoActivo] = o.v;
+      dichos.push(o.v === 1 ? "ausente" : o.v === 2 ? "justificado" : "presente");
+      continue;
+    }
+    if (o.tipo === "deshacer") {
+      const u = hechoPorVoz.pop();
+      if (u) {
+        if (esEscala(ev)) ev.datos[u.i][u.j][u.q] = u.antes;
+        else ev.marcas[u.i][u.j][u.q] = u.antes;
+        refrescarMarca(ev, u.i, u.j, u.q); dichos.push("borrado");
+      }
+      continue;
+    }
+    if (o.tipo === "marca" || o.tipo === "nivel") {
+      const i = S.alumnoActivo;
+      if (ev.estado[i]) { dichos.push("(ausente)"); continue; }
+      const sitio = proximoSinMarcar(ev, i);
+      if (!sitio) { dichos.push("(ya está completo)"); continue; }
+      if (esEscala(ev)) {
+        if (!Array.isArray(ev.datos[i][sitio.j])) ev.datos[i][sitio.j] = filaNiveles(ev.criterios[sitio.j]);
+        const antes = ev.datos[i][sitio.j][sitio.q] || 0;
+        const valor = o.tipo === "nivel" ? Math.max(1, Math.min(nNiveles(ev), o.v))
+          : (o.v === 1 ? nNiveles(ev) : 1);
+        ev.datos[i][sitio.j][sitio.q] = valor;
+        hechoPorVoz.push({ i, j: sitio.j, q: sitio.q, antes });
+        dichos.push(`nivel ${valor}`);
+      } else {
+        if (o.tipo === "nivel") continue;             // "tres" no significa nada en cotejo
+        const antes = ev.marcas[i][sitio.j][sitio.q] || 0;
+        ev.marcas[i][sitio.j][sitio.q] = o.v;
+        hechoPorVoz.push({ i, j: sitio.j, q: sitio.q, antes });
+        dichos.push(o.v === 1 ? "logrado" : "no logrado");
+      }
+      refrescarMarca(ev, i, sitio.j, sitio.q);
+    }
+  }
+  if (dichos.length) marcarCambio();
+  // Si cambió de estudiante hay que repintar: la tira del dictado vive fuera
+  // de #raiz, así que no se pierde.
+  if (ordenes.some((o) => o.tipo === "alumno" || o.tipo === "mover" || o.tipo === "asis")) pintar();
+  return dichos;
+}
+
+function pintarTiraVoz(texto, estado) {
+  let tira = document.querySelector("#tira-voz");
+  if (!tira) {
+    tira = document.createElement("div");
+    tira.id = "tira-voz";
+    tira.className = "tira-voz-v252 no-imprimir";
+    tira.setAttribute("role", "status");
+    tira.setAttribute("aria-live", "polite");
+    document.body.appendChild(tira);
+  }
+  tira.dataset.estado = estado || "";
+  tira.innerHTML = `<span class="punto-voz-v252"></span><span class="texto-voz-v252">${esc(texto)}</span>
+    <button class="btn btn-mini" data-accion="voz-parar">Listo</button>`;
+}
+
+function quitarTiraVoz() {
+  const t = document.querySelector("#tira-voz");
+  if (t) t.remove();
+}
+
+function pararDictado() {
+  vozParando = true;
+  if (vozActiva) { try { vozActiva.stop(); } catch (e) { /* ya estaba detenido */ } }
+  vozActiva = null;
+  document.body.classList.remove("dictando-v252");
+  quitarTiraVoz();
+  pintar();
+}
+
+function iniciarDictado() {
+  if (!hayVoz()) {
+    abrirModal(`<h3>Este teléfono no reconoce voz</h3>
+      <p class="sub" style="margin:6px 0 0">El dictado usa el reconocimiento del propio aparato y este navegador
+      no lo trae. En iPhone funciona con Safari actualizado; en el computador, con Chrome.</p>
+      <div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
+    return;
+  }
+  if (vozActiva) { pararDictado(); return; }
+  const r = new MotorVoz();
+  r.lang = "es-CL"; r.continuous = true; r.interimResults = true;
+  vozParando = false; hechoPorVoz = [];
+
+  r.onresult = (evt) => {
+    let enCurso = "", cerrado = "";
+    for (let k = evt.resultIndex; k < evt.results.length; k++) {
+      const trozo = evt.results[k][0].transcript;
+      if (evt.results[k].isFinal) cerrado += trozo + " "; else enCurso += trozo;
+    }
+    if (cerrado.trim()) {
+      const ev = evalActual();
+      const hechos = aplicarOrdenes(interpretarDictado(cerrado, indicesEvaluables(ev)));
+      pintarTiraVoz(hechos.length ? hechos.join(" · ") : `No entendí "${cerrado.trim()}"`,
+        hechos.length ? "ok" : "duda");
+    } else if (enCurso.trim()) {
+      pintarTiraVoz(enCurso.trim(), "oyendo");
+    }
+  };
+  r.onerror = (evt) => {
+    const porqué = evt.error === "not-allowed" || evt.error === "service-not-allowed"
+      ? "Falta el permiso del micrófono. Está en Ajustes del teléfono, en Safari."
+      : evt.error === "no-speech" ? "No se escuchó nada." : "Se cortó el dictado.";
+    pintarTiraVoz(porqué, "duda");
+    if (evt.error === "not-allowed" || evt.error === "service-not-allowed") pararDictado();
+  };
+  // Safari corta el reconocimiento solo cada cierto rato: se vuelve a abrir
+  // mientras el profesor no haya tocado "Listo".
+  r.onend = () => { if (!vozParando) { try { r.start(); } catch (e) { pararDictado(); } } };
+
+  try { r.start(); } catch (e) {
+    pararDictado();
+    abrirModal(`<h3>No se pudo abrir el micrófono</h3>
+      <p class="sub" style="margin:6px 0 0">${esc((e && e.message) || "El teléfono no entregó el micrófono.")}
+      Revisa que Safari tenga permiso en los ajustes del teléfono y vuelve a intentar.</p>
+      <div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
+    return;
+  }
+  vozActiva = r;
+  document.body.classList.add("dictando-v252");
+  pintarTiraVoz("Di el nombre y después logrado o no logrado", "oyendo");
+}
+
 /* ---- Cabecera que se encoge ---- */
 function vigilarCabecera() {
   const barra = document.querySelector(".barra-sup");
@@ -4829,7 +5174,9 @@ function vigilarDeslizamiento() {
   let x0 = 0, y0 = 0, activo = false;
   document.addEventListener("touchstart", (evt) => {
     const zona = evt.target.closest && evt.target.closest(".zona-desliz");
-    activo = !!zona && !evt.target.closest("input,textarea,select,button");
+    // La fila de un indicador tiene su propio gesto: ahí se marca, no se
+    // cambia de estudiante.
+    activo = !!zona && !evt.target.closest("input,textarea,select,button,.indicador,.ind-escala");
     if (!activo) return;
     x0 = evt.touches[0].clientX; y0 = evt.touches[0].clientY;
   }, { passive: true });
@@ -6183,6 +6530,12 @@ function cabeceraCancha(ev) {
       <div class="cancha-icon">${iconoActividad(ev)}</div>
       <div><h2>${esc(ev.nombre || "Evaluación")}</h2><p>${e.evaluados}/${e.presentes} evaluados · ${e.logro === null ? "sin logro aún" : e.logro + "% de logro"} · ${fechaLarga(ev.fecha)}</p></div>
       <button class="cancha-salir" data-accion="modo-cancha-salir">Salir</button>
+    </div>
+    <div class="cancha-manos-v252">
+      <button class="btn-voz-v252${vozActiva ? " oyendo" : ""}" data-accion="voz">
+        <span class="ico-voz-v252" aria-hidden="true"></span>${vozActiva ? "Dictando…" : "Dictar por voz"}
+      </button>
+      <span class="pista-desliz-v252">Desliza cada indicador: → logrado · ← no logrado</span>
     </div>
   </div>`;
 }
@@ -7796,6 +8149,8 @@ document.addEventListener("click", async (evt) => {
   }
 
   /* --- marcado --- */
+  if (a === "voz") { iniciarDictado(); return; }
+  if (a === "voz-parar") { pararDictado(); return; }
   if (a === "marca-l" || a === "marca-nl") {
     const i = +btn.dataset.i, j = +btn.dataset.j, q = +btn.dataset.q;
     const objetivo = a === "marca-l" ? 1 : 2;
@@ -10356,6 +10711,7 @@ function pedirRestaurar() {
       .addEventListener("change", () => { if (temaGuardado() === "auto") { aplicarTema(); pintar(); } });
   }
   vigilarDeslizamiento();
+  vigilarDeslizarIndicador();
   window.addEventListener("online", () => { if (Object.keys(leerPendientes()).length) guardar(); });
   pintar();
   await sbListo;
