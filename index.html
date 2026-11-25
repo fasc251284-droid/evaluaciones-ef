@@ -1360,17 +1360,6 @@ html,body,#raiz{max-width:100%;overflow-x:hidden}
 .dashboard-v146 .mis-listas-acciones-v146{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
 .dashboard-v146 .mis-listas-acciones-v146 .btn{min-height:36px;padding:7px 10px;font-size:var(--t-xs);font-weight:850}
 .dashboard-v146 .mis-listas-v146 .btn-importar-v146{border-color:#8e8ed0;color:#555298;background:#faf9ff}
-/* Tono propio para la redacción asistida, distinto del de importar. */
-.dashboard-v146 .mis-listas-v146 .btn-ia-v239{border-color:#4f9e86;color:#2f6d5b;background:#f3fbf8}
-.rev-ind{display:grid;gap:7px;margin:8px 0 2px}
-.rev-ind label{display:grid;grid-template-columns:22px minmax(0,1fr);gap:9px;align-items:start;
-  border:1px solid #dce5eb;border-radius:10px;padding:9px 11px;background:#fff}
-.rev-ind label.fuera{opacity:.45;background:#f7fafc}
-.rev-ind textarea{width:100%;border:0;padding:0;background:none;resize:vertical;min-height:2.6em;
-  font:inherit;color:inherit;line-height:1.35}
-.rev-ind input[type=checkbox]{margin-top:3px}
-/* El renglón de aviso sólo ocupa espacio cuando tiene algo que decir. */
-.aviso:empty{display:none}
 .dashboard-v146 .lista-stack-v146{display:grid;gap:7px}
 .dashboard-v146 .lista-row-v146{display:grid;grid-template-columns:minmax(0,1fr) 46px;align-items:stretch;border:1px solid #dce5eb;border-radius:11px;background:#fff;overflow:hidden;transition:border-color .15s,background .15s}
 .dashboard-v146 .lista-row-v146.activa{border-color:#0a70b2;background:#f0f8fd;box-shadow:inset 3px 0 0 #0a70b2}
@@ -3973,125 +3962,6 @@ function normalizarCriterio(c, ptsDefecto) {
   return { texto, oa, eje, objEval, indicadores, descriptores };
 }
 
-/* ---- Redacción de indicadores con Claude ----
-   Se le pasa el curso, el texto oficial del OA y la actividad de la clase, y
-   devuelve indicadores observables. Lo que vuelve se muestra para revisar
-   antes de entrar a la lista: nada se guarda sin que Felipe lo apruebe. */
-const INSTRUCCION_IA = [
-  "Eres profesor de Educación Física y Salud en Chile y redactas indicadores",
-  "de evaluación para listas de cotejo de enseñanza básica.",
-  "",
-  "Cada indicador debe:",
-  "- describir una conducta OBSERVABLE durante la clase, que se pueda marcar logrado o no logrado;",
-  "- empezar con un verbo en tercera persona singular (Ejecuta, Mantiene, Respeta, Lanza…);",
-  "- referirse a UNA sola cosa, nada de 'y además';",
-  "- caber en una línea: menos de 110 caracteres;",
-  "- usar palabras que el propio estudiante entendería, sin jerga técnica innecesaria;",
-  "- estar en español de Chile.",
-  "",
-  "Evita: 'comprende', 'conoce', 'valora', 'internaliza' y cualquier verbo que no se vea.",
-  "Si la actividad lo permite, incluye al menos un indicador de convivencia o seguridad.",
-  "",
-  "Responde SÓLO con JSON, sin texto alrededor y sin ```:",
-  '{"objetivo":"<objetivo de evaluación en una frase>","indicadores":["...","..."]}',
-].join("\n");
-
-function textoDeRespuestaIA(datos) {
-  const trozos = (datos && datos.content) || [];
-  return trozos.filter((b) => b && b.type === "text").map((b) => b.text).join("").trim();
-}
-
-/* El modelo casi siempre devuelve JSON limpio, pero a veces lo envuelve en
-   ``` o le antepone una frase. Se rescata el primer objeto que aparezca. */
-function jsonDeRespuesta(texto) {
-  const limpio = texto.replace(/^\s*```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
-  try { return JSON.parse(limpio); } catch (e) { /* se intenta rescatar abajo */ }
-  const i = limpio.indexOf("{"), f = limpio.lastIndexOf("}");
-  if (i >= 0 && f > i) {
-    try { return JSON.parse(limpio.slice(i, f + 1)); } catch (e) { /* nada que hacer */ }
-  }
-  throw new Error("la respuesta no vino en el formato esperado");
-}
-
-async function pedirIndicadores({ cursoId, oa, actividad, cuantos }) {
-  const clave = claveIA();
-  if (!clave) throw new Error("Falta la clave de Claude. Se escribe una vez en Ajustes.");
-
-  const curso = (CURSOS.find((c) => c.id === cursoId) || {}).nombre || "enseñanza básica";
-  const partes = [`Curso: ${curso}.`];
-  if (oa && oa.codigo) partes.push(`Objetivo de aprendizaje ${oa.codigo}: ${oa.texto}`);
-  if (actividad) partes.push(`Actividad de la clase: ${actividad}`);
-  partes.push(`Redacta exactamente ${cuantos} indicadores.`);
-
-  let r;
-  try {
-    r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": clave,
-        "anthropic-version": "2023-06-01",
-        // Sin esta cabecera el navegador no deja llamar a la API directamente.
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify({
-        model: MODELO_IA,
-        max_tokens: 1500,
-        system: INSTRUCCION_IA,
-        messages: [{ role: "user", content: partes.join("\n") }],
-      }),
-    });
-  } catch (e) {
-    throw new Error("No se pudo conectar. Revisa tu internet.");
-  }
-
-  if (!r.ok) {
-    let detalle = "";
-    try { const j = await r.json(); detalle = (j.error && j.error.message) || ""; } catch (e) { /* sin cuerpo */ }
-    if (r.status === 401) throw new Error("La clave no es válida. Revísala en Ajustes.");
-    if (r.status === 400 && /credit|balance/i.test(detalle)) {
-      throw new Error("La cuenta de Claude no tiene saldo. Cárgalo en console.anthropic.com.");
-    }
-    if (r.status === 429) throw new Error("Demasiadas peticiones seguidas. Espera un momento.");
-    throw new Error(detalle || `El servidor respondió ${r.status}.`);
-  }
-
-  const datos = jsonDeRespuesta(textoDeRespuestaIA(await r.json()));
-  const lista = (datos.indicadores || [])
-    .map((t) => String(t || "").trim().replace(/^[-•*\d.)\s]+/, ""))
-    .filter((t) => t.length > 3);
-  if (!lista.length) throw new Error("Claude no devolvió ningún indicador. Inténtalo otra vez.");
-  return { objetivo: String(datos.objetivo || "").trim(), indicadores: lista };
-}
-
-/* Lo último que propuso Claude, a la espera de que se revise y se acepte. */
-let propuestaIA = null;
-
-function mostrarPropuestaIA() {
-  const p = propuestaIA;
-  if (!p) return;
-  abrirModal(`
-    <h3>Revisa los indicadores</h3>
-    <p class="sub" style="margin:4px 0 2px">Puedes corregir el texto o desmarcar los que no sirvan.
-      Nada entra a tu lista hasta que aceptes.</p>
-    ${p.objetivo ? `<p class="sub" style="margin:8px 0 0"><b>Objetivo de evaluación:</b> ${esc(p.objetivo)}</p>` : ""}
-    <div class="rev-ind">
-      ${p.indicadores.map((t, i) => `<label>
-        <input type="checkbox" checked>
-        <textarea rows="2">${esc(t)}</textarea>
-      </label>`).join("")}
-    </div>
-    <label class="campo" style="margin-top:8px"><span>Nombre de la lista</span>
-      <input type="text" id="ia-nombre" value="${esc(p.codigo || "")}" placeholder="Cotejo de salto de vallas">
-    </label>
-    <p class="aviso" id="ia-aviso" style="margin:4px 0 0"></p>
-    <div class="fila" style="margin-top:10px">
-      <button class="btn btn-lleno" data-accion="ia-usar">Usar estos indicadores</button>
-      <button class="btn" data-accion="lista-ia">Pedir otros</button>
-      <button class="btn" data-accion="cerrar-modal">Cancelar</button>
-    </div>`);
-}
-
 function criterioDesdeOA(codigo, cursoId, nInd) {
   const oa = buscarOA(cursoId, codigo);
   const n = nInd || 3;
@@ -4602,7 +4472,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v241";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v242";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 
@@ -4616,15 +4486,6 @@ const giroGuardado = () => (GIROS[localStorage.getItem(CLAVE_GIRO)] ? localStora
 /* Para los informes que no dependen de la cantidad de indicadores: siguen
    siendo verticales salvo que se pida lo contrario. */
 const giroInforme = () => (giroGuardado() === "auto" ? "portrait" : giroGuardado());
-/* ---- Ayuda de Claude para redactar indicadores ----
-   La clave vive SÓLO en este equipo: nunca se sube a Supabase ni viaja con
-   los datos del curso. La app es un archivo público en GitHub, así que una
-   clave escrita en el código la vería cualquiera y gastaría saldo ajeno. */
-const CLAVE_IA = PREFIJO + "claveIA";
-const MODELO_IA = "claude-haiku-4-5-20251001";
-const claveIA = () => (localStorage.getItem(CLAVE_IA) || "").trim();
-const hayClaveIA = () => /^sk-ant-/.test(claveIA());
-
 /* Devuelve el ancho y alto útiles, ya descontado el margen, según orientación. */
 function medidasHoja(orientacion, margen) {
   const h = HOJAS[hojaGuardada()];
@@ -6068,7 +5929,6 @@ function cabeceraEvaluacion() {
         <h4>Mis listas</h4>
         <div class="mis-listas-acciones-v146">
           <button class="btn" data-accion="nueva-eval">＋ Nueva lista</button>
-          <button class="btn btn-ia-v239" data-accion="lista-ia">✦ Crear con IA</button>
           <button class="btn btn-importar-v146" data-accion="importar-lista">⇧ Importar lista</button>
         </div>
       </div>
@@ -7047,19 +6907,6 @@ function vistaCurso() {
     </label>
     <p class="sub" style="margin:-4px 0 12px">Con <b>Automática</b>, las listas de más de ocho indicadores salen horizontales y el resto verticales. Elige <b>Horizontal</b> si las quieres siempre apaisadas.</p>
     <p class="sub" style="margin:-4px 0 12px">Versión instalada: <b class="mono">${VERSION_APP}</b>. Sirve para confirmar que el equipo tomó la última actualización.</p>
-
-    <h2 style="margin-top:18px">Ayuda para redactar</h2>
-    <label class="campo" style="max-width:360px"><span>Clave de Claude</span>
-      <input type="password" data-campo="clave-ia" autocomplete="off" spellcheck="false"
-        placeholder="sk-ant-..." value="${esc(claveIA())}">
-    </label>
-    <p class="sub" style="margin:-4px 0 6px">${hayClaveIA()
-      ? "Clave guardada. Ya puedes usar <b>Crear con IA</b> al hacer una lista nueva."
-      : "Sin clave, el botón <b>Crear con IA</b> no funciona. El resto de la app sí."}</p>
-    <p class="sub" style="margin:0 0 12px">Se obtiene en <b>console.anthropic.com</b> → API keys, y hay que cargarle saldo.
-      Es un cobro aparte de tu suscripción de Claude, por uso: redactar una lista cuesta una fracción de peso.
-      La clave queda guardada <b>sólo en este equipo</b> — no viaja con tus cursos, así que hay que escribirla
-      en cada aparato donde la quieras usar.</p>
     <label class="campo" style="max-width:280px"><span>Nombre del docente</span>
       <input type="text" data-campo="docente" value="${esc(nombreDocente())}" placeholder="Aparece en el PDF y en el Word">
     </label>
@@ -7798,98 +7645,6 @@ document.addEventListener("click", async (evt) => {
     cerrarModal(); marcarCambio(); pintar();
     return;
   }
-  /* ---- Crear la lista con ayuda de Claude ---- */
-  if (a === "lista-ia") {
-    if (!hayClaveIA()) {
-      abrirModal('<h3>Falta la clave de Claude</h3>'
-        + '<p class="sub" style="margin:6px 0 0">Esta función necesita una clave de la API de Anthropic, que se escribe una vez en Ajustes. '
-        + 'Se obtiene en <b>console.anthropic.com</b> → API keys y se le carga saldo; es un cobro aparte de tu suscripción.</p>'
-        + '<p class="sub" style="margin:8px 0 0">Mientras tanto puedes armar la lista a mano o importarla desde Word.</p>'
-        + '<div class="fila" style="margin-top:12px"><button class="btn btn-lleno" data-accion="cerrar-modal">Entendido</button></div>');
-      return;
-    }
-    const oas = oasDelCurso(S.cursoId);
-    abrirModal(`
-      <h3>Crear lista con IA</h3>
-      <p class="sub" style="margin:4px 0 10px">Elige el objetivo y cuenta qué van a hacer en la clase.
-        Claude redacta los indicadores y tú los revisas antes de usarlos.</p>
-      <label class="campo"><span>Objetivo de aprendizaje</span>
-        <select id="ia-oa">
-          <option value="">— sin OA, sólo la actividad —</option>
-          ${oas.map((o) => `<option value="${esc(o.codigo)}">${esc(o.codigo)} · ${esc(o.texto.slice(0, 70))}${o.texto.length > 70 ? "…" : ""}</option>`).join("")}
-        </select>
-      </label>
-      <label class="campo"><span>¿Qué van a hacer en la clase?</span>
-        <textarea id="ia-actividad" rows="3" placeholder="Circuito de salto de vallas bajas, por turnos, en parejas"></textarea>
-      </label>
-      <label class="campo" style="max-width:200px"><span>Cuántos indicadores</span>
-        <select id="ia-cuantos">${[4, 5, 6, 7, 8, 9, 10].map((n) => `<option value="${n}"${n === 6 ? " selected" : ""}>${n}</option>`).join("")}</select>
-      </label>
-      <div class="fila" style="margin-top:12px">
-        <button class="btn btn-lleno" data-accion="ia-generar">Redactar</button>
-        <button class="btn" data-accion="cerrar-modal">Cancelar</button>
-      </div>`);
-    return;
-  }
-
-  if (a === "ia-generar") {
-    const codigo = $("#ia-oa").value;
-    const actividad = $("#ia-actividad").value.trim();
-    const cuantos = parseInt($("#ia-cuantos").value, 10) || 6;
-    if (!codigo && !actividad) {
-      abrirModal('<h3>Falta decirle de qué</h3><p class="sub" style="margin:6px 0 0">Elige un objetivo de aprendizaje, describe la actividad, o ambas cosas.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="lista-ia">Volver</button></div>');
-      return;
-    }
-    const oa = codigo ? buscarOA(S.cursoId, codigo) : null;
-    abrirModal('<h3>Redactando…</h3><p class="sub" style="margin:6px 0 0">Claude está escribiendo los indicadores. Unos segundos.</p>');
-    try {
-      const r = await pedirIndicadores({ cursoId: S.cursoId, oa, actividad, cuantos });
-      propuestaIA = { ...r, codigo, actividad, oa };
-      mostrarPropuestaIA();
-    } catch (err) {
-      console.warn(err);
-      abrirModal('<h3>No se pudo redactar</h3>'
-        + '<p class="sub" style="margin:6px 0 0">' + esc(err.message || "Error desconocido") + '</p>'
-        + '<div class="fila" style="margin-top:12px">'
-        + '<button class="btn btn-lleno" data-accion="lista-ia">Volver a intentar</button>'
-        + '<button class="btn" data-accion="cerrar-modal">Cerrar</button></div>');
-    }
-    return;
-  }
-
-  if (a === "ia-usar") {
-    // Sólo entran los que quedaron marcados, con el texto como quedó editado.
-    const elegidos = [...document.querySelectorAll(".rev-ind label")]
-      .filter((l) => l.querySelector("input").checked)
-      .map((l) => l.querySelector("textarea").value.trim())
-      .filter(Boolean);
-    if (!elegidos.length) {
-      const av = $("#ia-aviso");
-      if (av) av.textContent = "Deja marcado al menos un indicador.";
-      return;
-    }
-    const nombre = ($("#ia-nombre") && $("#ia-nombre").value.trim())
-      || propuestaIA.codigo || "Lista de cotejo";
-    const nueva = nuevaEvaluacion(S.datos.roster.length, [], nombre, S.cursoId);
-    const oa = propuestaIA.oa;
-    nueva.criterios = [{
-      texto: oa ? oa.texto : "",
-      oa: oa ? oa.codigo : "",
-      eje: oa ? oa.eje : "",
-      objEval: propuestaIA.objetivo || "",
-      indicadores: elegidos.map((t) => ({ texto: t, pts: ev.ptsDefecto || PTS_DEFECTO })),
-      descriptores: [],
-    }];
-    const n = S.datos.roster.length;
-    nueva.marcas = Array.from({ length: n }, () => nueva.criterios.map((c) => Array(c.indicadores.length).fill(0)));
-    nueva.datos = Array.from({ length: n }, () => nueva.criterios.map(filaNiveles));
-    nueva.ptsDefecto = ev.ptsDefecto;
-    S.datos.evaluaciones.push(nueva);
-    S.evalIdx = S.datos.evaluaciones.length - 1; S.criterioActivo = 0;
-    propuestaIA = null;
-    cerrarModal(); marcarCambio(); pintar(); return;
-  }
-
   if (a === "nueva-eval") {
     abrirModal(`
       <h3>Nueva lista de cotejo</h3>
@@ -8530,14 +8285,6 @@ document.addEventListener("input", (evt) => {
 }, true);
 
 document.addEventListener("change", (evt) => {
-  /* Al desmarcar un indicador propuesto se apaga en pantalla, para ver de un
-     vistazo cuáles van a entrar. El estado real se lee de las casillas. */
-  const casilla = evt.target;
-  if (casilla && casilla.type === "checkbox") {
-    const fila = casilla.closest(".rev-ind label");
-    if (fila) { fila.classList.toggle("fuera", !casilla.checked); return; }
-  }
-
   /* Peso y exigencia se repintan aquí, al salir del campo, y no en cada
      pulsación: así el consolidado toma el valor nuevo sin estorbar mientras
      se escribe. Si el campo quedó vacío, se repone el valor guardado. */
@@ -8572,10 +8319,6 @@ document.addEventListener("change", (evt) => {
     }
     else if (a === "giro") {
       guardarLocal(CLAVE_GIRO, el.value); pintar(); return;
-    }
-    else if (a === "clave-ia") {
-      // Nunca entra en S.datos: no se sincroniza ni sale de este equipo.
-      guardarLocal(CLAVE_IA, el.value.trim()); pintar(); return;
     }
     else if (a === "ade-lista") {
       const ev = evalActual();
