@@ -774,6 +774,22 @@ th.col-fija{background:var(--surface-2); z-index:3}
   background:var(--surface); color:var(--ink); font:inherit; font-size:var(--t-sm)}
 .buscador::placeholder{color:var(--soft)}
 .sin-resultados{text-align:center; padding:14px 6px}
+/* Dónde queda guardada una adecuación: se dice siempre, en tono de nota. */
+.nota-ambito{margin:0 0 10px; padding:8px 10px; border-radius:var(--r-s);
+  background:#F3F7FA; border:1px solid #CBDAE4; line-height:1.4}
+.nota-ambito.aviso-ambito{background:#FFF8EC; border-color:#E8D3AC}
+.nota-ambito .btn-mini{margin-top:7px}
+/* Lista de estudiantes para ajustar apoyos dentro de una evaluación. */
+.ade-lista-alumnos{display:grid; gap:6px; margin:0 0 12px}
+.ade-fila{display:grid; grid-template-columns:26px minmax(0,1fr) 28px; gap:9px; align-items:center;
+  width:100%; text-align:left; border:1px solid var(--line); border-radius:var(--r-s);
+  background:var(--surface); color:var(--ink); padding:8px 10px; cursor:pointer; font:inherit}
+.ade-fila.con-apoyo{border-color:#9ac3a8; background:#f4fbf6}
+.ade-nombre{min-width:0; display:block; font-weight:600}
+.ade-nombre small{display:block; font-weight:400; color:var(--soft); line-height:1.3; margin-top:2px}
+.ade-marca{justify-self:end; min-width:24px; height:24px; border-radius:999px; display:grid;
+  place-items:center; background:var(--bg); color:var(--soft); font-size:var(--t-xs); font-weight:700}
+.ade-fila.con-apoyo .ade-marca{background:#2f6d5b; color:#fff}
 
 /* Huesos del esqueleto: bloques grises que laten mientras se espera. */
 .hueso{display:block; height:13px; border-radius:7px; margin-bottom:9px;
@@ -3857,6 +3873,12 @@ function adeCurso(i) {
   return S.datos.adecuaciones[i];
 }
 
+/* Copia de las adecuaciones de la nómina, para estrenar una lista nueva. */
+function adeInicialesDelCurso(nAlumnos) {
+  const base = (S.datos && S.datos.adecuaciones) || [];
+  return Array.from({ length: nAlumnos }, (_, i) => (Array.isArray(base[i]) ? base[i].slice() : []));
+}
+
 const MODOS_ADE = ["curso", "propias", "ninguna"];
 const adeModo = (ev) => (ev && MODOS_ADE.includes(ev.adeModo) ? ev.adeModo : "curso");
 
@@ -4000,8 +4022,13 @@ function nuevaEvaluacion(nAlumnos, oaCodigos, nombre, cursoId) {
     oa: "",
     tipo: "docente",
     medidas: Array.from({ length: nAlumnos }, () => []),
-    adeModo: "curso",
-    ade: null,
+    /* Cada lista guarda sus propias adecuaciones, partiendo de las que tiene
+       el estudiante en la nómina. Antes todas compartían un único juego: al
+       ajustar el apoyo de una unidad, cambiaba el de todas las evaluaciones
+       del año, incluidas las ya cerradas. La nómina sigue siendo la base
+       desde la cual arranca cada lista nueva. */
+    adeModo: "propias",
+    ade: adeInicialesDelCurso(nAlumnos),
     exigencia: EXIGENCIA,
     peso: 1,
     ptsDefecto: PTS_DEFECTO,
@@ -4545,7 +4572,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v244";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v246";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 
@@ -5768,7 +5795,8 @@ function crearSeguimientoFoco(ev, f, estudiantes, nombre, fecha) {
   return {
     id: idNuevo(), nombre: nombre || `Seguimiento · ${ev.nombre || "Foco"}`, fecha: fecha || hoy(), oa: "",
     tipo: ev.tipo || "docente", visual: ev.visual || "auto",
-    medidas: Array.from({ length: n }, () => []), adeModo: ev.adeModo || "curso", ade: null,
+    medidas: Array.from({ length: n }, () => []),
+    adeModo: adeModo(ev), ade: Array.from({ length: n }, (_, i) => adeDeLista(ev, i).slice()),
     exigencia: exigenciaValida(ev.exigencia), peso: 0, ptsDefecto: ev.ptsDefecto || PTS_DEFECTO,
     modo: ev.modo === "escala" ? "escala" : "cotejo",
     escala: JSON.parse(JSON.stringify(ev.escala || { niveles: ESCALA_BASE })),
@@ -6051,6 +6079,37 @@ function panelAjustes(ev) {
         <option value="ninguna" ${adeModo(ev) === "ninguna" ? "selected" : ""}>Sin adecuaciones</option>
       </select>
       <span class="sub">Úsalo cuando una unidad requiera un apoyo distinto al habitual.</span></label>
+    ${(() => {
+      /* Hasta ahora las adecuaciones sólo se podían editar en la Nómina, que
+         son las del curso entero. Con "propias" la lista tiene las suyas, así
+         que el editor tiene que estar también aquí: si no, la opción existía
+         pero no había dónde usarla. */
+      const m = adeModo(ev);
+      if (m === "ninguna") return "";
+      if (m === "curso") {
+        return `<p class="sub" style="margin:-4px 0 10px">Se editan en la pestaña <b>Nómina</b>
+          y valen para todas las listas del curso.</p>`;
+      }
+      const conApoyo = S.datos.roster.filter((_, k) => adeDeLista(ev, k).length).length;
+      return `<p class="sub" style="margin:-4px 0 6px">Apoyos de esta lista:
+        ${conApoyo ? `${conApoyo} estudiante${conApoyo === 1 ? "" : "s"}` : "ninguno todavía"}.
+        Tocar un nombre para ajustarlos aquí, sin cambiar las demás evaluaciones.</p>
+      ${S.datos.roster.length > 8 ? `<input type="search" class="buscador" data-buscador
+        placeholder="Buscar estudiante" aria-label="Buscar estudiante">` : ""}
+      <div class="ade-lista-alumnos" data-lista-buscable>
+        ${S.datos.roster.map((nom, k) => {
+          const puestas = adeDeLista(ev, k);
+          return `<button class="ade-fila ${puestas.length ? "con-apoyo" : ""}"
+            data-accion="adecuacion" data-i="${k}" data-buscable="${esc(paraBuscar(nom))}">
+            <span class="n-orden">${String(k + 1).padStart(2, "0")}</span>
+            <span class="ade-nombre">${esc(nom || `Estudiante ${k + 1}`)}
+              ${puestas.length ? `<small>${esc(puestas.join(" · "))}</small>` : ""}</span>
+            <span class="ade-marca">${puestas.length || "+"}</span>
+          </button>`;
+        }).join("")}
+        <p class="sub sin-resultados" hidden>Ningún estudiante coincide con esa búsqueda.</p>
+      </div>`;
+    })()}
     <label class="campo"><span>Quién evalúa</span>
       <select data-accion="tipo-eval">
         ${[["docente", "El profesor"], ["auto", "Autoevaluación"], ["coe", "Coevaluación entre pares"]]
@@ -8200,6 +8259,28 @@ document.addEventListener("click", async (evt) => {
       <h3>Adecuaciones curriculares</h3>
       <p class="student-name-v152" style="margin:5px 0 2px">${esc(S.datos.roster[i] || "Estudiante " + (i + 1))}</p>
       <p class="sub" style="margin:0 0 10px">Decreto 83/2015. Las de acceso no modifican el objetivo; las de objetivos sí, y requieren registro en el PACI.</p>
+      ${(() => {
+        /* Dónde va a quedar guardado lo que se toque aquí. Sin esto no se
+           distingue editar el apoyo de una unidad de cambiarlo para el año
+           entero, que es justo lo que confundía. */
+        if (S.pestana === "curso") {
+          return `<p class="sub nota-ambito">Son las adecuaciones <b>base del estudiante</b>.
+            Las listas nuevas parten de aquí; las que ya existen no cambian.</p>`;
+        }
+        const evn = evalActual();
+        const m = adeModo(evn);
+        if (m === "propias") {
+          return `<p class="sub nota-ambito">Valen <b>solo en «${esc(evn.nombre || "esta lista")}»</b>.
+            Las demás evaluaciones no se tocan.</p>`;
+        }
+        if (m === "ninguna") {
+          return `<p class="sub nota-ambito">Esta lista está marcada <b>sin adecuaciones</b>,
+            así que lo que marques aquí no se aplicará al evaluar.</p>`;
+        }
+        return `<p class="sub nota-ambito aviso-ambito">Esta lista <b>comparte las adecuaciones con todo el curso</b>:
+          lo que cambies aquí vale para todas sus evaluaciones.
+          <button class="btn btn-mini" data-accion="ade-propias" data-i="${i}">Hacerlas propias de esta lista</button></p>`;
+      })()}
       ${aplicadas.length ? `
         <p class="rotulo-seccion" style="margin-top:0">Aplicadas · ${aplicadas.length}</p>
         <div class="caja-aplicadas">
@@ -8223,6 +8304,17 @@ document.addEventListener("click", async (evt) => {
     const k = lista.indexOf(t);
     if (k >= 0) lista.splice(k, 1); else lista.push(t);
     marcarCambio(); pintar(); return;
+  }
+  /* Pasa esta lista a tener adecuaciones propias, quedándose con las que
+     regían hasta ahora: el cambio no quita apoyos, sólo deja de compartirlos. */
+  if (a === "ade-propias") {
+    const ev2 = evalActual();
+    ev2.ade = S.datos.roster.map((_, k) => adeDeLista(ev2, k).slice());
+    ev2.adeModo = "propias";
+    marcarCambio();
+    cerrarModal();
+    document.querySelector(`[data-accion="adecuacion"][data-i="${btn.dataset.i}"]`)?.click();
+    return;
   }
   if (a === "quitar-todas-ade") {
     const i = +btn.dataset.i;
