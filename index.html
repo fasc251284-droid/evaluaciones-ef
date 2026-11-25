@@ -136,6 +136,9 @@ button,select,a{-webkit-tap-highlight-color:transparent}
 
 .barra-inf{
   position:fixed; left:0; right:0; bottom:0; z-index:40;
+  /* Capa propia: sin esto iOS no la redibuja mientras dura el desplazamiento
+     y la barra parpadea o se va. */
+  will-change:transform; transform:translateZ(0); backface-visibility:hidden;
   display:grid; grid-template-columns:repeat(4,1fr);
   background:var(--surface); border-top:1px solid var(--line);
   padding:6px 4px calc(6px + env(safe-area-inset-bottom));
@@ -4572,7 +4575,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v246";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v247";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 
@@ -4619,6 +4622,30 @@ function vigilarCabecera() {
 }
 
 /* ---- Deslizar entre estudiantes ---- */
+/* ---- La barra de abajo, pegada a lo que de verdad se ve ----
+   En iOS los elementos fijos se anclan al alto de la página, no al trozo
+   visible. Al desplazarse, ese trozo se achica y la barra queda por debajo
+   del borde: las etiquetas se cortan y parece que desaparece. Aquí se mide
+   la diferencia y se la sube lo justo. En los navegadores donde el alto no
+   cambia, la diferencia es cero y esto no hace nada. */
+function anclarBarraInferior() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  let pedido = null;
+  const ajustar = () => {
+    pedido = null;
+    const barra = document.querySelector(".barra-inf");
+    if (!barra) return;
+    const oculto = window.innerHeight - (vv.height + vv.offsetTop);
+    barra.style.transform = oculto > 1 ? `translate3d(0,${-Math.round(oculto)}px,0)` : "";
+  };
+  const pedirAjuste = () => { if (!pedido) pedido = requestAnimationFrame(ajustar); };
+  vv.addEventListener("resize", pedirAjuste);
+  vv.addEventListener("scroll", pedirAjuste);
+  window.addEventListener("orientationchange", () => setTimeout(ajustar, 250));
+  pedirAjuste();
+}
+
 function vigilarDeslizamiento() {
   let x0 = 0, y0 = 0, activo = false;
   document.addEventListener("touchstart", (evt) => {
@@ -10133,6 +10160,7 @@ function pedirRestaurar() {
       .addEventListener("change", () => { if (temaGuardado() === "auto") { aplicarTema(); pintar(); } });
   }
   vigilarDeslizamiento();
+  anclarBarraInferior();
   window.addEventListener("online", () => { if (Object.keys(leerPendientes()).length) guardar(); });
   pintar();
   await sbListo;
