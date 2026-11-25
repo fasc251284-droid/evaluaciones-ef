@@ -767,6 +767,13 @@ th.col-fija{background:var(--surface-2); z-index:3}
 .aviso-local{background:#F3F7FA; border-color:#CBDAE4; color:var(--ink);
   display:flex; flex-wrap:wrap; align-items:center; gap:8px; line-height:1.4}
 .aviso-local .btn-mini{margin-left:auto; flex:none}
+/* Buscador de estudiantes: aparece sólo en cursos grandes, donde encontrar a
+   uno obliga a desplazar media pantalla. */
+.buscador{width:100%; margin:0 0 10px; padding:9px 11px;
+  border:1px solid var(--line); border-radius:var(--r-s);
+  background:var(--surface); color:var(--ink); font:inherit; font-size:var(--t-sm)}
+.buscador::placeholder{color:var(--soft)}
+.sin-resultados{text-align:center; padding:14px 6px}
 
 /* Huesos del esqueleto: bloques grises que laten mientras se espera. */
 .hueso{display:block; height:13px; border-radius:7px; margin-bottom:9px;
@@ -4200,6 +4207,7 @@ const S = {
   correo: "",              // lo escrito en el campo de correo, para no perderlo
   sesion: null, verificando: true, sinCuenta: false, errorIngreso: "",
   servidorCaido: false,          // se trabaja local porque el servidor no contesta
+  ocultarAvisoRespaldo: false,   // el recordatorio se pospuso hasta reabrir
   cursoId: localStorage.getItem(PREFIJO + "ultimoCurso") || "c6",
   datos: null, cargando: true, errorCarga: "",
   evalIdx: 0, pestana: "evaluar", modo: "planilla", criterioActivo: 0, alumnoActivo: 0,
@@ -4537,7 +4545,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v243";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v244";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 
@@ -5638,11 +5646,17 @@ function vistaApp() {
   </header>
   <div class="envoltura">
     ${S.cargando ? esqueletoHTML(curso.nombre) : `
-    ${S.servidorCaido ? `<div class="aviso aviso-local no-imprimir">
+    ${S.servidorCaido ? `<div class="aviso aviso-local aviso-sin-red no-imprimir">
       <b>Sin conexión con el servidor.</b> Estás trabajando con los datos de este equipo:
       puedes evaluar normalmente y todo se sube solo cuando el servidor vuelva.
       Mientras tanto usa este mismo aparato, para que nada se pise.
       <button class="btn btn-mini" data-accion="probar-servidor">Probar ahora</button>
+    </div>` : ""}
+    ${tocaRespaldar() && !S.ocultarAvisoRespaldo ? `<div class="aviso aviso-local aviso-respaldo no-imprimir">
+      <b>Llevas ${diasSinRespaldar()} días sin respaldar.</b>
+      Un archivo pequeño guarda todas tus evaluaciones por si cambias de equipo.
+      <button class="btn btn-mini btn-lleno" data-accion="respaldo-todo">Respaldar ahora</button>
+      <button class="btn btn-mini" data-accion="posponer-respaldo">Después</button>
     </div>` : ""}
     ${S.errorCarga ? `<div class="aviso">No se pudieron traer los datos guardados. ${esc(S.errorCarga)}</div>` : ""}
     ${S.volverA ? `<button class="btn btn-volver no-imprimir" data-accion="volver">
@@ -6919,8 +6933,11 @@ function vistaCurso() {
       <input type="text" id="nuevo-alumno" placeholder="Nombre y apellido" style="flex:1;min-width:150px">
       <button class="btn btn-mini btn-lleno" data-accion="agregar-alumno">Agregar</button>
     </div>
+    ${S.datos.roster.length > 8 ? `<input type="search" class="buscador" data-buscador
+      placeholder="Buscar estudiante" aria-label="Buscar estudiante en la nómina">` : ""}
+    <div data-lista-buscable>
     ${S.datos.roster.length ? S.datos.roster.map((n, i) => `
-      <div style="border-top:1px solid var(--line);padding:5px 0">
+      <div style="border-top:1px solid var(--line);padding:5px 0" data-buscable="${esc(paraBuscar(n))}">
         <div class="alumno-cab">
           <span class="n-orden">${String(i + 1).padStart(2, "0")}</span>
           <input class="student-name-v152" type="text" data-campo="alumno" data-i="${i}" value="${esc(n)}" placeholder="Nombre y apellido" style="flex:1;padding:6px 8px">
@@ -6935,6 +6952,8 @@ function vistaCurso() {
         <button class="btn btn-lleno" data-accion="sumar-casilleros" data-n="20">Crear 20 casilleros</button>
         <button class="btn" data-accion="pegar-nomina">Pegar lista completa</button>
       </div></div>`}
+    <p class="sub sin-resultados" hidden>Ningún estudiante coincide con esa búsqueda.</p>
+    </div>
     ${S.datos.roster.length ? `<div class="fila" style="margin-top:12px">
       <button class="btn btn-mini" data-accion="sumar-casilleros" data-n="1">+ 1 casillero</button>
       <button class="btn btn-mini" data-accion="sumar-casilleros" data-n="5">+ 5 casilleros</button>
@@ -7011,6 +7030,14 @@ function vistaCurso() {
       </select></label>
     <p class="sub" style="margin:2px 0 12px">Descarga una copia y recupérala cuando la necesites.
       El respaldo completo trae los ocho cursos en un solo archivo.</p>
+    ${(() => {
+      const d = diasSinRespaldar();
+      const hubo = !!localStorage.getItem(CLAVE_RESP);
+      if (!S.datos || !S.datos.evaluaciones.length) return "";
+      return `<p class="sub" style="margin:-6px 0 10px">${hubo
+        ? `Último respaldo: hace ${d === 0 ? "menos de un día" : d === 1 ? "1 día" : `${d} días`}.`
+        : "Todavía no has descargado ningún respaldo."}</p>`;
+    })()}
     <div class="fila">
       <button class="btn btn-mini btn-lleno" data-accion="respaldo-todo">Respaldo completo</button>
       <button class="btn btn-mini" data-accion="respaldo">Solo este curso</button>
@@ -7048,6 +7075,30 @@ function cerrarModal() { $("#capa-modal").innerHTML = ""; }
 /* Varias acciones llevan a la pestaña Evaluar desde Resumen o Consolidado.
    Antes eso dejaba al profesor sin regreso: había que buscar la pestaña de
    nuevo y se perdía el lugar donde estaba. Aquí se anota de dónde venía. */
+/* Texto comparable para buscar: sin tildes, sin mayúsculas. Así "Ávila"
+   aparece escribiendo "avila", que es como se teclea con una mano en la cancha. */
+const paraBuscar = (t) => String(t || "").normalize("NFD")
+  .replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+/* El filtrado se hace sobre el DOM y no repintando: si repintara, el campo de
+   búsqueda se recrearía en cada tecla y el teclado perdería el foco. */
+document.addEventListener("input", (evt) => {
+  const campo = evt.target;
+  if (!campo || !campo.matches || !campo.matches("[data-buscador]")) return;
+  const caja = campo.parentElement.querySelector("[data-lista-buscable]")
+    || (campo.closest(".tarjeta") || document).querySelector("[data-lista-buscable]");
+  if (!caja) return;
+  const q = paraBuscar(campo.value);
+  let visibles = 0;
+  caja.querySelectorAll("[data-buscable]").forEach((fila) => {
+    const calza = !q || fila.dataset.buscable.includes(q);
+    fila.hidden = !calza;
+    if (calza) visibles++;
+  });
+  const vacio = caja.querySelector(".sin-resultados");
+  if (vacio) vacio.hidden = !q || visibles > 0;
+}, true);
+
 const NOMBRE_PESTANA = { evaluar: "Evaluar", resumen: "Resumen", consolidado: "Consolidado", curso: "Nómina" };
 function saltarAPestana(destino) {
   if (S.pestana !== destino) S.volverA = S.pestana;
@@ -7356,8 +7407,8 @@ document.addEventListener("click", async (evt) => {
   if (a === "modo-cancha-salir") { S.modoCancha = false; pintar(); window.scrollTo({top:0,behavior:'smooth'}); return; }
   if (a === "progreso-estudiante") {
     if (!S.datos.roster.length) { abrirModal(`<h3>Progreso por estudiante</h3><p class="sub">Primero debes agregar estudiantes a la nómina.</p><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return; }
-    const filas = S.datos.roster.map((nom,i)=>{ const f=fichaDe(i), g=progresoGeneral(i); const ini=(nom||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase(); return `<button class="progreso-persona" data-accion="ver-progreso" data-i="${i}"><span class="avatar">${esc(ini||String(i+1))}</span><span><b class="student-name-v152">${esc(nom||`Estudiante ${i+1}`)}</b><small>${g.puntos.length} evaluación${g.puntos.length===1?'':'es'} con datos · promedio ${num1(f.prom)}</small></span><span class="flecha">›</span></button>`; }).join('');
-    abrirModal(`<h3>Progreso por estudiante</h3><p class="sub" style="margin:5px 0 10px">Selecciona un estudiante para ver su evolución, indicadores que requieren apoyo y mejoras observadas.</p><div class="progreso-seleccion">${filas}</div><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return;
+    const filas = S.datos.roster.map((nom,i)=>{ const f=fichaDe(i), g=progresoGeneral(i); const ini=(nom||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase(); return `<button class="progreso-persona" data-accion="ver-progreso" data-i="${i}" data-buscable="${esc(paraBuscar(nom))}"><span class="avatar">${esc(ini||String(i+1))}</span><span><b class="student-name-v152">${esc(nom||`Estudiante ${i+1}`)}</b><small>${g.puntos.length} evaluación${g.puntos.length===1?'':'es'} con datos · promedio ${num1(f.prom)}</small></span><span class="flecha">›</span></button>`; }).join('');
+    abrirModal(`<h3>Progreso por estudiante</h3><p class="sub" style="margin:5px 0 10px">Selecciona un estudiante para ver su evolución, indicadores que requieren apoyo y mejoras observadas.</p>${S.datos.roster.length > 8 ? `<input type="search" class="buscador" data-buscador placeholder="Buscar estudiante" aria-label="Buscar estudiante">` : ""}<div class="progreso-seleccion" data-lista-buscable>${filas}<p class="sub sin-resultados" hidden>Ningún estudiante coincide con esa búsqueda.</p></div><div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`); return;
   }
   if (a === "ver-progreso") {
     abrirFichaProgreso(+btn.dataset.i); return;
@@ -8307,6 +8358,9 @@ document.addEventListener("click", async (evt) => {
     if (S.servidorCaido && b.isConnected) { b.disabled = false; b.textContent = antes; }
     return;
   }
+  /* "Después" calla el aviso hasta el próximo arranque: insistir en medio de
+     una clase sería peor que el olvido que intenta evitar. */
+  if (a === "posponer-respaldo") { S.ocultarAvisoRespaldo = true; pintar(); return; }
   if (a === "respaldo") { descargarRespaldo(); return; }
   if (a === "respaldo-todo") { descargarRespaldoTotal(); return; }
   if (a === "restaurar") { pedirRestaurar(); return; }
@@ -9888,11 +9942,41 @@ async function exportarExcel() {
   XLSX.writeFile(libro, `Cotejo-${curso.label.replace("°", "")}basico.xlsx`);
 }
 
+/* ---- Recordatorio de respaldo ----
+   El respaldo existía pero había que acordarse. Un semestre de evaluaciones
+   cabe en un archivo de pocos kilobytes; perderlo por no apretar un botón
+   sería una lástima. Se anota cuándo fue el último y se avisa sin insistir. */
+const CLAVE_RESP = PREFIJO + "ultimoRespaldo";
+const DIAS_AVISO = 21;
+
+function anotarRespaldo() {
+  try { localStorage.setItem(CLAVE_RESP, new Date().toISOString()); } catch {}
+}
+
+/* Días desde el último respaldo. Si nunca hubo, cuenta desde que se empezó a
+   usar la app, para no acusar a alguien que recién la instaló. */
+function diasSinRespaldar() {
+  const guardado = localStorage.getItem(CLAVE_RESP) || localStorage.getItem(PREFIJO + "inicio");
+  if (!guardado) {
+    try { localStorage.setItem(PREFIJO + "inicio", new Date().toISOString()); } catch {}
+    return 0;
+  }
+  const t = Date.parse(guardado);
+  if (!t) return 0;
+  return Math.floor((Date.now() - t) / 86400000);
+}
+
+function tocaRespaldar() {
+  if (!S.datos || !S.datos.evaluaciones || !S.datos.evaluaciones.length) return false;
+  return diasSinRespaldar() >= DIAS_AVISO;
+}
+
 function descargarRespaldo() {
   const curso = CURSOS.find((c) => c.id === S.cursoId) || CURSOS[0];
   descargar(`respaldo-${curso.label.replace("°", "")}basico-${hoy()}.json`,
     JSON.stringify({ curso: S.cursoId, fecha: new Date().toISOString(), datos: S.datos }, null, 2),
     "application/json");
+  anotarRespaldo();
 }
 
 /* Junta los ocho cursos en un archivo. El curso abierto se toma de memoria,
@@ -9906,6 +9990,7 @@ async function descargarRespaldoTotal() {
     catch (e) { fallos.push(c.nombre); }
   }
   descargar(`respaldo-completo-${hoy()}.json`, JSON.stringify(paquete, null, 2), "application/json");
+  anotarRespaldo();
   if (fallos.length) abrirModal(`<h3>Respaldo descargado</h3>
     <p class="sub" style="margin:6px 0 0">No se pudo leer: ${esc(fallos.join(", "))}. El resto quedó guardado.</p>
     <div class="fila" style="margin-top:12px"><button class="btn" data-accion="cerrar-modal">Cerrar</button></div>`);
