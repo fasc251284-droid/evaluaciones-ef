@@ -16,7 +16,9 @@
 :root{
   /* Azul y dorado: la identidad. Verde y rojo: solo el estado de una marca. */
   --bg:#f4f8fa; --surface:#fff; --surface-2:#edf4f8;
-  --ink:#102b38; --soft:#5b7383; --line:#d5e2ea;
+  /* --soft bajó a 4,25 de contraste cuando oscurecí el fondo de la página
+     en v251. #536a7a lo devuelve sobre 4,5 en los tres fondos. */
+  --ink:#102b38; --soft:#536a7a; --line:#d5e2ea;
   --azul:#1f7fb0; --azul-oscuro:#175f85; --azul-claro:#e4f0f8;
   --oro:#e0980f;
   --logro:#1e8a5f; --falta:#b8392e;
@@ -1816,8 +1818,9 @@ input.student-name-v152,select.student-name-v152{font-family:var(--body)!importa
   /* Sin medalla: cuando no hay nada que corregir basta la frase. */
   .dashboard-v130 .foco-v130.foco-ok .foco-ico{display:none}
   .dashboard-v130 .foco-v130.foco-ok{grid-template-columns:1fr}
+  /* Rótulo de 12 px: con el gris de apoyo quedaba al filo de lo legible. */
   .dashboard-v130 .foco-v130.foco-ok small{
-    color:var(--soft); font-weight:600; letter-spacing:0;
+    color:#3f5564; font-weight:700; letter-spacing:0;
   }
   .dashboard-v130 .foco-v130.foco-ok p{
     font-size:var(--t-sm); font-weight:600; color:var(--ink);
@@ -1965,6 +1968,13 @@ input.student-name-v152,select.student-name-v152{font-family:var(--body)!importa
   body.dictando-v252 .envoltura{padding-bottom:calc(160px + env(safe-area-inset-bottom))}
 
   :root[data-tema="oscuro"] .tira-voz-v252{background:#12303f}
+
+  /* En cancha el teléfono va en una mano y al aire libre: nada de lo que
+     se toca baja de 40 px. "P" quedaba en 34×30. */
+  body.modo-cancha-activo .asis,
+  body.modo-cancha-activo .btn-mini{min-height:40px; min-width:40px}
+  body.modo-cancha-activo .btn-mini{padding-left:14px; padding-right:14px}
+  .tira-voz-v252 .btn{min-height:40px; padding:0 16px}
 }
 
 </style>
@@ -4853,7 +4863,7 @@ const HOJAS = {
   carta:  { nombre: "Carta",  corto: 216, largo: 279 },
   oficio: { nombre: "Oficio", corto: 216, largo: 356 },
 };
-const VERSION_APP = "v252";   // debe coincidir con el CACHE de sw.js
+const VERSION_APP = "v253";   // debe coincidir con el CACHE de sw.js
 const CLAVE_HOJA = PREFIJO + "hoja";
 const hojaGuardada = () => (HOJAS[localStorage.getItem(CLAVE_HOJA)] ? localStorage.getItem(CLAVE_HOJA) : "a4");
 
